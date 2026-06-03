@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Print-friendly styles — hides navigation, adjusts layout for paper */
+@media print {
+  /* Hide sidebar and navigation */
+  aside {
+    display: none !important;
+  }
+
+  /* Remove sidebar margin from main content */
+  main {
+    margin-left: 0 !important;
+    padding: 0.5cm !important;
+  }
+
+  /* Hide interactive elements */
+  .print\:hidden,
+  button,
+  select,
+  a[href] {
+    display: none !important;
+  }
+
+  /* But show table data that happens to be in buttons/links */
+  table button,
+  table a {
+    display: inline !important;
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+
+  /* Clean up card backgrounds for print */
+  .bg-white {
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  /* Ensure text is dark for printing */
+  body {
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  /* Page break control */
+  table {
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+  }
+  thead {
+    display: table-header-group;
+  }
+
+  /* Print header */
+  .print\:text-navy-600 {
+    color: #486581 !important;
+  }
+
+  /* Ensure badges print with background */
+  [class*="bg-"] {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

@@ -126,6 +126,12 @@ alembic revision --autogenerate -m "your message"
 alembic upgrade head
 ```
 
+## Production deployment
+
+### Production `.env` checklist
+
+- `ADMIN_EMAILS` — your email, to be granted Admin on first sign-in
+
 ## Testing
 
 > **Note:** This project does not yet ship an automated test suite. The steps below cover the smoke tests and tooling available today, plus where new tests should go.

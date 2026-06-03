@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     AZURE_AUTHORITY: str = ""
     AZURE_REDIRECT_URI: str = "http://localhost:8000/api/auth/callback"
 
+    # Comma-separated emails granted ADMIN automatically on first sign-in.
+    ADMIN_EMAILS: str = ""
+
     # CORS
     BACKEND_CORS_ORIGINS: str = "http://localhost:5173"
 

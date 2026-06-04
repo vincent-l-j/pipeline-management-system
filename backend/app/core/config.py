@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     AZURE_AUTHORITY: str = ""
     AZURE_REDIRECT_URI: str = "http://localhost:8000/api/auth/callback"
 
+    # Where to send the user after a successful login (the frontend origin)
+    FRONTEND_URL: str = "http://localhost:5173"
+
     # Comma-separated emails granted ADMIN automatically on first sign-in.
     ADMIN_EMAILS: str = ""
 

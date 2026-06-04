@@ -86,7 +86,7 @@ def callback(code: str, db: Session = Depends(get_db)):
     token = create_access_token(str(user.id), user.email, user.role.value)
 
     # Redirect to frontend with the token
-    return RedirectResponse(f"http://localhost:5173/auth/callback?token={token}")
+    return RedirectResponse(f"{settings.FRONTEND_URL}/auth/callback?token={token}")
 
 
 @router.get("/dev-token")

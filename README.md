@@ -130,6 +130,7 @@ alembic upgrade head
 
 ### Production `.env` checklist
 
+- `FRONTEND_URL=https://<domain>` and `BACKEND_CORS_ORIGINS=https://<domain>`
 - `ADMIN_EMAILS` — your email, to be granted Admin on first sign-in
 
 ## Testing

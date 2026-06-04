@@ -92,7 +92,11 @@ def callback(code: str, db: Session = Depends(get_db)):
 @router.get("/dev-token")
 def dev_token(db: Session = Depends(get_db)):
     """Development only — creates a test admin user and returns a JWT.
-    Remove this endpoint before production deployment."""
+    Remove this endpoint before production deployment.
+    Disabled unless ENABLE_DEV_LOGIN is true (must stay off in production)."""
+    if not settings.ENABLE_DEV_LOGIN:
+        raise HTTPException(status_code=404, detail="Not found")
+
     email = "dev@rozettainstitute.com"
     user = db.query(User).filter(User.email == email).first()
     if not user:

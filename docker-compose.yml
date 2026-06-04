@@ -20,6 +20,10 @@ services:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      # Local dev convenience: enable the test login regardless of .env.
+      # The production stack (docker-compose.prod.yml) leaves this off.
+      ENABLE_DEV_LOGIN: "true"
     depends_on:
       - db
     volumes:
@@ -30,6 +34,9 @@ services:
     restart: always
     ports:
       - "5173:5173"
+    environment:
+      # Shows the "Dev Login (Admin)" button in the local dev UI.
+      VITE_ENABLE_DEV_LOGIN: "true"
     depends_on:
       - backend
     volumes:

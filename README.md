@@ -132,6 +132,7 @@ alembic upgrade head
 
 - `FRONTEND_URL=https://<domain>` and `BACKEND_CORS_ORIGINS=https://<domain>`
 - `ADMIN_EMAILS` — your email, to be granted Admin on first sign-in
+- `ENABLE_DEV_LOGIN=false` (keep the test login disabled in production)
 
 ## Testing
 

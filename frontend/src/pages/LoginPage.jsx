@@ -31,24 +31,28 @@ export default function LoginPage() {
           Sign in with Microsoft
         </button>
 
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200" />
-          </div>
-          <div className="relative flex justify-center text-xs">
-            <span className="bg-white px-3 text-navy-400">Development</span>
-          </div>
-        </div>
+        {import.meta.env.VITE_ENABLE_DEV_LOGIN === 'true' && (
+          <>
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-white px-3 text-navy-400">Development</span>
+              </div>
+            </div>
 
-        <button
-          onClick={handleDevLogin}
-          className="w-full border-2 border-navy-200 text-navy-600 py-3 px-6 rounded-lg font-medium hover:border-navy-400 transition-colors"
-        >
-          Dev Login (Admin)
-        </button>
-        <p className="text-xs text-navy-400 mt-2">
-          Creates a test admin account — remove before production
-        </p>
+            <button
+              onClick={handleDevLogin}
+              className="w-full border-2 border-navy-200 text-navy-600 py-3 px-6 rounded-lg font-medium hover:border-navy-400 transition-colors"
+            >
+              Dev Login (Admin)
+            </button>
+            <p className="text-xs text-navy-400 mt-2">
+              Creates a test admin account — disabled in production
+            </p>
+          </>
+        )}
       </div>
     </div>
   )

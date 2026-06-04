@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     # Where to send the user after a successful login (the frontend origin)
     FRONTEND_URL: str = "http://localhost:5173"
 
+    # Dev-only test login. MUST stay False in production.
+    ENABLE_DEV_LOGIN: bool = False
+
     # Comma-separated emails granted ADMIN automatically on first sign-in.
     ADMIN_EMAILS: str = ""
 

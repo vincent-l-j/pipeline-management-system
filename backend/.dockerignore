@@ -1,0 +1,8 @@
+# Keep build context small and stale bytecode out of the image. This matters for
+# the prod stage: a leftover dev.cpython-*.pyc could otherwise survive the rm.
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+*.log

@@ -145,6 +145,28 @@ Relevant files:
 The dev and prod stacks share these Dockerfiles, selecting stages via `build.target`
 (`dev` in `docker-compose.yml`, `prod` in `docker-compose.prod.yml`).
 
+### Server sizing & scaling
+
+The stack runs three small containers (Postgres + FastAPI + Caddy). At idle it's light; the
+memory spike is **`npm run build`** during deploy, which can briefly exceed 1 GB.
+
+| Tier | Fit |
+|------|-----|
+| **2 GB RAM / 2 vCPU** | Works for the pilot, but the build flirts with the ceiling — add a swap file (below) or build the image in CI instead of on the server. |
+| **4 GB RAM / 2 vCPU** | Comfortable: build never OOMs, headroom for the org-wide rollout. Recommended. |
+
+Pick a region near your users (latency), and prefer a provider with easy resize (DigitalOcean,
+Vultr). **Scaling up later is a reboot, not a migration** — a RAM/CPU resize keeps the same IP,
+disk, data, `.env`, Docker volumes, and TLS certs. (Disk grows are one-way; you only do a true
+migration if you switch *providers*.) So start small and resize when the rollout demands it.
+
+If you're on a 2 GB box and the build OOM-kills, add 2 GB of swap once:
+
+```bash
+fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab     # persist across reboots
+```
+
 ### One-time server setup
 
 On an Ubuntu cloud server (e.g. a DigitalOcean droplet, ≥2 GB RAM — the frontend build is

@@ -13,7 +13,7 @@ from app.schemas.assessment import AssessmentCreate, AssessmentOut
 router = APIRouter(prefix="/assessments", tags=["assessments"])
 
 
-@router.get("/", response_model=list[AssessmentOut])
+@router.get("", response_model=list[AssessmentOut])
 def list_assessments(
     pitch_id: UUID | None = None,
     db: Session = Depends(get_db),
@@ -37,7 +37,7 @@ def get_assessment(
     return assessment
 
 
-@router.post("/", response_model=AssessmentOut)
+@router.post("", response_model=AssessmentOut)
 def create_assessment(
     data: AssessmentCreate,
     db: Session = Depends(get_db),

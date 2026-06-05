@@ -13,7 +13,7 @@ from app.schemas.organisation import OrganisationCreate, OrganisationUpdate, Org
 router = APIRouter(prefix="/organisations", tags=["organisations"])
 
 
-@router.get("/", response_model=list[OrganisationOut])
+@router.get("", response_model=list[OrganisationOut])
 def list_organisations(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -33,7 +33,7 @@ def get_organisation(
     return org
 
 
-@router.post("/", response_model=OrganisationOut)
+@router.post("", response_model=OrganisationOut)
 def create_organisation(
     data: OrganisationCreate,
     db: Session = Depends(get_db),

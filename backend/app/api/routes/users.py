@@ -12,7 +12,7 @@ from app.schemas.user import UserCreate, UserUpdate, UserOut
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.get("/", response_model=list[UserOut])
+@router.get("", response_model=list[UserOut])
 def list_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     return db.query(User).order_by(User.display_name).all()
 
@@ -30,7 +30,7 @@ def get_user(user_id: UUID, db: Session = Depends(get_db), current_user: User = 
     return user
 
 
-@router.post("/", response_model=UserOut)
+@router.post("", response_model=UserOut)
 def create_user(
     data: UserCreate,
     db: Session = Depends(get_db),

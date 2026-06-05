@@ -16,7 +16,7 @@ from app.models.assessment import Assessment
 router = APIRouter(prefix="/search", tags=["search"])
 
 
-@router.get("/")
+@router.get("")
 def search_all(
     q: str = Query(..., min_length=2, description="Search query"),
     db: Session = Depends(get_db),

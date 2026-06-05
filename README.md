@@ -128,11 +128,75 @@ alembic upgrade head
 
 ## Production deployment
 
+The repo ships a production stack separate from the dev one: **Postgres + FastAPI + Caddy**,
+where Caddy serves the built React SPA and reverse-proxies `/api` to the backend on a single
+HTTPS domain (automatic Let's Encrypt certificates).
+
+Relevant files:
+
+| File | Purpose |
+|------|---------|
+| `docker-compose.prod.yml` | Production stack — builds the `prod` target of each image, no source mounts, no dev reload, DB/backend internal-only, Caddy on 80/443 |
+| `backend/Dockerfile` | Multi-stage (`base`→`dev`/`prod`); the `prod` stage strips the dev-login module |
+| `frontend/Dockerfile` | Multi-stage (`base`→`dev`→`build`→`prod`); the `prod` stage serves the built SPA with Caddy |
+| `frontend/Caddyfile` | HTTPS, SPA routing fallback, `/api` → backend proxy |
+| `deploy.sh` | `git pull` + rebuild + restart — the redeploy command |
+
+The dev and prod stacks share these Dockerfiles, selecting stages via `build.target`
+(`dev` in `docker-compose.yml`, `prod` in `docker-compose.prod.yml`).
+
+### One-time server setup
+
+On an Ubuntu cloud server (e.g. a DigitalOcean droplet, ≥2 GB RAM — the frontend build is
+memory-hungry):
+
+```bash
+# Install Docker Engine + Compose plugin (no Docker Desktop / license needed)
+curl -fsSL https://get.docker.com | sh
+
+# Firewall: SSH + web only
+ufw allow OpenSSH && ufw allow 80 && ufw allow 443 && ufw enable
+
+# Clone, configure, launch
+git clone <your-private-repo> rozetta-pms && cd rozetta-pms
+cp .env.example .env          # fill in the production checklist below
+./deploy.sh
+```
+
+Point a DNS **A record** for your domain at the server's IP before launching, so Caddy can
+issue a TLS certificate.
+
 ### Production `.env` checklist
 
+- `POSTGRES_PASSWORD` — strong value; mirror it inside `DATABASE_URL` (host stays `db`)
+- `SECRET_KEY` — `openssl rand -hex 32`
+- `SITE_ADDRESS` — your bare domain, e.g. `pms.rozettainstitute.com`
 - `FRONTEND_URL=https://<domain>` and `BACKEND_CORS_ORIGINS=https://<domain>`
+- `AZURE_REDIRECT_URI=https://<domain>/api/auth/callback` (must match the Azure app registration exactly)
+- `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` / `AZURE_TENANT_ID`
 - `ADMIN_EMAILS` — your email, to be granted Admin on first sign-in
 - `ENABLE_DEV_LOGIN=false` (keep the test login disabled in production)
+- Optional: `ANTHROPIC_API_KEY`
+
+### Shipping updates
+
+Push to your Git remote, then on the server run `./deploy.sh`. Postgres data and TLS certs
+persist across redeploys via named volumes.
+
+### Outstanding before production hardening
+
+Kept simple for the pilot; do these before real users depend on the system:
+
+- **Off-server backups.** A daily `pg_dump` cron on the host (writing to `/root/backups`, not the
+  `pgdata` volume) is the minimum, but that disk dies with the server. Add a `backup.sh` that
+  uploads each dump to object storage (DigitalOcean Spaces / S3 / Backblaze B2 via `rclone`) and
+  rotates local copies — or switch to DO Managed PostgreSQL (automated backups + PITR).
+- **Fail loud on missing config.** `FRONTEND_URL` (and other prod-critical settings) default to
+  `localhost` in `config.py`; consider removing the defaults so an unset value errors at startup
+  instead of silently breaking the login redirect.
+- **Tighten CORS.** `backend/app/main.py` allows `methods=["*"]`/`headers=["*"]`; scope these down
+  (same-origin behind Caddy means CORS is barely exercised, but don't ship `*` long-term).
+- **Automated tests + CI.** No test suite yet (see below); add one before iterating with users.
 
 ## Testing
 

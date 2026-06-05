@@ -17,6 +17,8 @@ app = FastAPI(
     version="0.1.0",
 )
 
+app.router.redirect_slashes = False
+
 # Allow the frontend to talk to the backend
 app.add_middleware(
     CORSMiddleware,

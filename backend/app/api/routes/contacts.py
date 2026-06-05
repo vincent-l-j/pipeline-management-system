@@ -13,7 +13,7 @@ from app.schemas.contact import ContactCreate, ContactUpdate, ContactOut
 router = APIRouter(prefix="/contacts", tags=["contacts"])
 
 
-@router.get("/", response_model=list[ContactOut])
+@router.get("", response_model=list[ContactOut])
 def list_contacts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -33,7 +33,7 @@ def get_contact(
     return contact
 
 
-@router.post("/", response_model=ContactOut)
+@router.post("", response_model=ContactOut)
 def create_contact(
     data: ContactCreate,
     db: Session = Depends(get_db),

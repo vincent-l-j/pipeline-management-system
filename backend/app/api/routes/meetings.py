@@ -17,7 +17,7 @@ from app.services.ai_notetaker import parse_meeting_notes
 router = APIRouter(prefix="/meetings", tags=["meetings"])
 
 
-@router.get("/", response_model=list[MeetingOut])
+@router.get("", response_model=list[MeetingOut])
 def list_meetings(
     pitch_id: UUID | None = None,
     db: Session = Depends(get_db),
@@ -41,7 +41,7 @@ def get_meeting(
     return meeting
 
 
-@router.post("/", response_model=MeetingOut)
+@router.post("", response_model=MeetingOut)
 def create_meeting(
     data: MeetingCreate,
     db: Session = Depends(get_db),

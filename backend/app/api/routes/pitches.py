@@ -17,7 +17,7 @@ from app.schemas.pitch import (
 router = APIRouter(prefix="/pitches", tags=["pitches"])
 
 
-@router.get("/", response_model=list[PitchOut])
+@router.get("", response_model=list[PitchOut])
 def list_pitches(
     stage: Optional[PipelineStage] = Query(None),
     lead_id: Optional[UUID] = Query(None),
@@ -44,7 +44,7 @@ def get_pitch(
     return pitch
 
 
-@router.post("/", response_model=PitchOut)
+@router.post("", response_model=PitchOut)
 def create_pitch(
     data: PitchCreate,
     db: Session = Depends(get_db),

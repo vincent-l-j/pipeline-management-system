@@ -1,0 +1,21 @@
+# Caddy serves the built SPA and reverse-proxies the API on a single origin.
+# {$SITE_ADDRESS} comes from the environment (set in docker-compose.prod.yml).
+# A bare domain (e.g. pms.rozettainstitute.com) triggers automatic HTTPS via Let's Encrypt.
+# Use ":80" for a local/no-domain smoke test.
+{$SITE_ADDRESS} {
+    encode gzip
+
+    # API requests go to the FastAPI backend (path prefix preserved).
+    @api path /api/*
+    handle @api {
+        reverse_proxy backend:8000
+    }
+
+    # Everything else is the React SPA; fall back to index.html for client-side routes
+    # (so deep links like /auth/callback and /pipeline work on refresh).
+    handle {
+        root * /srv
+        try_files {path} /index.html
+        file_server
+    }
+}

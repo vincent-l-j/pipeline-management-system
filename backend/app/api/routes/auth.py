@@ -87,32 +87,3 @@ def callback(code: str, db: Session = Depends(get_db)):
 
     # Redirect to frontend with the token
     return RedirectResponse(f"{settings.FRONTEND_URL}/auth/callback?token={token}")
-
-
-@router.get("/dev-token")
-def dev_token(db: Session = Depends(get_db)):
-    """Development only — creates a test admin user and returns a JWT.
-    Remove this endpoint before production deployment.
-    Disabled unless ENABLE_DEV_LOGIN is true (must stay off in production)."""
-    if not settings.ENABLE_DEV_LOGIN:
-        raise HTTPException(status_code=404, detail="Not found")
-
-    email = "dev@rozettainstitute.com"
-    user = db.query(User).filter(User.email == email).first()
-    if not user:
-        user = User(
-            email=email,
-            display_name="Dev Admin",
-            role=UserRole.ADMIN,
-        )
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-
-    token = create_access_token(str(user.id), user.email, user.role.value)
-    return {"access_token": token, "token_type": "bearer", "user": {
-        "id": str(user.id),
-        "email": user.email,
-        "display_name": user.display_name,
-        "role": user.role.value,
-    }}

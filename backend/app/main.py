@@ -38,6 +38,19 @@ app.include_router(search.router, prefix="/api")
 app.include_router(timeline.router, prefix="/api")
 app.include_router(reports.router, prefix="/api")
 
+# Dev-only login routes live in an optional module that is stripped from
+# production images. We import it only when explicitly enabled, so enabling the
+# flag on a production build (where the module was removed) is a safe no-op.
+if settings.ENABLE_DEV_LOGIN:
+    try:
+        from app.api.routes import dev
+        app.include_router(dev.router, prefix="/api")
+    except ImportError:
+        import logging
+        logging.getLogger("uvicorn.error").warning(
+            "ENABLE_DEV_LOGIN is set, but dev routes are not present in this build — ignoring."
+        )
+
 
 @app.get("/api/health")
 def health_check():

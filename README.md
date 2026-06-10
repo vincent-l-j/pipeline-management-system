@@ -218,11 +218,30 @@ Kept simple for the pilot; do these before real users depend on the system:
   instead of silently breaking the login redirect.
 - **Tighten CORS.** `backend/app/main.py` allows `methods=["*"]`/`headers=["*"]`; scope these down
   (same-origin behind Caddy means CORS is barely exercised, but don't ship `*` long-term).
-- **Automated tests + CI.** No test suite yet (see below); add one before iterating with users.
+- **Expand test coverage.** A backend `pytest` suite and GitHub Actions CI are in place (see
+  [Testing](#testing)); broaden coverage (auth, assessments, stage transitions) as features settle.
 
 ## Testing
 
-> **Note:** This project does not yet ship an automated test suite. The steps below cover the smoke tests and tooling available today, plus where new tests should go.
+The backend has a `pytest` suite (in `backend/tests/`) that runs against an in-memory SQLite
+database — no Postgres needed. **GitHub Actions runs it on every push and pull request**
+(`.github/workflows/ci.yml`), so regressions are caught before deploy.
+
+### Running the backend tests
+
+```bash
+# In a container (parity with prod — recommended):
+docker compose run --rm backend pytest
+
+# Or build the dedicated test stage (this is exactly what CI runs):
+docker build --target test ./backend
+
+# Or on the host, in a virtualenv:
+cd backend && pip install -r requirements-dev.txt && pytest
+```
+
+Test-only dependencies live in `backend/requirements-dev.txt` (kept out of the production image,
+which installs `requirements.txt` only).
 
 ### Backend smoke test
 
@@ -248,7 +267,7 @@ npm run preview      # serve the built app to spot-check it
 
 ### Adding tests
 
-- **Backend** — [`pytest`](https://docs.pytest.org/) with FastAPI's `TestClient` is the recommended approach. Add a `backend/tests/` package and a `pytest` dependency to `requirements.txt`, then run with `pytest` from `backend/`.
+- **Backend** — add more [`pytest`](https://docs.pytest.org/) modules under `backend/tests/` (using FastAPI's `TestClient`); the fixtures in `tests/conftest.py` give you a clean SQLite DB and an authenticated admin client. New test-only deps go in `requirements-dev.txt`.
 - **Frontend** — [Vitest](https://vitest.dev/) + React Testing Library pairs naturally with Vite. Add them as dev dependencies, then wire up a `"test": "vitest"` script in `frontend/package.json`.
 
 ## License

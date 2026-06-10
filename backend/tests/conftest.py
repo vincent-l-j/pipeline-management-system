@@ -64,3 +64,29 @@ def admin_client(client):
     app.dependency_overrides[get_current_user] = lambda: admin
     yield client
     app.dependency_overrides.pop(get_current_user, None)
+
+
+@pytest.fixture
+def assessor_client(client):
+    """Client authenticated as an assessor."""
+    assessor = User(
+        email="assessor@rozettainstitute.com",
+        display_name="Assessor",
+        role=UserRole.ASSESSOR,
+    )
+    app.dependency_overrides[get_current_user] = lambda: assessor
+    yield client
+    app.dependency_overrides.pop(get_current_user, None)
+
+
+@pytest.fixture
+def viewer_client(client):
+    """Client authenticated as a viewer (read-only role)."""
+    viewer = User(
+        email="viewer@rozettainstitute.com",
+        display_name="Viewer",
+        role=UserRole.VIEWER,
+    )
+    app.dependency_overrides[get_current_user] = lambda: viewer
+    yield client
+    app.dependency_overrides.pop(get_current_user, None)

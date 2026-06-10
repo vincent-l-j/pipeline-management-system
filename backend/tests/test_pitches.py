@@ -150,13 +150,16 @@ def test_list_file_links(admin_client):
 
 # --- Timeline ---
 
-def test_timeline_returns_list(admin_client):
+def test_timeline_returns_events(admin_client):
     create = admin_client.post("/api/pitches", json={"title": "Timeline Pitch"})
     pitch_id = create.json()["id"]
 
     resp = admin_client.get(f"/api/pitches/{pitch_id}/timeline")
     assert resp.status_code == 200
-    assert isinstance(resp.json(), list)
+    body = resp.json()
+    assert "events" in body
+    assert "total" in body
+    assert isinstance(body["events"], list)
 
 
 # --- RBAC ---
@@ -176,20 +179,15 @@ def test_viewer_can_list_pitches(viewer_client):
     assert resp.status_code == 200
 
 
-def test_viewer_cannot_delete_pitch(admin_client, viewer_client):
-    create = admin_client.post("/api/pitches", json={"title": "Protected Pitch"})
-    pitch_id = create.json()["id"]
-
-    resp = viewer_client.delete(f"/api/pitches/{pitch_id}")
+def test_viewer_cannot_delete_pitch(viewer_client):
+    # RBAC fires before DB lookup — fake UUID is sufficient to test the 403
+    resp = viewer_client.delete("/api/pitches/00000000-0000-0000-0000-000000000099")
     assert resp.status_code == 403
 
 
-def test_viewer_cannot_transition_stage(admin_client, viewer_client):
-    create = admin_client.post("/api/pitches", json={"title": "No Viewer Stage"})
-    pitch_id = create.json()["id"]
-
+def test_viewer_cannot_transition_stage(viewer_client):
     resp = viewer_client.post(
-        f"/api/pitches/{pitch_id}/stage",
+        "/api/pitches/00000000-0000-0000-0000-000000000099/stage",
         json={"new_stage": "initial_screen"},
     )
     assert resp.status_code == 403

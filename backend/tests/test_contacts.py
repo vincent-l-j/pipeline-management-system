@@ -87,9 +87,6 @@ def test_viewer_can_list_contacts(viewer_client):
     assert resp.status_code == 200
 
 
-def test_viewer_cannot_delete_contact(admin_client, viewer_client):
-    create = admin_client.post("/api/contacts", json={"name": "Protected Contact"})
-    contact_id = create.json()["id"]
-
-    resp = viewer_client.delete(f"/api/contacts/{contact_id}")
+def test_viewer_cannot_delete_contact(viewer_client):
+    resp = viewer_client.delete("/api/contacts/00000000-0000-0000-0000-000000000099")
     assert resp.status_code == 403

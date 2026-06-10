@@ -11,6 +11,8 @@ import os
 os.environ["DATABASE_URL"] = "sqlite://"
 os.environ["ENABLE_DEV_LOGIN"] = "false"
 
+import uuid
+from datetime import datetime, timezone
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -22,6 +24,13 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models import Base
 from app.models.user import User, UserRole
+
+_NOW = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+# Fixed UUIDs so test users have non-None IDs without needing a DB insert
+_ADMIN_ID = uuid.UUID("aaaaaaaa-0000-0000-0000-000000000001")
+_ASSESSOR_ID = uuid.UUID("aaaaaaaa-0000-0000-0000-000000000002")
+_VIEWER_ID = uuid.UUID("aaaaaaaa-0000-0000-0000-000000000003")
 
 _engine = create_engine(
     "sqlite://",
@@ -57,9 +66,13 @@ def client():
 def admin_client(client):
     """Client authenticated as an admin (auth dependency overridden)."""
     admin = User(
+        id=_ADMIN_ID,
         email="tester@rozettainstitute.com",
         display_name="Tester",
         role=UserRole.ADMIN,
+        is_active=True,
+        created_at=_NOW,
+        updated_at=_NOW,
     )
     app.dependency_overrides[get_current_user] = lambda: admin
     yield client
@@ -70,9 +83,13 @@ def admin_client(client):
 def assessor_client(client):
     """Client authenticated as an assessor."""
     assessor = User(
+        id=_ASSESSOR_ID,
         email="assessor@rozettainstitute.com",
         display_name="Assessor",
         role=UserRole.ASSESSOR,
+        is_active=True,
+        created_at=_NOW,
+        updated_at=_NOW,
     )
     app.dependency_overrides[get_current_user] = lambda: assessor
     yield client
@@ -83,9 +100,13 @@ def assessor_client(client):
 def viewer_client(client):
     """Client authenticated as a viewer (read-only role)."""
     viewer = User(
+        id=_VIEWER_ID,
         email="viewer@rozettainstitute.com",
         display_name="Viewer",
         role=UserRole.VIEWER,
+        is_active=True,
+        created_at=_NOW,
+        updated_at=_NOW,
     )
     app.dependency_overrides[get_current_user] = lambda: viewer
     yield client

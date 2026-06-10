@@ -32,7 +32,16 @@ def test_health_endpoint_is_public(client):
 
 
 def test_auth_login_redirects(client):
-    """/auth/login should initiate the OAuth flow (redirect or JSON with auth URL)."""
-    resp = client.get("/api/auth/login")
-    # Either a redirect to Microsoft or a JSON body with the auth URL
-    assert resp.status_code in (302, 307, 200)
+    """/auth/login should redirect to the Microsoft OAuth URL."""
+    from unittest.mock import MagicMock, patch
+
+    mock_msal_app = MagicMock()
+    mock_msal_app.get_authorization_request_url.return_value = (
+        "https://login.microsoftonline.com/fake-tenant/oauth2/v2.0/authorize?client_id=fake"
+    )
+
+    with patch("app.api.routes.auth._build_msal_app", return_value=mock_msal_app):
+        resp = client.get("/api/auth/login")
+
+    assert resp.status_code in (302, 307)
+    assert "microsoftonline" in resp.headers.get("location", "")

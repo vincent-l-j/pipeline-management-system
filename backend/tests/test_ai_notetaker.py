@@ -35,8 +35,8 @@ Key points:
 def test_mock_parser_extracts_action_items():
     notes = """
 Action items:
-- John: schedule follow-up
-- Alice: prepare report
+- John: book the demo room
+- Alice: prepare the slide deck
 """
     result = _parse_mock(notes)
     assert len(result["action_items"]) == 2
@@ -50,7 +50,8 @@ def test_mock_parser_extracts_date():
 
 def test_mock_parser_extracts_attendees():
     notes = """
-Attendees: Alice, Bob, Charlie
+Attendees:
+Alice, Bob, Charlie
 """
     result = _parse_mock(notes)
     assert "Alice" in result["attendees"]

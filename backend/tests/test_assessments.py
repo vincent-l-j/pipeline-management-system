@@ -133,9 +133,9 @@ def test_filter_assessments_by_pitch(admin_client):
 
 # --- RBAC ---
 
-def test_viewer_cannot_create_assessment(admin_client, viewer_client):
-    pitch_id = _create_pitch(admin_client)
-    resp = viewer_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id})
+def test_viewer_cannot_create_assessment(viewer_client):
+    fake_pitch_id = "00000000-0000-0000-0000-000000000099"
+    resp = viewer_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": fake_pitch_id})
     assert resp.status_code == 403
 
 

@@ -68,12 +68,13 @@ class Pitch(Base, TimestampMixin):
     organisation = relationship("Organisation", back_populates="pitches")
     lead = relationship("User", back_populates="led_pitches", foreign_keys=[lead_id])
     stage_history = relationship(
-        "PitchStageHistory", back_populates="pitch", order_by="PitchStageHistory.changed_at"
+        "PitchStageHistory", back_populates="pitch",
+        order_by="PitchStageHistory.changed_at", cascade="all, delete-orphan"
     )
-    contact_links = relationship("PitchContact", back_populates="pitch")
-    file_links = relationship("PitchFileLink", back_populates="pitch")
-    meetings = relationship("Meeting", back_populates="pitch")
-    assessments = relationship("Assessment", back_populates="pitch")
+    contact_links = relationship("PitchContact", back_populates="pitch", cascade="all, delete-orphan")
+    file_links = relationship("PitchFileLink", back_populates="pitch", cascade="all, delete-orphan")
+    meetings = relationship("Meeting", back_populates="pitch", cascade="all, delete-orphan")
+    assessments = relationship("Assessment", back_populates="pitch", cascade="all, delete-orphan")
 
 
 class PitchStageHistory(Base):

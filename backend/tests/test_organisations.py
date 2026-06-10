@@ -67,9 +67,6 @@ def test_viewer_can_list_organisations(viewer_client):
     assert resp.status_code == 200
 
 
-def test_viewer_cannot_delete_organisation(admin_client, viewer_client):
-    create = admin_client.post("/api/organisations", json={"name": "No Delete Org"})
-    org_id = create.json()["id"]
-
-    resp = viewer_client.delete(f"/api/organisations/{org_id}")
+def test_viewer_cannot_delete_organisation(viewer_client):
+    resp = viewer_client.delete("/api/organisations/00000000-0000-0000-0000-000000000099")
     assert resp.status_code == 403

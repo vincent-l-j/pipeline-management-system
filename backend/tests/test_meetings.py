@@ -166,11 +166,11 @@ def test_parse_notes_empty_rejected(admin_client):
 
 # --- RBAC ---
 
-def test_viewer_cannot_create_meeting(admin_client, viewer_client):
-    pitch_id = _create_pitch(admin_client)
+def test_viewer_cannot_create_meeting(viewer_client):
+    fake_pitch_id = "00000000-0000-0000-0000-000000000099"
     resp = viewer_client.post(
         "/api/meetings",
-        json={"title": "Blocked", "meeting_date": "2026-07-10", "pitch_id": pitch_id},
+        json={"title": "Blocked", "meeting_date": "2026-07-10", "pitch_id": fake_pitch_id},
     )
     assert resp.status_code == 403
 

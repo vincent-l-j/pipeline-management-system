@@ -1,0 +1,4 @@
+# Development & test dependencies. Installed in the dev/test images and in CI,
+# but NOT in the production image (which uses requirements.txt only).
+-r requirements.txt
+pytest==8.3.4

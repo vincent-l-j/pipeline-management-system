@@ -15,6 +15,10 @@ app = FastAPI(
     title="Rozetta PMS",
     description="Pipeline Management System for Rozetta Institute",
     version="0.1.0",
+    # Don't auto-redirect /path <-> /path/. A trailing-slash mismatch now fails
+    # loudly with a 404 instead of a silent 307 — the latter masked a real bug
+    # where the redirect pointed at an unreachable host behind the dev proxy.
+    redirect_slashes=False,
 )
 
 # Allow the frontend to talk to the backend

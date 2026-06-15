@@ -1,0 +1,119 @@
+# .do/app.yaml  —  DigitalOcean App Platform production spec
+# This REPLACES docker-compose.yml for production. Compose stays for local dev only.
+#
+# Before first deploy, fill in the three <PLACEHOLDER> values and set the
+# SECRET env vars in the DO control panel (or via `doctl apps update`).
+# Validate locally with:  doctl apps spec validate .do/app.yaml
+
+name: rozetta-pms
+region: syd            # Sydney datacenter, lowest latency for you. Change if your DB/users are elsewhere.
+
+# ---------------------------------------------------------------------------
+# Managed Postgres. This replaces the `db` container — you do NOT run your own
+# postgres:16 image in prod. `production: false` is the cheap dev-grade tier
+# (no HA, no automated daily backups). Flip to true before real data lands.
+# ---------------------------------------------------------------------------
+databases:
+  - name: db
+    engine: PG
+    version: "16"
+    production: false
+
+# ---------------------------------------------------------------------------
+# Backend: FastAPI/uvicorn, built from your existing backend/Dockerfile.
+# run_command overrides the Dockerfile's `--reload` CMD.
+# ---------------------------------------------------------------------------
+services:
+  - name: backend
+    source_dir: backend
+    dockerfile_path: backend/Dockerfile
+    github:
+      repo: <PLACEHOLDER_GITHUB_ORG>/<PLACEHOLDER_REPO>
+      branch: main
+      deploy_on_push: true
+    run_command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    http_port: 8000
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-1gb   # verify with: doctl apps tier instance-size list
+    routes:
+      - path: /api
+        preserve_path_prefix: true   # without this, App Platform strips /api before forwarding
+    health_check:
+      http_path: /health             # REQUIRES an endpoint returning 200 here, or the deploy fails
+    envs:
+      # Managed DB connection, injected by the platform. Comes through as
+      # postgresql://...?sslmode=require  — your config.py must rewrite the
+      # scheme to postgresql+asyncpg:// and pass ssl via connect args, since
+      # asyncpg rejects the sslmode query param.
+      - key: DATABASE_URL
+        value: ${db.DATABASE_URL}
+        scope: RUN_TIME
+      - key: ANTHROPIC_API_KEY
+        type: SECRET
+        scope: RUN_TIME
+      - key: JWT_SECRET
+        type: SECRET
+        scope: RUN_TIME
+      - key: AZURE_AD_CLIENT_ID
+        scope: RUN_TIME
+        value: <PLACEHOLDER_AZURE_CLIENT_ID>
+      - key: AZURE_AD_TENANT_ID
+        scope: RUN_TIME
+        value: <PLACEHOLDER_AZURE_TENANT_ID>
+      # Include only if your backend does on-behalf-of / confidential-client flows.
+      # Pure JWT validation against Azure public keys does not need it.
+      - key: AZURE_AD_CLIENT_SECRET
+        type: SECRET
+        scope: RUN_TIME
+      # Explicitly OFF. Your compose forces this true for local dev.
+      - key: ENABLE_DEV_LOGIN
+        value: "false"
+        scope: RUN_TIME
+
+# ---------------------------------------------------------------------------
+# Frontend: Vite SPA as a static site (buildpack, not the Dockerfile).
+# Served from the edge under the same origin as the backend, so /api requests
+# are same-origin: no CORS, and the localStorage JWT travels normally.
+# ---------------------------------------------------------------------------
+static_sites:
+  - name: frontend
+    source_dir: frontend
+    github:
+      repo: <PLACEHOLDER_GITHUB_ORG>/<PLACEHOLDER_REPO>
+      branch: main
+      deploy_on_push: true
+    build_command: npm run build
+    output_dir: dist
+    catchall_document: index.html   # so React Router deep links (/pitches/42) don't 404
+    routes:
+      - path: /
+    envs:
+      # MUST be BUILD_TIME — Vite inlines VITE_* into the bundle at build.
+      # Setting it RUN_TIME does nothing.
+      - key: VITE_API_BASE_URL
+        scope: BUILD_TIME
+        value: /api
+      # VITE_ENABLE_DEV_LOGIN is deliberately NOT set here. Leaving it absent
+      # keeps the "Dev Login (Admin)" button out of production.
+
+# ---------------------------------------------------------------------------
+# OPTIONAL — Alembic migrations as a pre-deploy job.
+# Your app currently builds tables via Base.metadata.create_all() at startup,
+# which works for the first deploy but will NOT apply later schema changes.
+# Once Alembic is wired up, uncomment this and remove create_all() from startup.
+# Leaving it commented avoids a failed deploy if alembic isn't configured yet.
+# ---------------------------------------------------------------------------
+# jobs:
+#   - name: migrate
+#     kind: PRE_DEPLOY
+#     source_dir: backend
+#     dockerfile_path: backend/Dockerfile
+#     github:
+#       repo: <PLACEHOLDER_GITHUB_ORG>/<PLACEHOLDER_REPO>
+#       branch: main
+#     run_command: alembic upgrade head
+#     instance_size_slug: apps-s-1vcpu-1gb
+#     envs:
+#       - key: DATABASE_URL
+#         value: ${db.DATABASE_URL}
+#         scope: RUN_TIME

@@ -1,7 +1,7 @@
 # Multi-stage build. Select a stage with `--target dev|prod` (compose does this
 # via `build.target`). `base` is shared; `prod` builds the SPA then serves it
 # with Caddy.
-FROM node:20-slim AS base
+FROM node:24-slim AS base
 WORKDIR /app
 COPY package*.json ./
 RUN npm install

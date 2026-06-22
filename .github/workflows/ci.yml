@@ -5,29 +5,23 @@ on:
   pull_request:
 
 jobs:
-  backend-tests:
-    name: Backend tests
+  checks:
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Backend tests
+            service: backend
+            target: test
+          - name: Frontend build
+            service: frontend
+            target: build
+          - name: Frontend tests
+            service: frontend
+            target: test
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run backend tests (Dockerfile `test` stage)
-        run: docker build --target test ./backend
-
-  frontend-build:
-    name: Frontend build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build frontend
-        run: docker build --target build ./frontend
-
-  frontend-tests:
-    name: Frontend tests
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Test frontend
-        run: docker build --target test ./frontend
+      - run: docker build --target ${{ matrix.target }} ./${{ matrix.service }}

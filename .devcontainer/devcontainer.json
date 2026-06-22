@@ -1,0 +1,37 @@
+{
+  "name": "Claude Code",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
+  },
+
+  "runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW"],
+
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+  "workspaceFolder": "/workspace",
+
+  "mounts": [
+    "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume"
+  ],
+
+  "remoteUser": "vscode",
+
+  "containerEnv": {
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "DISABLE_AUTOUPDATER": "1"
+  },
+
+  "postCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.claude && sudo chown vscode:vscode /workspace && find /workspace -maxdepth 1 -mindepth 1 -not -name '.git' -exec sudo chown -R vscode:vscode {} \\; && git config --global safe.directory '*'",
+  "postStartCommand": "sudo bash .devcontainer/init-firewall.sh && echo 'Claude Code container ready. Run: claude'",
+
+  "customizations": {
+    "vscode": {
+      "extensions": ["anthropic.claude-code"],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}

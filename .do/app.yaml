@@ -51,20 +51,40 @@ services:
       - key: ANTHROPIC_API_KEY
         type: SECRET
         scope: RUN_TIME
-      - key: JWT_SECRET
+      # JWT signing key. config.py reads SECRET_KEY (not JWT_SECRET).
+      - key: SECRET_KEY
         type: SECRET
         scope: RUN_TIME
-      - key: AZURE_AD_CLIENT_ID
+      - key: AZURE_CLIENT_ID
         scope: RUN_TIME
         value: <PLACEHOLDER_AZURE_CLIENT_ID>
-      - key: AZURE_AD_TENANT_ID
+      - key: AZURE_TENANT_ID
         scope: RUN_TIME
         value: <PLACEHOLDER_AZURE_TENANT_ID>
-      # Include only if your backend does on-behalf-of / confidential-client flows.
-      # Pure JWT validation against Azure public keys does not need it.
-      - key: AZURE_AD_CLIENT_SECRET
+      # Required: the backend uses MSAL ConfidentialClientApplication, which
+      # needs the client secret to exchange the auth code for a token.
+      - key: AZURE_CLIENT_SECRET
         type: SECRET
         scope: RUN_TIME
+      # Must EXACTLY match the Redirect URI registered on the Azure app
+      # (scheme + host + path). On App Platform the frontend and backend share
+      # one origin, so this is your app's public URL + /api/auth/callback.
+      - key: AZURE_REDIRECT_URI
+        scope: RUN_TIME
+        value: https://<PLACEHOLDER_APP_URL>/api/auth/callback
+      # Where the backend redirects the browser (with the JWT) after login.
+      # Same-origin deployment → your app's public URL.
+      - key: FRONTEND_URL
+        scope: RUN_TIME
+        value: https://<PLACEHOLDER_APP_URL>
+      # Emails granted ADMIN automatically on first sign-in (comma-separated).
+      - key: ADMIN_EMAILS
+        scope: RUN_TIME
+        value: <PLACEHOLDER_ADMIN_EMAIL>
+      # Same-origin in prod, but config.py still requires the var; harmless to set.
+      - key: BACKEND_CORS_ORIGINS
+        scope: RUN_TIME
+        value: https://<PLACEHOLDER_APP_URL>
       # Explicitly OFF. Your compose forces this true for local dev.
       - key: ENABLE_DEV_LOGIN
         value: "false"

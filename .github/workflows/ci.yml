@@ -1,8 +1,5 @@
 name: CI
 
-# Runs the backend test suite on every push and pull request. Building the
-# Dockerfile's `test` stage runs `pytest` inside the image (RUN pytest), so a
-# failing test fails the build — and CI fails before anything is deployed.
 on:
   push:
   pull_request:
@@ -16,3 +13,21 @@ jobs:
 
       - name: Run backend tests (Dockerfile `test` stage)
         run: docker build --target test ./backend
+
+  frontend-build:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build frontend
+        run: docker build --target build ./frontend
+
+  frontend-tests:
+    name: Frontend tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test frontend
+        run: docker build --target test ./frontend

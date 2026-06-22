@@ -16,6 +16,11 @@ CMD ["npm", "run", "dev"]
 FROM base AS build
 RUN npm run build
 
+# --- Test image: runs the suite at build time, so `docker build --target test`
+#     (used by CI) fails on a red test. Not part of the prod image's lineage. ---
+FROM base AS test
+RUN npm test
+
 # --- Production image: Caddy serves the static build and proxies /api ---
 FROM caddy:2-alpine AS prod
 COPY --from=build /app/dist /srv

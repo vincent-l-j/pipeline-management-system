@@ -25,7 +25,7 @@ For end-user documentation, see [`Rozetta_PMS_User_Guide.md`](./Rozetta_PMS_User
 | Auth     | Microsoft Azure AD (MSAL) + JWT, with a dev-login fallback |
 | AI       | Anthropic Claude API (AI Notetaker) |
 | Frontend | React 18, Vite 6, React Router 6, Tailwind CSS, axios, @hello-pangea/dnd |
-| Infra    | Docker Compose |
+| Infra    | Docker Compose (local dev); DigitalOcean App Platform + Managed Postgres (production) |
 
 ## Architecture
 
@@ -128,96 +128,72 @@ alembic upgrade head
 
 ## Production deployment
 
-The repo ships a production stack separate from the dev one: **Postgres + FastAPI + Caddy**,
-where Caddy serves the built React SPA and reverse-proxies `/api` to the backend on a single
-HTTPS domain (automatic Let's Encrypt certificates).
+Production runs on **DigitalOcean App Platform**, declared as code in
+[`.do/app.yaml`](./.do/app.yaml). It is a fully managed, push-to-deploy setup — there is no
+server to provision, no Docker Compose, and no reverse proxy to run yourself. The spec defines
+three things:
 
-Relevant files:
+| Component | How it's deployed |
+|-----------|-------------------|
+| **Backend** (FastAPI) | A *service* built from `backend/Dockerfile` (App Platform builds the final `prod` stage and overrides its CMD via `run_command`). Routed at `/api`, internal health check at `/health`. |
+| **Frontend** (React SPA) | A *static site* built with App Platform's Node buildpack (`npm run build` → `dist/`), served from the edge at `/`. SPA deep links fall back to `index.html`. Same origin as the backend, so `/api` calls need no CORS. |
+| **Database** (PostgreSQL 16) | A *managed database* (`databases:` block). `DATABASE_URL` is injected automatically — no `db` container in production. |
 
-| File | Purpose |
-|------|---------|
-| `docker-compose.prod.yml` | Production stack — builds the `prod` target of each image, no source mounts, no dev reload, DB/backend internal-only, Caddy on 80/443 |
-| `backend/Dockerfile` | Multi-stage (`base`→`dev`/`prod`); the `prod` stage strips the dev-login module |
-| `frontend/Dockerfile` | Multi-stage (`base`→`dev`→`build`→`prod`); the `prod` stage serves the built SPA with Caddy |
-| `frontend/Caddyfile` | HTTPS, SPA routing fallback, `/api` → backend proxy |
-| `deploy.sh` | `git pull` + rebuild + restart — the redeploy command |
+Because the SPA and API share one origin, there is no separate domain juggling and no TLS to
+manage (App Platform terminates HTTPS for you), and the localStorage JWT travels normally.
 
-The dev and prod stacks share these Dockerfiles, selecting stages via `build.target`
-(`dev` in `docker-compose.yml`, `prod` in `docker-compose.prod.yml`).
+### First deploy
 
-### Server sizing & scaling
+1. In `.do/app.yaml`, fill in the three `<PLACEHOLDER>` values (GitHub repo, app URL, Azure IDs).
+2. Validate the spec: `doctl apps spec validate .do/app.yaml`.
+3. Create the app (`doctl apps create --spec .do/app.yaml`) or point the DO control panel at the
+   repo. Set the **secret** env vars (`SECRET_KEY`, `AZURE_CLIENT_SECRET`, `ANTHROPIC_API_KEY`) in
+   the control panel — they are typed `SECRET` in the spec and are not stored in Git.
+4. Register the App Platform URL's `/api/auth/callback` as the Redirect URI on the Azure app
+   registration, and make sure it matches `AZURE_REDIRECT_URI` in the spec exactly.
 
-The stack runs three small containers (Postgres + FastAPI + Caddy). At idle it's light; the
-memory spike is **`npm run build`** during deploy, which can briefly exceed 1 GB.
+### Production environment variables
 
-| Tier | Fit |
-|------|-----|
-| **2 GB RAM / 2 vCPU** | Works for the pilot, but the build flirts with the ceiling — add a swap file (below) or build the image in CI instead of on the server. |
-| **4 GB RAM / 2 vCPU** | Comfortable: build never OOMs, headroom for the org-wide rollout. Recommended. |
+These are set in `.do/app.yaml` (and the DO control panel for secrets), **not** in a `.env`
+file. See the spec for the authoritative list and inline notes.
 
-Pick a region near your users (latency), and prefer a provider with easy resize (DigitalOcean,
-Vultr). **Scaling up later is a reboot, not a migration** — a RAM/CPU resize keeps the same IP,
-disk, data, `.env`, Docker volumes, and TLS certs. (Disk grows are one-way; you only do a true
-migration if you switch *providers*.) So start small and resize when the rollout demands it.
-
-If you're on a 2 GB box and the build OOM-kills, add 2 GB of swap once:
-
-```bash
-fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
-echo '/swapfile none swap sw 0 0' >> /etc/fstab     # persist across reboots
-```
-
-### One-time server setup
-
-On an Ubuntu cloud server (e.g. a DigitalOcean droplet, ≥2 GB RAM — the frontend build is
-memory-hungry):
-
-```bash
-# Install Docker Engine + Compose plugin (no Docker Desktop / license needed)
-curl -fsSL https://get.docker.com | sh
-
-# Firewall: SSH + web only
-ufw allow OpenSSH && ufw allow 80 && ufw allow 443 && ufw enable
-
-# Clone, configure, launch
-git clone <your-private-repo> rozetta-pms && cd rozetta-pms
-cp .env.example .env          # fill in the production checklist below
-./deploy.sh
-```
-
-Point a DNS **A record** for your domain at the server's IP before launching, so Caddy can
-issue a TLS certificate.
-
-### Production `.env` checklist
-
-- `POSTGRES_PASSWORD` — strong value; mirror it inside `DATABASE_URL` (host stays `db`)
-- `SECRET_KEY` — `openssl rand -hex 32`
-- `SITE_ADDRESS` — your bare domain, e.g. `pms.rozettainstitute.com`
-- `FRONTEND_URL=https://<domain>` and `BACKEND_CORS_ORIGINS=https://<domain>`
-- `AZURE_REDIRECT_URI=https://<domain>/api/auth/callback` (must match the Azure app registration exactly)
-- `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` / `AZURE_TENANT_ID`
-- `ADMIN_EMAILS` — your email, to be granted Admin on first sign-in
-- `ENABLE_DEV_LOGIN=false` (keep the test login disabled in production)
-- Optional: `ANTHROPIC_API_KEY`
+- `DATABASE_URL` — injected by the managed DB (`${db.DATABASE_URL}`); arrives with `?sslmode=require`
+- `SECRET_KEY` *(secret)* — JWT signing key
+- `AZURE_CLIENT_ID` / `AZURE_TENANT_ID` and `AZURE_CLIENT_SECRET` *(secret)*
+- `AZURE_REDIRECT_URI=https://<app-url>/api/auth/callback` (must match the Azure registration exactly)
+- `FRONTEND_URL=https://<app-url>` and `BACKEND_CORS_ORIGINS=https://<app-url>`
+- `ADMIN_EMAILS` — emails granted Admin on first sign-in
+- `ENABLE_DEV_LOGIN=false` (the test login stays off in production)
+- `ANTHROPIC_API_KEY` *(secret)* — optional, enables the AI Notetaker
+- `VITE_API_BASE_URL=/api` — **build-time** on the static site (Vite inlines it into the bundle)
 
 ### Shipping updates
 
-Push to your Git remote, then on the server run `./deploy.sh`. Postgres data and TLS certs
-persist across redeploys via named volumes.
+Both the backend service and the static site set `deploy_on_push: true`, so **merging to `main`
+triggers an automatic rebuild and deploy** — there is no `deploy.sh` step. Managed Postgres data
+persists across deploys and is backed up by the platform when `production: true` is set on the DB.
+
+### Sizing & scaling
+
+The backend runs at `apps-s-1vcpu-1gb` (`instance_count: 1`) and the managed DB at the dev-grade
+tier (`production: false` — no HA or automated backups). Both scale by editing `.do/app.yaml`:
+bump `instance_size_slug`/`instance_count` for the backend, and flip the DB to `production: true`
+before real data lands. The frontend is a static site served from the edge, so it needs no sizing.
 
 ### Outstanding before production hardening
 
 Kept simple for the pilot; do these before real users depend on the system:
 
-- **Off-server backups.** A daily `pg_dump` cron on the host (writing to `/root/backups`, not the
-  `pgdata` volume) is the minimum, but that disk dies with the server. Add a `backup.sh` that
-  uploads each dump to object storage (DigitalOcean Spaces / S3 / Backblaze B2 via `rclone`) and
-  rotates local copies — or switch to DO Managed PostgreSQL (automated backups + PITR).
+- **Promote the database.** Flip `production: false` → `true` on the managed DB in `.do/app.yaml`
+  for HA and automated daily backups + point-in-time recovery before real data lands.
+- **Wire up migrations.** The app currently builds tables via `Base.metadata.create_all()` at
+  startup, which works for the first deploy but won't apply later schema changes. Uncomment the
+  `PRE_DEPLOY` Alembic `migrate` job in `.do/app.yaml` and remove `create_all()` from startup.
 - **Fail loud on missing config.** `FRONTEND_URL` (and other prod-critical settings) default to
   `localhost` in `config.py`; consider removing the defaults so an unset value errors at startup
   instead of silently breaking the login redirect.
 - **Tighten CORS.** `backend/app/main.py` allows `methods=["*"]`/`headers=["*"]`; scope these down
-  (same-origin behind Caddy means CORS is barely exercised, but don't ship `*` long-term).
+  (same-origin on App Platform means CORS is barely exercised, but don't ship `*` long-term).
 - **Expand test coverage.** A backend `pytest` suite and GitHub Actions CI are in place (see
   [Testing](#testing)); broaden coverage (auth, assessments, stage transitions) as features settle.
 

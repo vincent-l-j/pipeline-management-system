@@ -1,5 +1,7 @@
-# Multi-stage build. Select a stage with `--target dev|test|prod` (compose uses
-# dev/prod via `build.target`; CI builds test). The `base` layer is shared.
+# Multi-stage build. Select a stage with `--target dev|test|prod`. The `base`
+# layer is shared. docker-compose.yml builds `dev` via `build.target`; CI builds
+# `test`. In production, DigitalOcean App Platform builds the final stage
+# (`prod`) and overrides its CMD via `run_command` in `.do/app.yaml`.
 FROM python:3.12-slim AS base
 WORKDIR /app
 COPY requirements.txt .

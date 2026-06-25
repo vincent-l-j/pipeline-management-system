@@ -24,7 +24,7 @@ services:
       - .env
     environment:
       # Local dev convenience: enable the test login regardless of .env.
-      # The production stack (docker-compose.prod.yml) leaves this off.
+      # Production (DigitalOcean App Platform, .do/app.yaml) leaves this off.
       ENABLE_DEV_LOGIN: "true"
     depends_on:
       - db

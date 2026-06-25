@@ -47,6 +47,8 @@ rozetta-pms/
 
 The frontend proxies `/api` requests to the backend (see `frontend/vite.config.js`). On startup the backend auto-creates database tables via `Base.metadata.create_all` — no migration step is required for a first run.
 
+For a fuller breakdown of how the dev and production stacks differ (containers, routing, build stages, and where tests run), see [`docs/architecture.md`](./docs/architecture.md).
+
 ## Quick start (Docker — recommended)
 
 Requires **Docker** and **Docker Compose**.

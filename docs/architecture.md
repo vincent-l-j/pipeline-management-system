@@ -5,6 +5,9 @@ with Microsoft Azure AD for auth and the Anthropic Claude API powering the AI No
 The **same application code** runs in both environments — only the way it's built, served,
 and wired together differs.
 
+> For diagram form, see the [C4 diagrams](./c4/README.md) (Context, Container, Component, and
+> the dev/prod deployment views).
+
 | Concern | Development | Production |
 |---------|-------------|------------|
 | Orchestration | `docker-compose.yml` (local) | DigitalOcean App Platform (`.do/app.yaml`) |

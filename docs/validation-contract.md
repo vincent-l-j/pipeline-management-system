@@ -196,18 +196,19 @@ The edit form can toggle `is_confidential`, which forces a decision because the
 flag currently gates **nothing**: `GET /pitches` and `GET /pitches/{id}` return
 confidential pitches to every authenticated user, including viewers.
 
-- **Option 1 — marker only (default if unanswered):** `is_confidential` is a
-  purely visual label with no access-control meaning. Documented as such here so
-  it is not mistaken for a security control. No backend change; tests assert the
-  flag round-trips but do **not** assert any visibility restriction.
-- **Option 2 — enforce visibility:** confidential pitches are filtered/forbidden
-  for roles that should not see them (e.g. `viewer`, or non-lead users). This
-  needs a defined rule (who may see a confidential pitch?) and adds tests:
-  list excludes confidential pitches for unauthorised roles, and
-  `GET /pitches/{id}` on a confidential pitch → `403`/`404` for them.
+**Decision: Option 1 — marker only** (chosen 2026-06-30; to be confirmed with the
+client). `is_confidential` is a purely visual label with **no access-control
+meaning**: confidential pitches remain visible to every authenticated user. It
+must not be relied on to hide data. No backend change; tests assert the flag
+round-trips but do **not** assert any visibility restriction (BE-B7 is omitted).
 
-> **Owner action:** pick Option 1 or 2. Until chosen, implementers must treat the
-> flag as non-security (Option 1) and must not rely on it to hide data.
+> **Option 2 — enforce visibility (not chosen, kept for reference):** confidential
+> pitches would be filtered/forbidden for roles that should not see them (e.g.
+> `viewer`, or non-lead users). This needs a defined rule (who may see a
+> confidential pitch?) applied consistently across **all** pitch read paths —
+> list, detail, search, reports/CSV, and dashboard counts — plus tests: list
+> excludes confidential pitches for unauthorised roles and `GET /pitches/{id}`
+> → `403`/`404`. Revisit if the client wants the flag to be a real control.
 
 ### B.4 Unit tests
 

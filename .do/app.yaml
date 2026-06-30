@@ -64,10 +64,10 @@ services:
         scope: RUN_TIME
       - key: AZURE_CLIENT_ID
         scope: RUN_TIME
-        value: <PLACEHOLDER_AZURE_CLIENT_ID>
+        value: 2a94d264-6fd7-4b60-a542-986cf1e9c6da
       - key: AZURE_TENANT_ID
         scope: RUN_TIME
-        value: <PLACEHOLDER_AZURE_TENANT_ID>
+        value: dc0fb419-bc2a-4fc8-8735-f6e20537bf0c
       # Required: the backend uses MSAL ConfidentialClientApplication, which
       # needs the client secret to exchange the auth code for a token.
       - key: AZURE_CLIENT_SECRET

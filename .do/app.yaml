@@ -1,8 +1,13 @@
 # .do/app.yaml  —  DigitalOcean App Platform production spec
 # This REPLACES docker-compose.yml for production. Compose stays for local dev only.
 #
-# Before first deploy, fill in the three <PLACEHOLDER> values and set the
-# SECRET env vars in the DO control panel (or via `doctl apps update`).
+# Before first deploy:
+#   1. Fill in the two remaining <PLACEHOLDER> values below — AZURE_CLIENT_ID
+#      and AZURE_TENANT_ID (from Azure Portal > App registrations; not secrets).
+#   2. Set the SECRET env vars in the DO control panel (or via `doctl apps update`):
+#      ANTHROPIC_API_KEY, SECRET_KEY, AZURE_CLIENT_SECRET.
+#   3. After the first deploy, copy the app's *.ondigitalocean.app URL and add
+#      <that-url>/api/auth/callback as a Redirect URI in the Azure app registration.
 # Validate locally with:  doctl apps spec validate .do/app.yaml
 
 name: rozetta-pms
@@ -28,7 +33,7 @@ services:
     source_dir: backend
     dockerfile_path: backend/Dockerfile
     github:
-      repo: <PLACEHOLDER_GITHUB_ORG>/<PLACEHOLDER_REPO>
+      repo: vincent-l-j/pipeline-management-system
       branch: main
       deploy_on_push: true
     run_command: uvicorn app.main:app --host 0.0.0.0 --port 8000
@@ -39,7 +44,9 @@ services:
       - path: /api
         preserve_path_prefix: true   # without this, App Platform strips /api before forwarding
     health_check:
-      http_path: /health             # REQUIRES an endpoint returning 200 here, or the deploy fails
+      http_path: /api/health         # matches @app.get("/api/health") in app/main.py. NOTE: this is
+                                      # the literal path on the container — health checks bypass the
+                                      # /api route mapping, so it must include the /api prefix.
     envs:
       # Managed DB connection, injected by the platform. Comes through as
       # postgresql://...?sslmode=require  — your config.py must rewrite the
@@ -69,22 +76,28 @@ services:
       # Must EXACTLY match the Redirect URI registered on the Azure app
       # (scheme + host + path). On App Platform the frontend and backend share
       # one origin, so this is your app's public URL + /api/auth/callback.
+      # ${APP_URL} is a platform bindable var → your app's live URL (the
+      # *.ondigitalocean.app default, or a custom primary domain later). It
+      # already includes the https:// scheme, so do NOT prefix it.
+      # NOTE: register this exact callback URL in your Azure app registration
+      # after the first deploy (you won't know the *.ondigitalocean.app host
+      # until then). Bindable vars resolve at RUN_TIME only — fine here.
       - key: AZURE_REDIRECT_URI
         scope: RUN_TIME
-        value: https://<PLACEHOLDER_APP_URL>/api/auth/callback
+        value: ${APP_URL}/api/auth/callback
       # Where the backend redirects the browser (with the JWT) after login.
       # Same-origin deployment → your app's public URL.
       - key: FRONTEND_URL
         scope: RUN_TIME
-        value: https://<PLACEHOLDER_APP_URL>
+        value: ${APP_URL}
       # Emails granted ADMIN automatically on first sign-in (comma-separated).
       - key: ADMIN_EMAILS
         scope: RUN_TIME
-        value: <PLACEHOLDER_ADMIN_EMAIL>
+        value: vincent.jadraque@rozettainstitute.com
       # Same-origin in prod, but config.py still requires the var; harmless to set.
       - key: BACKEND_CORS_ORIGINS
         scope: RUN_TIME
-        value: https://<PLACEHOLDER_APP_URL>
+        value: ${APP_URL}
       # Explicitly OFF. Your compose forces this true for local dev.
       - key: ENABLE_DEV_LOGIN
         value: "false"
@@ -99,7 +112,7 @@ static_sites:
   - name: frontend
     source_dir: frontend
     github:
-      repo: <PLACEHOLDER_GITHUB_ORG>/<PLACEHOLDER_REPO>
+      repo: vincent-l-j/pipeline-management-system
       branch: main
       deploy_on_push: true
     build_command: npm run build
@@ -129,7 +142,7 @@ static_sites:
 #     source_dir: backend
 #     dockerfile_path: backend/Dockerfile
 #     github:
-#       repo: <PLACEHOLDER_GITHUB_ORG>/<PLACEHOLDER_REPO>
+#       repo: vincent-l-j/pipeline-management-system
 #       branch: main
 #     run_command: alembic upgrade head
 #     instance_size_slug: apps-s-1vcpu-1gb

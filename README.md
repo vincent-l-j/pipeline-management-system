@@ -146,7 +146,8 @@ manage (App Platform terminates HTTPS for you), and the localStorage JWT travels
 
 ### First deploy
 
-1. In `.do/app.yaml`, fill in the three `<PLACEHOLDER>` values (GitHub repo, app URL, Azure IDs).
+1. Review `.do/app.yaml` and confirm the GitHub repo, Azure IDs, and `ADMIN_EMAILS` match your
+   environment (the app URL resolves automatically via the `${APP_URL}` bindable variable).
 2. Validate the spec: `doctl apps spec validate .do/app.yaml`.
 3. Create the app (`doctl apps create --spec .do/app.yaml`) or point the DO control panel at the
    repo. Set the **secret** env vars (`SECRET_KEY`, `AZURE_CLIENT_SECRET`, `ANTHROPIC_API_KEY`) in
@@ -196,14 +197,18 @@ Kept simple for the pilot; do these before real users depend on the system:
   instead of silently breaking the login redirect.
 - **Tighten CORS.** `backend/app/main.py` allows `methods=["*"]`/`headers=["*"]`; scope these down
   (same-origin on App Platform means CORS is barely exercised, but don't ship `*` long-term).
-- **Expand test coverage.** A backend `pytest` suite and GitHub Actions CI are in place (see
-  [Testing](#testing)); broaden coverage (auth, assessments, stage transitions) as features settle.
+- **Expand test coverage.** Backend (`pytest`) and frontend (Vitest) suites plus GitHub Actions
+  CI are in place (see [Testing](#testing)); broaden coverage (auth, assessments, stage
+  transitions) as features settle.
 
 ## Testing
 
 The backend has a `pytest` suite (in `backend/tests/`) that runs against an in-memory SQLite
-database — no Postgres needed. **GitHub Actions runs it on every push and pull request**
-(`.github/workflows/ci.yml`), so regressions are caught before deploy.
+database — no Postgres needed. The frontend has a [Vitest](https://vitest.dev/) +
+React Testing Library suite (co-located in `__tests__/` folders under `frontend/src/`).
+**GitHub Actions runs three jobs on every push and pull request** — backend tests,
+frontend build, and frontend tests (`.github/workflows/ci.yml`) — so regressions are
+caught before deploy.
 
 ### Running the backend tests
 
@@ -233,6 +238,13 @@ curl http://localhost:8000/api/health
 open http://localhost:8000/docs
 ```
 
+### Running the frontend tests
+
+```bash
+# On the host:
+docker build --target test ./frontend
+```
+
 ### Frontend build check
 
 A successful production build is a good sanity check that the app compiles:
@@ -246,7 +258,7 @@ npm run preview      # serve the built app to spot-check it
 ### Adding tests
 
 - **Backend** — add more [`pytest`](https://docs.pytest.org/) modules under `backend/tests/` (using FastAPI's `TestClient`); the fixtures in `tests/conftest.py` give you a clean SQLite DB and an authenticated admin client. New test-only deps go in `requirements-dev.txt`.
-- **Frontend** — [Vitest](https://vitest.dev/) + React Testing Library pairs naturally with Vite. Add them as dev dependencies, then wire up a `"test": "vitest"` script in `frontend/package.json`.
+- **Frontend** — add more [Vitest](https://vitest.dev/) + React Testing Library specs in `__tests__/` folders next to the code they cover (the existing suites under `frontend/src/` are good templates). The `test` script and test deps are already wired up in `frontend/package.json`.
 
 ## License
 

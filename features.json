@@ -85,7 +85,7 @@
       "cd backend && pytest tests/test_pitches.py -k 'stage'"
     ],
     "fulfills": ["VAL-STAGE-001", "VAL-STAGE-002", "VAL-STAGE-004", "VAL-CROSS-001"],
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": "kanban-rightclick-ui",

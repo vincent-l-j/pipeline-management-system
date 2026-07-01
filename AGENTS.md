@@ -81,6 +81,28 @@ boundaries, or if a feature's `expectedBehavior` conflicts with an assertion in
 - The Vite dev proxy targets `http://backend:8000` (Docker). For host-only dev,
   point it at `http://localhost:8000`.
 
+## Version control
+
+Optimise commits and PRs for easy review — smaller and more focused is always
+preferred.
+
+- **Start clean.** Begin from a clean working tree; never commit on a detached
+  `HEAD` or directly on `main`. Create a branch off `main` first.
+- **A branch and PR per feature.** One `features.json` id → one branch
+  (`feat/<feature-id>`) → one PR. Backend and frontend are separate feature ids,
+  so they land as separate, smaller PRs — don't combine them.
+- **Small, focused commits.** Split a feature into coherent steps (e.g. schema,
+  then route, then wiring) rather than one big commit. Keep a test with the code
+  it covers. Each commit should build; all tests must be green at the branch tip
+  before opening the PR.
+- **One concern per commit/PR.** Never fold in unrelated changes or drive-by
+  refactors. Update any docs the change touches in the same PR (see
+  `docs/best-practices/README.md`).
+- **Messages:** Conventional Commits, imperative mood —
+  `feat:` / `test:` / `fix:` / `refactor:` / `docs:`, e.g.
+  `feat(contacts): cascade-delete join rows on contact delete`.
+- **Never commit** secrets, `.env`, or generated/vendored files.
+
 ## Definition of Done (per feature)
 
 - Tests written first and passing (`services.yaml` → `test-backend` / `test-frontend`).

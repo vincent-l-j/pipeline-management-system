@@ -25,7 +25,7 @@ export default function AssessmentDetailPage() {
   useEffect(() => {
     Promise.all([
       api.get(`/assessments/${assessmentId}`),
-      api.get('/users'),
+      api.get('/users/directory'),
     ]).then(([assessRes, usersRes]) => {
       const a = assessRes.data
       setAssessment(a)

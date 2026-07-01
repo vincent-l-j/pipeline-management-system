@@ -20,7 +20,7 @@ export default function MeetingAttendees({ meetingId }) {
 
   useEffect(() => {
     loadAttendees()
-    api.get('/users').then(({ data }) => setUsers(data))
+    api.get('/users/directory').then(({ data }) => setUsers(data))
     api.get('/contacts').then(({ data }) => setContacts(data))
   }, [meetingId])
 

@@ -31,7 +31,7 @@ export default function PitchDetailPage() {
   useEffect(() => {
     Promise.all([
       api.get(`/pitches/${pitchId}`),
-      api.get('/users'),
+      api.get('/users/directory'),
     ]).then(([pitchRes, usersRes]) => {
       const p = pitchRes.data
       setPitch(p)

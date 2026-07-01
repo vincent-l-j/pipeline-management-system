@@ -26,7 +26,7 @@ export default function AssessmentsPage() {
     Promise.all([
       api.get('/assessments'),
       api.get('/pitches'),
-      api.get('/users'),
+      api.get('/users/directory'),
     ]).then(([aRes, pRes, uRes]) => {
       setAssessments(aRes.data)
       setPitches(pRes.data)

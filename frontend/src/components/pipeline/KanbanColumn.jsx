@@ -6,7 +6,7 @@
 import { Droppable, Draggable } from '@hello-pangea/dnd'
 import PitchCard from './PitchCard'
 
-export default function KanbanColumn({ stage, pitches }) {
+export default function KanbanColumn({ stage, pitches, onStageSelect }) {
   return (
     <div className="flex flex-col bg-navy-50/50 rounded-xl min-w-[260px] w-[260px] max-h-full">
       {/* Column header */}
@@ -38,6 +38,7 @@ export default function KanbanColumn({ stage, pitches }) {
                     innerRef={provided.innerRef}
                     draggableProps={provided.draggableProps}
                     dragHandleProps={provided.dragHandleProps}
+                    onStageSelect={onStageSelect}
                   />
                 )}
               </Draggable>

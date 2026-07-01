@@ -8,6 +8,8 @@ from app.core.database import get_db
 from app.core.security import get_current_user, require_role
 from app.models.user import User, UserRole
 from app.models.organisation import Organisation
+from app.models.contact import Contact
+from app.models.pitch import Pitch
 from app.schemas.organisation import OrganisationCreate, OrganisationUpdate, OrganisationOut
 
 router = APIRouter(prefix="/organisations", tags=["organisations"])
@@ -72,6 +74,16 @@ def delete_organisation(
     org = db.query(Organisation).filter(Organisation.id == org_id).first()
     if not org:
         raise HTTPException(status_code=404, detail="Organisation not found")
+
+    # Orphan references before deleting: child contacts and pitches survive with
+    # their organisation link cleared (enforced in app code, not via DB cascade —
+    # SQLite tests don't enforce FKs).
+    db.query(Contact).filter(Contact.organisation_id == org_id).update(
+        {Contact.organisation_id: None}, synchronize_session=False
+    )
+    db.query(Pitch).filter(Pitch.organisation_id == org_id).update(
+        {Pitch.organisation_id: None}, synchronize_session=False
+    )
     db.delete(org)
     db.commit()
     return {"detail": "Organisation deleted"}

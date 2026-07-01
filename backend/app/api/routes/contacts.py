@@ -8,6 +8,8 @@ from app.core.database import get_db
 from app.core.security import get_current_user, require_role
 from app.models.user import User, UserRole
 from app.models.contact import Contact
+from app.models.pitch import PitchContact
+from app.models.meeting import MeetingAttendee
 from app.schemas.contact import ContactCreate, ContactUpdate, ContactOut
 
 router = APIRouter(prefix="/contacts", tags=["contacts"])
@@ -72,6 +74,15 @@ def delete_contact(
     contact = db.query(Contact).filter(Contact.id == contact_id).first()
     if not contact:
         raise HTTPException(status_code=404, detail="Contact not found")
+
+    # Remove join rows in the same transaction so no dangling references remain
+    # (enforced in app code, not via DB cascade — SQLite tests don't enforce FKs).
+    db.query(PitchContact).filter(PitchContact.contact_id == contact_id).delete(
+        synchronize_session=False
+    )
+    db.query(MeetingAttendee).filter(MeetingAttendee.contact_id == contact_id).delete(
+        synchronize_session=False
+    )
     db.delete(contact)
     db.commit()
     return {"detail": "Contact deleted"}

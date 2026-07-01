@@ -140,6 +140,6 @@
       "cd frontend && npm test -- PitchCreatePage"
     ],
     "fulfills": ["VAL-USERS-002", "VAL-USERS-004"],
-    "status": "pending"
+    "status": "done"
   }
 ]

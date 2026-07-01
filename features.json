@@ -69,7 +69,7 @@
       "cd frontend && npm test -- PitchEditPage"
     ],
     "fulfills": ["VAL-PITCH-001", "VAL-PITCH-002", "VAL-PITCH-004"],
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": "kanban-stage-api",

@@ -1,17 +1,30 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import KanbanBoard from '../KanbanBoard'
 import { PIPELINE_STAGES } from '../PipelineConfig'
+import api from '../../../services/api'
+
+vi.mock('../../../services/api', () => ({
+  default: { post: vi.fn() },
+}))
 
 // @hello-pangea/dnd is aliased to a stub in vitest.config.js.
-// Mock KanbanColumn to inspect which pitches land in which stage.
+// Mock KanbanColumn to inspect which pitches land in which stage and to expose
+// the onStageSelect callback (the shared optimistic-move path used by both drag
+// and the right-click menu).
 vi.mock('../KanbanColumn', () => ({
-  default: ({ stage, pitches }) => (
+  default: ({ stage, pitches, onStageSelect }) => (
     <div data-testid="column" data-stage={stage.key}>
       <span>{stage.label}</span>
       <span data-testid="count">{pitches.length}</span>
       {pitches.map(p => (
         <span key={p.id} data-testid={`pitch-${stage.key}`}>{p.title}</span>
       ))}
+      <button
+        data-testid={`select-${stage.key}`}
+        onClick={() => onStageSelect('a', 'received', stage.key)}
+      >
+        select {stage.label}
+      </button>
     </div>
   ),
 }))
@@ -23,6 +36,10 @@ const pitches = [
 ]
 
 describe('KanbanBoard', () => {
+  beforeEach(() => {
+    vi.mocked(api.post).mockReset()
+  })
+
   it('renders one column per pipeline stage', () => {
     render(<KanbanBoard pitches={[]} onPitchMoved={vi.fn()} />)
     expect(screen.getAllByTestId('column')).toHaveLength(PIPELINE_STAGES.length)
@@ -57,5 +74,32 @@ describe('KanbanBoard', () => {
     )
     expect(screen.getAllByTestId('column')).toHaveLength(PIPELINE_STAGES.length)
     expect(screen.queryByText('Orphan')).not.toBeInTheDocument()
+  })
+
+  it('optimistically moves and POSTs the new stage when a stage is selected', async () => {
+    const onPitchMoved = vi.fn()
+    vi.mocked(api.post).mockResolvedValue({})
+    render(<KanbanBoard pitches={pitches} onPitchMoved={onPitchMoved} />)
+
+    fireEvent.click(screen.getByTestId('select-due_diligence'))
+
+    expect(onPitchMoved).toHaveBeenCalledWith('a', 'due_diligence')
+    await waitFor(() =>
+      expect(api.post).toHaveBeenCalledWith(
+        '/pitches/a/stage',
+        expect.objectContaining({ new_stage: 'due_diligence' }),
+      ),
+    )
+  })
+
+  it('reverts the card to its original stage when the API call fails', async () => {
+    const onPitchMoved = vi.fn()
+    vi.mocked(api.post).mockRejectedValue(new Error('boom'))
+    render(<KanbanBoard pitches={pitches} onPitchMoved={onPitchMoved} />)
+
+    fireEvent.click(screen.getByTestId('select-due_diligence'))
+
+    expect(onPitchMoved).toHaveBeenCalledWith('a', 'due_diligence') // optimistic move
+    await waitFor(() => expect(onPitchMoved).toHaveBeenCalledWith('a', 'received')) // revert
   })
 })

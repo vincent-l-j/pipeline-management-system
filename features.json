@@ -34,7 +34,7 @@
       "cd frontend && npm test -- ContactsPage"
     ],
     "fulfills": ["VAL-ORG-001", "VAL-ORG-002", "VAL-ORG-004", "VAL-CON-001", "VAL-CON-002", "VAL-CON-003"],
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": "pitch-edit-api",

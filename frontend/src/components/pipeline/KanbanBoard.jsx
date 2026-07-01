@@ -16,29 +16,33 @@ export default function KanbanBoard({ pitches, onPitchMoved }) {
     pitchesByStage[stage.key] = pitches.filter(p => p.current_stage === stage.key)
   }
 
-  async function handleDragEnd(result) {
+  // Shared optimistic-move path used by both drag-and-drop and the right-click
+  // stage menu: move the card immediately, persist the change, revert on failure.
+  async function moveStage(pitchId, fromStage, toStage) {
+    if (fromStage === toStage) return
+
+    onPitchMoved(pitchId, toStage)
+
+    try {
+      await api.post(`/pitches/${pitchId}/stage`, {
+        new_stage: toStage,
+        note: `Moved from ${fromStage.replace('_', ' ')} to ${toStage.replace('_', ' ')}`,
+      })
+    } catch (err) {
+      // If the API call fails, revert the move
+      onPitchMoved(pitchId, fromStage)
+      console.error('Failed to update stage:', err)
+    }
+  }
+
+  function handleDragEnd(result) {
     const { draggableId, source, destination } = result
 
     // Dropped outside a column, or back in the same spot
     if (!destination) return
     if (source.droppableId === destination.droppableId && source.index === destination.index) return
 
-    const newStage = destination.droppableId
-
-    // Optimistically update the UI (move the card immediately)
-    onPitchMoved(draggableId, newStage)
-
-    // Tell the backend about the stage change
-    try {
-      await api.post(`/pitches/${draggableId}/stage`, {
-        new_stage: newStage,
-        note: `Moved from ${source.droppableId.replace('_', ' ')} to ${newStage.replace('_', ' ')}`,
-      })
-    } catch (err) {
-      // If the API call fails, revert the move
-      onPitchMoved(draggableId, source.droppableId)
-      console.error('Failed to update stage:', err)
-    }
+    moveStage(draggableId, source.droppableId, destination.droppableId)
   }
 
   return (
@@ -49,6 +53,7 @@ export default function KanbanBoard({ pitches, onPitchMoved }) {
             key={stage.key}
             stage={stage}
             pitches={pitchesByStage[stage.key]}
+            onStageSelect={moveStage}
           />
         ))}
       </div>

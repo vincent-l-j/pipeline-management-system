@@ -7,23 +7,43 @@ from uuid import UUID
 from app.core.database import get_db
 from app.core.security import get_current_user, require_role
 from app.models.user import User, UserRole
-from app.schemas.user import UserCreate, UserUpdate, UserOut
+from app.schemas.user import UserCreate, UserUpdate, UserOut, UserDirectoryOut
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.get("", response_model=list[UserOut])
-def list_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def list_users(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(UserRole.ADMIN)),
+):
+    """Full staff listing (email/role/status) — admin only."""
     return db.query(User).order_by(User.display_name).all()
 
 
+# /me and /directory MUST be declared before /{user_id} so they aren't captured
+# by the path parameter.
 @router.get("/me", response_model=UserOut)
 def get_current_user_profile(current_user: User = Depends(get_current_user)):
     return current_user
 
 
+@router.get("/directory", response_model=list[UserDirectoryOut])
+def list_user_directory(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Minimal name-resolution directory (id + display_name) for any authenticated
+    user. Does not expose email, role, is_active or azure_oid."""
+    return db.query(User).order_by(User.display_name).all()
+
+
 @router.get("/{user_id}", response_model=UserOut)
-def get_user(user_id: UUID, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def get_user(
+    user_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(UserRole.ADMIN)),
+):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")

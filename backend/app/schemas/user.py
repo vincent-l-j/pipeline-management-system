@@ -25,3 +25,13 @@ class UserOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class UserDirectoryOut(BaseModel):
+    """Minimal name-resolution shape for any authenticated user. Deliberately
+    excludes email, role, is_active and azure_oid so low-privilege callers can
+    resolve display names without seeing the sensitive staff directory."""
+    id: UUID
+    display_name: str
+
+    model_config = {"from_attributes": True}

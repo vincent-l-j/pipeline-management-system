@@ -50,6 +50,17 @@ def _get_test_db():
 
 
 @pytest.fixture
+def db_session():
+    """A direct DB session for arranging/asserting on rows the API doesn't expose
+    (e.g. PitchContact join rows). Shares the in-memory engine with the app."""
+    db = _TestSession()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@pytest.fixture
 def client():
     """Unauthenticated client.
 

@@ -168,6 +168,53 @@ def test_stage_transition_on_nonexistent_pitch(admin_client):
     assert resp.status_code == 404
 
 
+def test_stage_change_records_from_to_and_actor(admin_client):
+    """A stage change appends a history row capturing from_stage, to_stage, the
+    acting user (changed_by_id) and the note (VAL-STAGE-002)."""
+    create = admin_client.post("/api/pitches", json={"title": "Attributed Stage"}).json()
+    pid = create["id"]
+    initial = admin_client.get(f"/api/pitches/{pid}/history").json()
+    actor = initial[0]["changed_by_id"]
+    assert actor is not None  # creation is attributed to the acting user
+
+    resp = admin_client.post(
+        f"/api/pitches/{pid}/stage",
+        json={"new_stage": "initial_screen", "note": "passed screen"},
+    )
+    assert resp.status_code == 200
+
+    history = admin_client.get(f"/api/pitches/{pid}/history").json()
+    transition = [h for h in history if h["to_stage"] == "initial_screen"][0]
+    assert transition["from_stage"] == "received"
+    assert transition["changed_by_id"] == actor
+    assert transition["note"] == "passed screen"
+
+
+def test_assessor_can_change_stage(assessor_client):
+    create = assessor_client.post("/api/pitches", json={"title": "Assessor Stage"}).json()
+    pid = create["id"]
+    resp = assessor_client.post(f"/api/pitches/{pid}/stage", json={"new_stage": "initial_screen"})
+    assert resp.status_code == 200
+    assert resp.json()["current_stage"] == "initial_screen"
+
+
+def test_invalid_new_stage_returns_422(admin_client):
+    create = admin_client.post("/api/pitches", json={"title": "Bad Stage"}).json()
+    pid = create["id"]
+    resp = admin_client.post(f"/api/pitches/{pid}/stage", json={"new_stage": "not_a_real_stage"})
+    assert resp.status_code == 422
+
+
+def test_unauthenticated_stage_change_is_rejected(client):
+    # Missing credentials -> 403 from HTTPBearer; an invalid token -> 401. Either
+    # way an unauthenticated stage change is refused.
+    resp = client.post(
+        "/api/pitches/00000000-0000-0000-0000-000000000099/stage",
+        json={"new_stage": "initial_screen"},
+    )
+    assert resp.status_code in (401, 403)
+
+
 # --- Filters ---
 
 def test_filter_by_stage(admin_client):

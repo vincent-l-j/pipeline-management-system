@@ -7,6 +7,7 @@ import PipelinePage from './pages/PipelinePage'
 import PitchesPage from './pages/PitchesPage'
 import PitchCreatePage from './pages/PitchCreatePage'
 import PitchDetailPage from './pages/PitchDetailPage'
+import PitchEditPage from './pages/PitchEditPage'
 import SearchPage from './pages/SearchPage'
 import OrganisationsPage from './pages/OrganisationsPage'
 import ContactsPage from './pages/ContactsPage'
@@ -39,6 +40,7 @@ export default function App() {
       <Route path="/pitches" element={<ProtectedRoute><PitchesPage /></ProtectedRoute>} />
       <Route path="/pitches/new" element={<ProtectedRoute><PitchCreatePage /></ProtectedRoute>} />
       <Route path="/pitches/:pitchId" element={<ProtectedRoute><PitchDetailPage /></ProtectedRoute>} />
+      <Route path="/pitches/:pitchId/edit" element={<ProtectedRoute><PitchEditPage /></ProtectedRoute>} />
       <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
       <Route path="/organisations" element={<ProtectedRoute><OrganisationsPage /></ProtectedRoute>} />
       <Route path="/contacts" element={<ProtectedRoute><ContactsPage /></ProtectedRoute>} />

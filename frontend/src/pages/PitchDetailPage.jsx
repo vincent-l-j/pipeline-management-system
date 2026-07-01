@@ -78,6 +78,12 @@ export default function PitchDetailPage() {
             {canEdit && (
               <>
                 <Link
+                  to={`/pitches/${pitchId}/edit`}
+                  className="border border-navy-200 text-navy-600 px-4 py-2 rounded-lg text-sm font-medium hover:border-navy-400 transition-colors"
+                >
+                  Edit
+                </Link>
+                <Link
                   to={`/meetings/new?pitch_id=${pitchId}`}
                   className="border border-navy-200 text-navy-600 px-4 py-2 rounded-lg text-sm font-medium hover:border-navy-400 transition-colors"
                 >

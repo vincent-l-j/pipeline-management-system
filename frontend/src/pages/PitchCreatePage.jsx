@@ -53,7 +53,7 @@ export default function PitchCreatePage() {
 
   useEffect(() => {
     api.get('/organisations').then(({ data }) => setOrganisations(data)).catch(() => {})
-    api.get('/users').then(({ data }) => setUsers(data)).catch(() => {})
+    api.get('/users/directory').then(({ data }) => setUsers(data)).catch(() => {})
   }, [])
 
   function update(field, value) {

@@ -27,7 +27,7 @@ export default function PipelinePage() {
   useEffect(() => {
     Promise.all([
       api.get('/pitches'),
-      api.get('/users'),
+      api.get('/users/directory'),
     ]).then(([pitchRes, userRes]) => {
       setPitches(pitchRes.data)
       setUsers(userRes.data)

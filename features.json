@@ -1,0 +1,145 @@
+[
+  {
+    "id": "orgs-contacts-delete-semantics-api",
+    "description": "Make organisation/contact hard-delete safe. DELETE /api/organisations/{id} must null organisation_id on all child contacts and pitches before deleting the org. DELETE /api/contacts/{id} must remove the contact's PitchContact and MeetingAttendee join rows in the same transaction. Keep delete admin-only and create admin+assessor.",
+    "skillName": "backend-worker",
+    "milestone": "orgs-contacts",
+    "expectedBehavior": [
+      "Deleting an organisation returns 200 and leaves linked contacts and pitches in place with organisation_id = null",
+      "Deleting a contact returns 200 and removes its PitchContact and MeetingAttendee rows; parent pitches and meetings remain retrievable",
+      "Deleting an unknown organisation or contact id returns 404",
+      "assessor and viewer get 403 on delete; create stays 200 for admin/assessor and 403 for viewer",
+      "No dangling foreign keys remain after either delete"
+    ],
+    "verificationSteps": [
+      "cd backend && pytest tests/test_organisations.py -k 'delete or orphan or rbac'",
+      "cd backend && pytest tests/test_contacts.py -k 'delete or cascade or rbac'"
+    ],
+    "fulfills": ["VAL-ORG-002", "VAL-ORG-003", "VAL-ORG-004", "VAL-CON-002", "VAL-CON-003", "VAL-CROSS-001"],
+    "status": "pending"
+  },
+  {
+    "id": "orgs-contacts-ui",
+    "description": "Add 'Add' and per-row 'Remove' controls to OrganisationsPage and ContactsPage. Add opens a create form (modal/inline) and posts to the API, inserting the new row on success. Remove requires a confirmation step, then deletes and removes the row. Role-gate the controls: Add for admin+assessor, Remove for admin only; viewers see a read-only table. Surface API errors without mutating the table.",
+    "skillName": "frontend-worker",
+    "milestone": "orgs-contacts",
+    "expectedBehavior": [
+      "Admin sees Add and per-row Remove; assessor sees Add only; viewer sees neither",
+      "Submitting the Add form calls api.post and renders the new row on resolve",
+      "Remove shows a confirmation; confirming calls api.delete and removes the row; cancelling does not call the API",
+      "A rejected delete leaves the row present and shows an error"
+    ],
+    "verificationSteps": [
+      "cd frontend && npm test -- OrganisationsPage",
+      "cd frontend && npm test -- ContactsPage"
+    ],
+    "fulfills": ["VAL-ORG-001", "VAL-ORG-002", "VAL-ORG-004", "VAL-CON-001", "VAL-CON-002", "VAL-CON-003"],
+    "status": "pending"
+  },
+  {
+    "id": "pitch-edit-api",
+    "description": "Confirm and pin PATCH /api/pitches/{id} semantics. Partial update of allowed fields only; admin+assessor allowed, viewer 403, unknown id 404. Enforce the audit invariant that current_stage is NOT settable via PATCH (it is absent from PitchUpdate) so no stage change can occur without a PitchStageHistory row.",
+    "skillName": "backend-worker",
+    "milestone": "pitch-editing",
+    "expectedBehavior": [
+      "admin/assessor PATCH updates only supplied fields and returns 200; omitted fields preserved",
+      "viewer PATCH -> 403; unauthenticated -> 401; unknown id -> 404",
+      "A PATCH body containing current_stage returns 200 but leaves the stage unchanged and writes no stage-history row"
+    ],
+    "verificationSteps": [
+      "cd backend && pytest tests/test_pitches.py -k 'patch or update or stage_immutable'"
+    ],
+    "fulfills": ["VAL-PITCH-001", "VAL-PITCH-003", "VAL-CROSS-001"],
+    "status": "pending"
+  },
+  {
+    "id": "pitch-edit-ui",
+    "description": "Add an 'Edit' button on PitchDetailPage (admin/assessor only) that navigates to a new /pitches/:id/edit route. The edit route reuses the create form, pre-filled from the pitch, and submits PATCH on save then returns to the detail page; Cancel returns without calling the API. A viewer hitting the edit route is redirected. Keep the 'Confidential' badge as a visual marker only (no visibility change).",
+    "skillName": "frontend-worker",
+    "milestone": "pitch-editing",
+    "expectedBehavior": [
+      "Detail page shows Edit for admin/assessor and hides it for viewer",
+      "Edit route fetches the pitch and renders the form pre-filled",
+      "Saving calls api.patch with changed fields then navigates to the detail route; Cancel makes no api.patch call",
+      "Viewer navigating to the edit route is redirected (no form rendered)",
+      "Confidential pitches render a badge and remain openable by all roles"
+    ],
+    "verificationSteps": [
+      "cd frontend && npm test -- PitchDetailPage",
+      "cd frontend && npm test -- PitchEditPage"
+    ],
+    "fulfills": ["VAL-PITCH-001", "VAL-PITCH-002", "VAL-PITCH-004"],
+    "status": "pending"
+  },
+  {
+    "id": "kanban-stage-api",
+    "description": "Confirm and pin POST /api/pitches/{id}/stage. Updates current_stage and appends a PitchStageHistory row (from/to/changed_by/note). admin+assessor allowed; viewer 403; invalid stage 422; unknown id 404. Same endpoint backs both drag and right-click.",
+    "skillName": "backend-worker",
+    "milestone": "kanban-stage",
+    "expectedBehavior": [
+      "admin/assessor stage change returns 200 with current_stage updated",
+      "A history row is appended capturing from_stage, to_stage and the acting user as changed_by_id",
+      "viewer -> 403; unauthenticated -> 401; invalid new_stage -> 422; unknown id -> 404"
+    ],
+    "verificationSteps": [
+      "cd backend && pytest tests/test_pitches.py -k 'stage'"
+    ],
+    "fulfills": ["VAL-STAGE-001", "VAL-STAGE-002", "VAL-STAGE-004", "VAL-CROSS-001"],
+    "status": "pending"
+  },
+  {
+    "id": "kanban-rightclick-ui",
+    "description": "Add a right-click (onContextMenu) stage picker to PitchCard, listing PIPELINE_STAGES with the current stage marked non-selectable. Selecting a stage uses the board's existing optimistic-move + stage-API call, reverting the card on failure (same path as drag). Hide the menu for viewers. Close on selection, outside click, and Escape.",
+    "skillName": "frontend-worker",
+    "milestone": "kanban-stage",
+    "expectedBehavior": [
+      "Right-click opens a menu listing all stages with the current one marked and not selectable",
+      "Selecting a new stage moves the card and calls api.post('/pitches/{id}/stage', ...)",
+      "On a rejected call the card reverts to its original column",
+      "Menu closes on outside click and on Escape",
+      "Viewers get no app stage menu on right-click"
+    ],
+    "verificationSteps": [
+      "cd frontend && npm test -- PitchCard",
+      "cd frontend && npm test -- KanbanBoard"
+    ],
+    "fulfills": ["VAL-STAGE-001", "VAL-STAGE-003", "VAL-STAGE-004", "VAL-STAGE-005"],
+    "status": "pending"
+  },
+  {
+    "id": "users-directory-and-lockdown-api",
+    "description": "Close the user-management info-disclosure hole without breaking name resolution. Restrict GET /api/users and GET /api/users/{id} to admin only (full UserOut). Add GET /api/users/directory available to any authenticated user, returning a minimal {id, display_name} shape via a dedicated UserDirectoryOut schema (no email/role/is_active/azure_oid). Declare /directory and /me before /{id}. Keep POST/PATCH admin-only.",
+    "skillName": "backend-worker",
+    "milestone": "user-access-control",
+    "expectedBehavior": [
+      "GET /api/users and /{id}: 200 for admin, 403 for assessor/viewer, 401 unauthenticated",
+      "GET /api/users/directory: 200 for admin, assessor and viewer; 401 unauthenticated",
+      "Directory entries contain exactly id and display_name and never email, role, is_active or azure_oid",
+      "GET /api/users/me stays available to any authenticated user",
+      "POST/PATCH users remain admin-only (assessor/viewer -> 403)"
+    ],
+    "verificationSteps": [
+      "cd backend && pytest tests/test_users.py"
+    ],
+    "fulfills": ["VAL-USERS-001", "VAL-USERS-003", "VAL-USERS-004", "VAL-CROSS-001"],
+    "status": "pending"
+  },
+  {
+    "id": "users-access-control-ui",
+    "description": "Guard /admin/users with an admin-only route wrapper that redirects non-admins (UsersPage never renders for them); keep the Sidebar 'Users' link admin-only. Repoint the six name-resolution callers (PipelinePage, PitchCreatePage, PitchDetailPage, AssessmentsPage, AssessmentDetailPage, MeetingAttendees) from GET /api/users to GET /api/users/directory so assessor/viewer flows keep working.",
+    "skillName": "frontend-worker",
+    "milestone": "user-access-control",
+    "expectedBehavior": [
+      "Sidebar shows the Users link for admin and hides it for assessor/viewer",
+      "Rendering /admin/users as assessor or viewer redirects away without rendering UsersPage; admin renders it",
+      "Name-resolution surfaces call /api/users/directory (not /api/users) and render for an assessor"
+    ],
+    "verificationSteps": [
+      "cd frontend && npm test -- Sidebar",
+      "cd frontend && npm test -- AdminRoute",
+      "cd frontend && npm test -- PitchCreatePage"
+    ],
+    "fulfills": ["VAL-USERS-002", "VAL-USERS-004"],
+    "status": "pending"
+  }
+]

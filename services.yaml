@@ -1,0 +1,52 @@
+# Commands and services validators/workers use to build, test, and run the system.
+# The canonical local stack is Docker Compose (db + backend + frontend). The
+# command keys below also work on a host with Python 3.12 + Node installed.
+
+commands:
+  # Install backend (incl. test deps) and frontend dependencies for host runs.
+  install: (cd backend && pip install -r requirements-dev.txt) && (cd frontend && npm install)
+
+  # Production build of the SPA (also the frontend "does it compile" check).
+  build: cd frontend && npm run build
+
+  # Full test suite: backend pytest + frontend vitest.
+  test: (cd backend && pytest) && (cd frontend && npm test)
+
+  # Granular test entry points (used by per-feature verificationSteps).
+  test-backend: cd backend && pytest
+  test-frontend: cd frontend && npm test
+
+  # No lint or typecheck tooling is configured in this repo (no eslint/ruff/mypy).
+  # Do not invent one; add tooling as its own feature if required.
+  lint: "true"
+  typecheck: "true"
+
+services:
+  db:
+    start: docker compose up -d db
+    stop: docker compose stop db
+    healthcheck: docker compose exec -T db pg_isready -U rozetta -d rozetta_pms
+    port: 5432
+    depends_on: []
+
+  backend:
+    # `up -d backend` also starts db via compose depends_on.
+    start: docker compose up -d backend
+    stop: docker compose stop backend
+    healthcheck: curl -sf http://localhost:8000/api/health
+    port: 8000
+    depends_on: [db]
+
+  frontend:
+    start: docker compose up -d frontend
+    stop: docker compose stop frontend
+    healthcheck: curl -sf http://localhost:5173
+    port: 5173
+    depends_on: [backend]
+
+# Notes:
+# - `docker compose up --build` brings up the whole stack at once.
+# - Swagger/OpenAPI for black-box API probing: http://localhost:8000/docs
+# - Local dev forces ENABLE_DEV_LOGIN=true (a Dev Login admin button); this is
+#   off in production. Backend unit tests run against in-memory SQLite and need
+#   no running db.

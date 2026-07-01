@@ -122,7 +122,7 @@
       "cd backend && pytest tests/test_users.py"
     ],
     "fulfills": ["VAL-USERS-001", "VAL-USERS-003", "VAL-USERS-004", "VAL-CROSS-001"],
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": "users-access-control-ui",

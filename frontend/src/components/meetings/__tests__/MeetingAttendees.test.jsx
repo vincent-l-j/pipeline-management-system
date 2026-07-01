@@ -21,7 +21,7 @@ const mockContacts = [{ id: 'c1', name: 'External Contact' }]
 function setupApiMocks(attendees = []) {
   vi.mocked(api.get).mockImplementation((url) => {
     if (url.includes('/attendees')) return Promise.resolve({ data: attendees })
-    if (url === '/users') return Promise.resolve({ data: mockUsers })
+    if (url === '/users/directory') return Promise.resolve({ data: mockUsers })
     if (url === '/contacts') return Promise.resolve({ data: mockContacts })
     return Promise.reject(new Error(`Unexpected: ${url}`))
   })

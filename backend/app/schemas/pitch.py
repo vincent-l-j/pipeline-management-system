@@ -19,6 +19,9 @@ class PitchCreate(BaseModel):
 
 
 class PitchUpdate(BaseModel):
+    # Audit invariant: current_stage is intentionally NOT settable here. Stage
+    # changes must go through POST /pitches/{id}/stage so every transition writes
+    # a PitchStageHistory row. Do not widen this schema to include current_stage.
     title: str | None = None
     short_description: str | None = None
     source: PitchSource | None = None

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import PitchCard from '../PitchCard'
 
@@ -9,6 +9,11 @@ vi.mock('react-router-dom', async (importOriginal) => {
   return { ...mod, useNavigate: () => mockNavigate }
 })
 
+let mockUser = { role: 'admin' }
+vi.mock('../../../contexts/AuthContext', () => ({
+  useAuth: () => ({ user: mockUser }),
+}))
+
 const basePitch = {
   id: '42',
   title: 'AI-Powered Climate Monitor',
@@ -18,15 +23,17 @@ const basePitch = {
   domain_tags: 'climate, AI, sensors',
   is_confidential: false,
   submission_date: '2026-03-10',
+  current_stage: 'received',
 }
 
-function renderCard(pitch = basePitch) {
+function renderCard(pitch = basePitch, { onStageSelect } = {}) {
   return render(
     <PitchCard
       pitch={pitch}
       innerRef={null}
       draggableProps={{}}
       dragHandleProps={{}}
+      onStageSelect={onStageSelect}
     />
   )
 }
@@ -34,6 +41,7 @@ function renderCard(pitch = basePitch) {
 describe('PitchCard', () => {
   beforeEach(() => {
     mockNavigate.mockClear()
+    mockUser = { role: 'admin' }
   })
 
   it('renders the pitch title', () => {
@@ -94,5 +102,60 @@ describe('PitchCard', () => {
     renderCard({ ...basePitch, source: undefined, funding_pathway: undefined, domain_tags: undefined })
     expect(screen.queryByText('Referral')).not.toBeInTheDocument()
     expect(screen.queryByText('Government Grant')).not.toBeInTheDocument()
+  })
+})
+
+describe('PitchCard stage context menu', () => {
+  beforeEach(() => {
+    mockNavigate.mockClear()
+    mockUser = { role: 'admin' }
+  })
+
+  it('opens a stage menu on right-click, listing all stages with the current one marked and not selectable', () => {
+    renderCard(basePitch, { onStageSelect: vi.fn() })
+    fireEvent.contextMenu(screen.getByText('AI-Powered Climate Monitor'))
+
+    expect(screen.getByTestId('stage-menu')).toBeInTheDocument()
+    // Other stages are selectable buttons.
+    expect(screen.getByRole('button', { name: 'Initial Screen' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Declined' })).toBeInTheDocument()
+    // The current stage is marked and not a selectable button.
+    expect(screen.getByTestId('current-stage')).toHaveTextContent('Received')
+    expect(screen.queryByRole('button', { name: 'Received' })).not.toBeInTheDocument()
+  })
+
+  it('selecting a new stage calls onStageSelect(id, from, to) and closes the menu', () => {
+    const onStageSelect = vi.fn()
+    renderCard(basePitch, { onStageSelect })
+    fireEvent.contextMenu(screen.getByText('AI-Powered Climate Monitor'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Due Diligence' }))
+    expect(onStageSelect).toHaveBeenCalledWith('42', 'received', 'due_diligence')
+    expect(screen.queryByTestId('stage-menu')).not.toBeInTheDocument()
+  })
+
+  it('closes the menu on Escape', () => {
+    renderCard(basePitch, { onStageSelect: vi.fn() })
+    fireEvent.contextMenu(screen.getByText('AI-Powered Climate Monitor'))
+    expect(screen.getByTestId('stage-menu')).toBeInTheDocument()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByTestId('stage-menu')).not.toBeInTheDocument()
+  })
+
+  it('closes the menu on an outside click', () => {
+    renderCard(basePitch, { onStageSelect: vi.fn() })
+    fireEvent.contextMenu(screen.getByText('AI-Powered Climate Monitor'))
+    expect(screen.getByTestId('stage-menu')).toBeInTheDocument()
+
+    fireEvent.mouseDown(document.body)
+    expect(screen.queryByTestId('stage-menu')).not.toBeInTheDocument()
+  })
+
+  it('does not open an app stage menu for viewers', () => {
+    mockUser = { role: 'viewer' }
+    renderCard(basePitch, { onStageSelect: vi.fn() })
+    fireEvent.contextMenu(screen.getByText('AI-Powered Climate Monitor'))
+    expect(screen.queryByTestId('stage-menu')).not.toBeInTheDocument()
   })
 })

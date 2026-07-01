@@ -75,9 +75,15 @@ def test_viewer_cannot_create_user(viewer_client):
     assert resp.status_code == 403
 
 
-def test_viewer_can_list_users(viewer_client):
+def test_viewer_cannot_list_users(viewer_client):
+    # Staff listing is admin-only — closes the info-disclosure hole (VAL-USERS-003).
     resp = viewer_client.get("/api/users")
-    assert resp.status_code == 200
+    assert resp.status_code == 403
+
+
+def test_assessor_cannot_list_users(assessor_client):
+    resp = assessor_client.get("/api/users")
+    assert resp.status_code == 403
 
 
 def test_assessor_cannot_create_user(assessor_client):
@@ -86,3 +92,67 @@ def test_assessor_cannot_create_user(assessor_client):
         json={"email": "nope@example.com", "display_name": "Nope", "role": "viewer"},
     )
     assert resp.status_code == 403
+
+
+def test_viewer_cannot_get_user_by_id(viewer_client):
+    resp = viewer_client.get("/api/users/00000000-0000-0000-0000-000000000099")
+    assert resp.status_code == 403
+
+
+def test_assessor_cannot_get_user_by_id(assessor_client):
+    resp = assessor_client.get("/api/users/00000000-0000-0000-0000-000000000099")
+    assert resp.status_code == 403
+
+
+def test_viewer_cannot_update_user(viewer_client):
+    resp = viewer_client.patch(
+        "/api/users/00000000-0000-0000-0000-000000000099",
+        json={"display_name": "Nope"},
+    )
+    assert resp.status_code == 403
+
+
+def test_unauthenticated_list_users_is_rejected(client):
+    resp = client.get("/api/users")
+    assert resp.status_code in (401, 403)
+
+
+# --- User directory (minimal, available to any authenticated user) ---
+
+def test_viewer_can_read_directory(viewer_client):
+    resp = viewer_client.get("/api/users/directory")
+    assert resp.status_code == 200
+    assert isinstance(resp.json(), list)
+
+
+def test_assessor_can_read_directory(assessor_client):
+    resp = assessor_client.get("/api/users/directory")
+    assert resp.status_code == 200
+
+
+def test_admin_can_read_directory(admin_client):
+    resp = admin_client.get("/api/users/directory")
+    assert resp.status_code == 200
+
+
+def test_directory_entries_expose_only_id_and_display_name(admin_client):
+    admin_client.post(
+        "/api/users",
+        json={"email": "dir@example.com", "display_name": "Directory Person", "role": "assessor"},
+    )
+    resp = admin_client.get("/api/users/directory")
+    assert resp.status_code == 200
+    entry = next(e for e in resp.json() if e["display_name"] == "Directory Person")
+    # Exactly id + display_name — never email, role, is_active or azure_oid.
+    assert set(entry.keys()) == {"id", "display_name"}
+
+
+def test_unauthenticated_directory_is_rejected(client):
+    resp = client.get("/api/users/directory")
+    assert resp.status_code in (401, 403)
+
+
+def test_viewer_can_still_get_me(viewer_client):
+    resp = viewer_client.get("/api/users/me")
+    assert resp.status_code == 200
+    assert resp.json()["role"] == "viewer"

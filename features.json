@@ -50,7 +50,7 @@
       "cd backend && pytest tests/test_pitches.py -k 'patch or update or stage_immutable'"
     ],
     "fulfills": ["VAL-PITCH-001", "VAL-PITCH-003", "VAL-CROSS-001"],
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": "pitch-edit-ui",

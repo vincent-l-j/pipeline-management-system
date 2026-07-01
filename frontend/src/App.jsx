@@ -19,6 +19,7 @@ import AssessmentCreatePage from './pages/AssessmentCreatePage'
 import AssessmentDetailPage from './pages/AssessmentDetailPage'
 import ReportsPage from './pages/ReportsPage'
 import UsersPage from './pages/UsersPage'
+import AdminRoute from './components/AdminRoute'
 
 function ProtectedRoute({ children }) {
   const { token, loading } = useAuth()
@@ -51,7 +52,7 @@ export default function App() {
       <Route path="/assessments/new" element={<ProtectedRoute><AssessmentCreatePage /></ProtectedRoute>} />
       <Route path="/assessments/:assessmentId" element={<ProtectedRoute><AssessmentDetailPage /></ProtectedRoute>} />
       <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
-      <Route path="/admin/users" element={<ProtectedRoute><UsersPage /></ProtectedRoute>} />
+      <Route path="/admin/users" element={<ProtectedRoute><AdminRoute><UsersPage /></AdminRoute></ProtectedRoute>} />
 
       {/* Catch-all */}
       <Route path="*" element={<Navigate to="/" replace />} />

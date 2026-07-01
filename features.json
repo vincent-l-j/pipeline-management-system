@@ -16,7 +16,7 @@
       "cd backend && pytest tests/test_contacts.py -k 'delete or cascade or rbac'"
     ],
     "fulfills": ["VAL-ORG-002", "VAL-ORG-003", "VAL-ORG-004", "VAL-CON-002", "VAL-CON-003", "VAL-CROSS-001"],
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": "orgs-contacts-ui",

@@ -104,7 +104,7 @@
       "cd frontend && npm test -- KanbanBoard"
     ],
     "fulfills": ["VAL-STAGE-001", "VAL-STAGE-003", "VAL-STAGE-004", "VAL-STAGE-005"],
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": "users-directory-and-lockdown-api",

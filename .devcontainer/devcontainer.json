@@ -1,40 +1,39 @@
 {
   "name": "Claude Code (Docker)",
-  "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
 
   "features": {
-    "ghcr.io/devcontainers/features/node:1": {},
-    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {},
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {
-      "version": "latest"
-    }
+    "ghcr.io/devcontainers/features/node:1": {}
   },
 
   "runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW"],
 
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
+
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
   "workspaceFolder": "/workspace",
 
   "mounts": [
-    "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume"
+    "source=devc-${localWorkspaceFolderBasename}-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
+    "source=devc-${localWorkspaceFolderBasename}-config-${devcontainerId},target=/home/vscode/.claude,type=volume"
   ],
 
-  "containerUser": "vscode",
   "remoteUser": "vscode",
 
   "containerEnv": {
+    "CLAUDE_CONFIG_DIR": "/home/vscode/.claude",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "DISABLE_AUTOUPDATER": "1"
   },
-
-  "postCreateCommand": "sudo git config core.fileMode false && git config --global safe.directory '*'",
-  "postStartCommand": "sudo bash .devcontainer/init-firewall.sh && echo 'Claude Code container ready. Run: claude'",
 
   "customizations": {
     "vscode": {
       "extensions": ["anthropic.claude-code"],
       "settings": {
-        "terminal.integrated.defaultProfile.linux": "bash"
+        "terminal.integrated.defaultProfile.linux": "zsh"
       }
     }
   }

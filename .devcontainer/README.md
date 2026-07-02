@@ -35,6 +35,8 @@ Then tell VS Code to use Podman instead of Docker. Add this to your VS Code `set
 
 Alternatively, open VS Code Settings (`Ctrl+,` / `Cmd+,`) and set **Dev > Containers: Docker Path** to `podman`.
 
+The Podman container (`.devcontainer/podman/`) is configured to run **rootless**. A `--userns=keep-id:uid=1000,gid=1000` mapping keeps the in-container `vscode` user (uid 1000) aligned with your host user, so bind-mounted workspace files stay owned by you. The `NET_ADMIN`/`NET_RAW` capabilities used by the firewall are scoped to the container's own user/network namespace and grant no privilege on the host.
+
 ---
 
 ## Using the container

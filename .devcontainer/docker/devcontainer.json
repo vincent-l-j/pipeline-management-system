@@ -24,7 +24,7 @@
     "DISABLE_AUTOUPDATER": "1"
   },
 
-  "postCreateCommand": "sudo git config core.fileMode false && git config --global safe.directory '*'",
+  "postCreateCommand": "sudo chown -R vscode:vscode /home/vscode/.claude && sudo chown vscode:vscode /workspace && git config --global safe.directory '*'",
   "postStartCommand": "sudo bash .devcontainer/init-firewall.sh && echo 'Claude Code container ready. Run: claude'",
 
   "customizations": {

@@ -1,145 +1,120 @@
 [
   {
-    "id": "orgs-contacts-delete-semantics-api",
-    "description": "Make organisation/contact hard-delete safe. DELETE /api/organisations/{id} must null organisation_id on all child contacts and pitches before deleting the org. DELETE /api/contacts/{id} must remove the contact's PitchContact and MeetingAttendee join rows in the same transaction. Keep delete admin-only and create admin+assessor.",
+    "id": "assessment-versioning-api",
+    "description": "Confirm and pin POST /api/assessments as the amend mechanism. Creating an assessment for a pitch that already has one appends a NEW row with version = previous latest + 1; it never mutates or overwrites a prior version. assessor_id is set to the acting user and assessment_date is taken from the request. Criteria scores are validated to the 1-5 range. admin+assessor may create; viewer 403; all authenticated roles may list/read. There is no PATCH/PUT/DELETE for assessments (versioning is the only amendment path).",
     "skillName": "backend-worker",
-    "milestone": "orgs-contacts",
+    "milestone": "assessments-amend",
     "expectedBehavior": [
-      "Deleting an organisation returns 200 and leaves linked contacts and pitches in place with organisation_id = null",
-      "Deleting a contact returns 200 and removes its PitchContact and MeetingAttendee rows; parent pitches and meetings remain retrievable",
-      "Deleting an unknown organisation or contact id returns 404",
-      "assessor and viewer get 403 on delete; create stays 200 for admin/assessor and 403 for viewer",
-      "No dangling foreign keys remain after either delete"
+      "POST for a pitch with an existing assessment returns 200 with version = previous latest + 1; the prior row is unchanged on a subsequent GET",
+      "The created version's assessor_id is the acting user and assessment_date is the supplied date",
+      "A score outside 1-5 (e.g. 0 or 6) returns 422 and creates no new version",
+      "viewer POST -> 403; unauthenticated -> 401; GET list/detail -> 200 for admin/assessor/viewer",
+      "No update or delete endpoint exists for assessments"
     ],
     "verificationSteps": [
-      "cd backend && pytest tests/test_organisations.py -k 'delete or orphan or rbac'",
-      "cd backend && pytest tests/test_contacts.py -k 'delete or cascade or rbac'"
+      "cd backend && pytest tests/test_assessments.py -k 'version or create or rbac or validation'"
     ],
-    "fulfills": ["VAL-ORG-002", "VAL-ORG-003", "VAL-ORG-004", "VAL-CON-002", "VAL-CON-003", "VAL-CROSS-001"],
-    "status": "done"
+    "fulfills": ["VAL-ASSESS-001", "VAL-ASSESS-002", "VAL-ASSESS-003", "VAL-ASSESS-006", "VAL-CROSS-001"],
+    "status": "pending"
   },
   {
-    "id": "orgs-contacts-ui",
-    "description": "Add 'Add' and per-row 'Remove' controls to OrganisationsPage and ContactsPage. Add opens a create form (modal/inline) and posts to the API, inserting the new row on success. Remove requires a confirmation step, then deletes and removes the row. Role-gate the controls: Add for admin+assessor, Remove for admin only; viewers see a read-only table. Surface API errors without mutating the table.",
+    "id": "assessment-amend-ui",
+    "description": "On AssessmentDetailPage (and/or the pitch view), add an 'Amend' / 'New version' affordance (admin+assessor only) that opens the assessment form pre-filled from the current latest version, and on save POSTs to /api/assessments to create the next version, then shows the new version. Render the full version history (newest first) with the latest marked as current and every prior version openable and read-only. Hide the amend control for viewers.",
     "skillName": "frontend-worker",
-    "milestone": "orgs-contacts",
+    "milestone": "assessments-amend",
     "expectedBehavior": [
-      "Admin sees Add and per-row Remove; assessor sees Add only; viewer sees neither",
-      "Submitting the Add form calls api.post and renders the new row on resolve",
-      "Remove shows a confirmation; confirming calls api.delete and removes the row; cancelling does not call the API",
-      "A rejected delete leaves the row present and shows an error"
+      "Detail view shows an amend/new-version control for admin/assessor and hides it for viewer",
+      "The amend form is pre-filled from the current latest version; saving calls api.post('/assessments', ...) and shows the incremented version",
+      "The version-history list shows all versions newest-first with the current one marked; prior versions open read-only",
+      "Cancelling the amend form makes no api.post call"
     ],
     "verificationSteps": [
-      "cd frontend && npm test -- OrganisationsPage",
+      "cd frontend && npm test -- AssessmentDetailPage",
+      "cd frontend && npm test -- AssessmentCreatePage"
+    ],
+    "fulfills": ["VAL-ASSESS-001", "VAL-ASSESS-004", "VAL-ASSESS-005"],
+    "status": "pending"
+  },
+  {
+    "id": "search-result-navigation-ui",
+    "description": "Fix SearchPage result navigation. The /api/search response tags each result with a singular type ('pitch', 'organisation', 'contact', 'meeting', 'assessment'); the click handler currently mis-maps the pitch type to an empty basePath, so selecting a pitch navigates to '/' (dashboard). Map each result type to its correct detail route (pitch -> /pitches/{id}, organisation -> /organisations/{id}, contact -> /contacts/{id}, meeting -> /meetings/{id}, assessment -> /assessments/{id}) so no result type falls through to the dashboard.",
+    "skillName": "frontend-worker",
+    "milestone": "pitch-search",
+    "expectedBehavior": [
+      "Clicking a pitch search result navigates to /pitches/{id} and renders that pitch, not the dashboard",
+      "Clicking a result of any other type navigates to that type's detail route",
+      "No result type resolves to an empty basePath or the catch-all/dashboard route"
+    ],
+    "verificationSteps": [
+      "cd frontend && npm test -- SearchPage"
+    ],
+    "fulfills": ["VAL-SEARCH-001", "VAL-SEARCH-002"],
+    "status": "pending"
+  },
+  {
+    "id": "contact-edit-api",
+    "description": "Confirm and pin PATCH /api/contacts/{id} as a partial update over ContactUpdate. Only supplied fields change; omitted fields are preserved. admin+assessor allowed; viewer 403; unauthenticated 401; unknown id 404. ContactUpdate stays an explicit allowlist (name, role, email, phone, linkedin, notes, last_contacted, organisation_id, relationship_owner_id) - do not widen it.",
+    "skillName": "backend-worker",
+    "milestone": "contacts-edit",
+    "expectedBehavior": [
+      "admin/assessor PATCH updates only supplied fields and returns 200; omitted fields preserved on subsequent GET",
+      "viewer PATCH -> 403; unauthenticated -> 401; unknown id -> 404",
+      "Fields outside the ContactUpdate allowlist are ignored, not persisted"
+    ],
+    "verificationSteps": [
+      "cd backend && pytest tests/test_contacts.py -k 'patch or update or rbac'"
+    ],
+    "fulfills": ["VAL-CON-EDIT-002", "VAL-CON-EDIT-003", "VAL-CROSS-001"],
+    "status": "pending"
+  },
+  {
+    "id": "contact-edit-ui",
+    "description": "Add an 'Edit' control on ContactsPage (admin+assessor only) that opens a form pre-filled from the contact's current values and submits PATCH /api/contacts/{id} on save, updating the row in place without a reload. Cancel makes no API call. Surface API errors without mutating the row. Viewers see no Edit control.",
+    "skillName": "frontend-worker",
+    "milestone": "contacts-edit",
+    "expectedBehavior": [
+      "ContactsPage shows Edit for admin/assessor and hides it for viewer",
+      "Edit opens a form pre-filled with the contact's current values",
+      "Saving calls api.patch('/contacts/{id}', ...) with the changed fields and updates the row on resolve; Cancel makes no api.patch call",
+      "A rejected patch leaves the row unchanged and shows an error"
+    ],
+    "verificationSteps": [
       "cd frontend && npm test -- ContactsPage"
     ],
-    "fulfills": ["VAL-ORG-001", "VAL-ORG-002", "VAL-ORG-004", "VAL-CON-001", "VAL-CON-002", "VAL-CON-003"],
-    "status": "done"
+    "fulfills": ["VAL-CON-EDIT-001", "VAL-CON-EDIT-003"],
+    "status": "pending"
   },
   {
-    "id": "pitch-edit-api",
-    "description": "Confirm and pin PATCH /api/pitches/{id} semantics. Partial update of allowed fields only; admin+assessor allowed, viewer 403, unknown id 404. Enforce the audit invariant that current_stage is NOT settable via PATCH (it is absent from PitchUpdate) so no stage change can occur without a PitchStageHistory row.",
+    "id": "organisation-edit-api",
+    "description": "Confirm and pin PATCH /api/organisations/{id} as a partial update over OrganisationUpdate. Only supplied fields change; omitted fields are preserved. admin+assessor allowed; viewer 403; unauthenticated 401; unknown id 404. OrganisationUpdate stays an explicit allowlist (name, org_type, sector, state_territory, website, abn, notes) - do not widen it.",
     "skillName": "backend-worker",
-    "milestone": "pitch-editing",
+    "milestone": "organisations-edit",
     "expectedBehavior": [
-      "admin/assessor PATCH updates only supplied fields and returns 200; omitted fields preserved",
+      "admin/assessor PATCH updates only supplied fields and returns 200; omitted fields preserved on subsequent GET",
       "viewer PATCH -> 403; unauthenticated -> 401; unknown id -> 404",
-      "A PATCH body containing current_stage returns 200 but leaves the stage unchanged and writes no stage-history row"
+      "Fields outside the OrganisationUpdate allowlist are ignored, not persisted"
     ],
     "verificationSteps": [
-      "cd backend && pytest tests/test_pitches.py -k 'patch or update or stage_immutable'"
+      "cd backend && pytest tests/test_organisations.py -k 'patch or update or rbac'"
     ],
-    "fulfills": ["VAL-PITCH-001", "VAL-PITCH-003", "VAL-CROSS-001"],
-    "status": "done"
+    "fulfills": ["VAL-ORG-EDIT-002", "VAL-ORG-EDIT-003", "VAL-CROSS-001"],
+    "status": "pending"
   },
   {
-    "id": "pitch-edit-ui",
-    "description": "Add an 'Edit' button on PitchDetailPage (admin/assessor only) that navigates to a new /pitches/:id/edit route. The edit route reuses the create form, pre-filled from the pitch, and submits PATCH on save then returns to the detail page; Cancel returns without calling the API. A viewer hitting the edit route is redirected. Keep the 'Confidential' badge as a visual marker only (no visibility change).",
+    "id": "organisation-edit-ui",
+    "description": "Add an 'Edit' control on OrganisationsPage (admin+assessor only) that opens a form pre-filled from the organisation's current values and submits PATCH /api/organisations/{id} on save, updating the row in place without a reload. Cancel makes no API call. Surface API errors without mutating the row. Viewers see no Edit control.",
     "skillName": "frontend-worker",
-    "milestone": "pitch-editing",
+    "milestone": "organisations-edit",
     "expectedBehavior": [
-      "Detail page shows Edit for admin/assessor and hides it for viewer",
-      "Edit route fetches the pitch and renders the form pre-filled",
-      "Saving calls api.patch with changed fields then navigates to the detail route; Cancel makes no api.patch call",
-      "Viewer navigating to the edit route is redirected (no form rendered)",
-      "Confidential pitches render a badge and remain openable by all roles"
+      "OrganisationsPage shows Edit for admin/assessor and hides it for viewer",
+      "Edit opens a form pre-filled with the organisation's current values",
+      "Saving calls api.patch('/organisations/{id}', ...) with the changed fields and updates the row on resolve; Cancel makes no api.patch call",
+      "A rejected patch leaves the row unchanged and shows an error"
     ],
     "verificationSteps": [
-      "cd frontend && npm test -- PitchDetailPage",
-      "cd frontend && npm test -- PitchEditPage"
+      "cd frontend && npm test -- OrganisationsPage"
     ],
-    "fulfills": ["VAL-PITCH-001", "VAL-PITCH-002", "VAL-PITCH-004"],
-    "status": "done"
-  },
-  {
-    "id": "kanban-stage-api",
-    "description": "Confirm and pin POST /api/pitches/{id}/stage. Updates current_stage and appends a PitchStageHistory row (from/to/changed_by/note). admin+assessor allowed; viewer 403; invalid stage 422; unknown id 404. Same endpoint backs both drag and right-click.",
-    "skillName": "backend-worker",
-    "milestone": "kanban-stage",
-    "expectedBehavior": [
-      "admin/assessor stage change returns 200 with current_stage updated",
-      "A history row is appended capturing from_stage, to_stage and the acting user as changed_by_id",
-      "viewer -> 403; unauthenticated -> 401; invalid new_stage -> 422; unknown id -> 404"
-    ],
-    "verificationSteps": [
-      "cd backend && pytest tests/test_pitches.py -k 'stage'"
-    ],
-    "fulfills": ["VAL-STAGE-001", "VAL-STAGE-002", "VAL-STAGE-004", "VAL-CROSS-001"],
-    "status": "done"
-  },
-  {
-    "id": "kanban-rightclick-ui",
-    "description": "Add a right-click (onContextMenu) stage picker to PitchCard, listing PIPELINE_STAGES with the current stage marked non-selectable. Selecting a stage uses the board's existing optimistic-move + stage-API call, reverting the card on failure (same path as drag). Hide the menu for viewers. Close on selection, outside click, and Escape.",
-    "skillName": "frontend-worker",
-    "milestone": "kanban-stage",
-    "expectedBehavior": [
-      "Right-click opens a menu listing all stages with the current one marked and not selectable",
-      "Selecting a new stage moves the card and calls api.post('/pitches/{id}/stage', ...)",
-      "On a rejected call the card reverts to its original column",
-      "Menu closes on outside click and on Escape",
-      "Viewers get no app stage menu on right-click"
-    ],
-    "verificationSteps": [
-      "cd frontend && npm test -- PitchCard",
-      "cd frontend && npm test -- KanbanBoard"
-    ],
-    "fulfills": ["VAL-STAGE-001", "VAL-STAGE-003", "VAL-STAGE-004", "VAL-STAGE-005"],
-    "status": "done"
-  },
-  {
-    "id": "users-directory-and-lockdown-api",
-    "description": "Close the user-management info-disclosure hole without breaking name resolution. Restrict GET /api/users and GET /api/users/{id} to admin only (full UserOut). Add GET /api/users/directory available to any authenticated user, returning a minimal {id, display_name} shape via a dedicated UserDirectoryOut schema (no email/role/is_active/azure_oid). Declare /directory and /me before /{id}. Keep POST/PATCH admin-only.",
-    "skillName": "backend-worker",
-    "milestone": "user-access-control",
-    "expectedBehavior": [
-      "GET /api/users and /{id}: 200 for admin, 403 for assessor/viewer, 401 unauthenticated",
-      "GET /api/users/directory: 200 for admin, assessor and viewer; 401 unauthenticated",
-      "Directory entries contain exactly id and display_name and never email, role, is_active or azure_oid",
-      "GET /api/users/me stays available to any authenticated user",
-      "POST/PATCH users remain admin-only (assessor/viewer -> 403)"
-    ],
-    "verificationSteps": [
-      "cd backend && pytest tests/test_users.py"
-    ],
-    "fulfills": ["VAL-USERS-001", "VAL-USERS-003", "VAL-USERS-004", "VAL-CROSS-001"],
-    "status": "done"
-  },
-  {
-    "id": "users-access-control-ui",
-    "description": "Guard /admin/users with an admin-only route wrapper that redirects non-admins (UsersPage never renders for them); keep the Sidebar 'Users' link admin-only. Repoint the six name-resolution callers (PipelinePage, PitchCreatePage, PitchDetailPage, AssessmentsPage, AssessmentDetailPage, MeetingAttendees) from GET /api/users to GET /api/users/directory so assessor/viewer flows keep working.",
-    "skillName": "frontend-worker",
-    "milestone": "user-access-control",
-    "expectedBehavior": [
-      "Sidebar shows the Users link for admin and hides it for assessor/viewer",
-      "Rendering /admin/users as assessor or viewer redirects away without rendering UsersPage; admin renders it",
-      "Name-resolution surfaces call /api/users/directory (not /api/users) and render for an assessor"
-    ],
-    "verificationSteps": [
-      "cd frontend && npm test -- Sidebar",
-      "cd frontend && npm test -- AdminRoute",
-      "cd frontend && npm test -- PitchCreatePage"
-    ],
-    "fulfills": ["VAL-USERS-002", "VAL-USERS-004"],
-    "status": "done"
+    "fulfills": ["VAL-ORG-EDIT-001", "VAL-ORG-EDIT-003"],
+    "status": "pending"
   }
 ]

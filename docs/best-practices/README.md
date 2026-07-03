@@ -11,6 +11,8 @@ don't replace — `AGENTS.md` (boundaries + enforced conventions) and the code i
 - [`frontend-react.md`](frontend-react.md) — React, Vitest, and Tailwind.
 - [`database-integration.md`](database-integration.md) — how the frontend, backend,
   and database fit together, and the rules that keep them in sync.
+- [`migrations.md`](migrations.md) — Alembic migrations, deployment, and rollback:
+  how to evolve the Postgres schema safely and test forward/rollback.
 - [`solid-principles.md`](solid-principles.md) — the design principles behind the
   conventions above.
 

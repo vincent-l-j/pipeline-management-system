@@ -38,11 +38,23 @@ execution for workers, thoroughness and skepticism for validators.
 2. It writes the **validation contract** — a finite checklist of testable
    behavioral assertions that define completion.
 3. It decomposes the work into **features**, each claiming the assertions it
-   fulfills, grouped into **milestones**.
+   fulfills, grouped into **milestones**. Each feature declares its `dependsOn`
+   features, forming a dependency graph that fixes the execution order.
 4. It creates shared state files (boundaries, procedures, knowledge base).
 
-A programmatic runner spawns one worker per feature, in order. Each starts fresh,
-writes tests first, then implements. When a milestone's features are all done, the
+A programmatic runner walks the dependency graph and spawns workers accordingly:
+features with no unmet dependencies run **in parallel**; a feature whose
+`dependsOn` lists aren't yet complete waits until they are, so dependent work runs
+**sequentially**. Parallel workers each run in their own **git worktree** so their
+changes stay isolated and don't collide on a shared checkout. Each worker starts
+fresh, writes tests first, implements, and hands off by pushing a **pull request
+ready for review** — a branch per feature, tests included, green at the tip.
+Parallel features are independent by definition — they never wait on each other,
+and anything with a real dependency runs sequentially instead, not in parallel.
+**When features do run sequentially on the same branch or worktree, commit each
+completed feature (tests and implementation, green) before starting the next**, so
+each feature is an isolated, revertable commit and later work never blurs into an
+earlier one's diff. When a milestone's features are all merged, the
 runner triggers validation with fresh agents:
 
 - **Scrutiny validators** review each worker's implementation and trajectory,
@@ -77,6 +89,7 @@ Evidence: screenshot, network(POST /api/auth/login -> 200)
   "expectedBehavior": ["Returns 200 with session cookie on valid credentials", "Returns 401 on invalid"],
   "verificationSteps": ["npm test -- --grep 'auth login'"],
   "fulfills": ["VAL-AUTH-001"],
+  "dependsOn": ["user-schema"],
   "status": "pending"
 }
 ```

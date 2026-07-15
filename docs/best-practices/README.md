@@ -5,6 +5,8 @@ don't replace — `AGENTS.md` (boundaries + enforced conventions) and the code i
 
 ## Contents
 
+- [`code-clarity.md`](code-clarity.md) — self-documenting code, when to comment,
+  and why comments decay.
 - [`backend-fastapi.md`](backend-fastapi.md) — FastAPI/Python patterns and pytest.
 - [`frontend-react.md`](frontend-react.md) — React, Vitest, and Tailwind.
 - [`database-integration.md`](database-integration.md) — how the frontend, backend,

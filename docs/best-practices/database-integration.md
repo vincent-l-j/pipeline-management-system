@@ -36,9 +36,10 @@ The frontend never talks to the database, and never constructs URLs beyond the
 - One `Session` per request via `get_db`; commit explicitly, then `db.refresh(obj)`
   before returning so the response reflects DB-generated values.
 - **Enforce cross-aggregate integrity in application code, not via DB cascades.**
-  Unit tests run on SQLite with foreign-key enforcement *off*, and startup uses
-  `Base.metadata.create_all` (no migration-defined `ON DELETE`). So behaviours
-  like "nulling `organisation_id` on child rows when an org is deleted" or
+  Unit tests run on SQLite with foreign-key enforcement *off*, so `ondelete=` cascades
+  never fire there regardless of how the schema is built (and while an app is still on
+  the `create_all` scaffolding phase, no DB-level `ON DELETE` is defined at all). So
+  behaviours like "nulling `organisation_id` on child rows when an org is deleted" or
   "deleting a contact's join rows" must be done in the route/service and covered
   by tests that assert the side effect. Relying on `ondelete=` would pass in
   Postgres but silently no-op under the test DB.
@@ -47,12 +48,18 @@ The frontend never talks to the database, and never constructs URLs beyond the
 
 ## Schema management
 
-- Tables are auto-created on startup (`create_all`) — fine for first run and for
-  tests. There is no migration wired into deploy yet; when a column changes,
-  existing dev/prod databases won't pick it up automatically. Alembic is
-  configured (`backend/alembic.ini`) for when managed migrations are turned on
-  (see the production notes in the README). Until then, schema changes may need a
-  volume reset locally (`docker compose down -v`).
+- Schema management follows the two-stage lifecycle in
+  [`migrations.md`](migrations.md) (`create_all` scaffolding → managed Alembic
+  migrations). Which stage a given app is in — and whether the deploy migrate job is
+  live — is tracked in its instance sheet (`sop/instances/<app>.md`), not asserted here.
+- **While still on `create_all`:** tables are auto-created from the models on startup —
+  fine for first run and tests — but a *changed* column is **not** picked up by an
+  existing database, so local dev may need a volume reset (`docker compose down -v`) and
+  there is no deploy-time schema change or rollback. That limitation is the trigger to run
+  the `db-bootstrap.md` SOP (see "When to bootstrap" in `migrations.md`).
+- **Once bootstrapped:** every schema change is an Alembic migration applied by
+  `alembic upgrade head` (a PRE_DEPLOY job on deploy); `create_all` is gone. Use the
+  `db-change.md` SOP per change.
 
 ## Auth across the boundary
 

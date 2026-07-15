@@ -4,24 +4,31 @@ How to evolve the Postgres schema safely: forward migrations, deployment, and
 rollback. Anchored to Alembic (`backend/alembic/`) and the DigitalOcean App
 Platform spec (`.do/app.yaml`).
 
-## Current state (read this first)
+## Setup lifecycle: `create_all` → Alembic
 
-The migration path is **partly wired up**. Remaining gaps:
+Every app on this stack moves through two stages once. This section describes the
+*pattern*; **it does not record where any given app currently sits** — that would rot.
+For an app's live position, see **"Current migration state"** in its instance sheet
+(`sop/instances/<app>.md`) and the phase it's on in
+[`db-bootstrap.md`](../../sop/db-bootstrap.md).
 
-1. **No migrations exist yet.** `backend/alembic/versions/` is empty. The schema is
-   currently created by `Base.metadata.create_all(bind=engine)` at startup
-   (`app/main.py`). That handles a first deploy but applies **no later schema
-   change** and gives **no rollback path**. Generate the baseline (below), then
-   remove `create_all()` from startup.
-2. **`alembic/env.py` now resolves the URL from the environment** — it sets
-   `sqlalchemy.url` from `settings.DATABASE_URL` (falling back to `alembic.ini` only
-   for bare `alembic` runs), and enables `compare_type` / `compare_server_default`
-   so autogenerate detects enum/type/default drift. *(Done.)*
-3. **The deploy migrate job is commented out** in `.do/app.yaml`, and the managed DB
-   is `production: false` (no automated backups → no restore-based rollback on that
-   tier).
+1. **Scaffolding (`create_all`).** `Base.metadata.create_all(bind=engine)` at startup
+   (`app/main.py`) builds the whole schema from the models on boot. Fine for the earliest
+   phase of a new app — the schema churns constantly, there's no data worth keeping, and
+   migrations would be pure friction. But it applies **no incremental change** to an
+   existing database and gives **no rollback path**, so it cannot be how a real,
+   deployed-with-data app evolves.
+2. **Managed migrations (Alembic owns the schema).** A genesis migration reproduces the
+   `create_all` schema; from then on every change is a reviewed, reversible migration
+   applied by `alembic upgrade head` (a PRE_DEPLOY job in prod). `create_all` is removed —
+   the two must **never both** manage the schema, or they fight.
 
-Until a baseline migration exists (1), the migration tests skip rather than pass.
+**When to bootstrap.** `create_all` is scaffolding for the earliest phase only — a single
+developer, no shared/deployed environment, no data worth keeping, a schema still churning.
+Switch to managed migrations as soon as any of that changes; it's cheapest against an empty
+DB and only gets riskier once real data exists. The full trigger checklist and the timing
+rationale live in the [`db-bootstrap.md`](../../sop/db-bootstrap.md) SOP under **"When to
+run this"** — this doc doesn't repeat them.
 
 ## Ground rules
 
@@ -87,55 +94,27 @@ Rehearse the rollback story you'll actually use — they differ:
   only safe when downgrades are truly reversible (Level 2 green).
 - **Restore from backup** — restore a pre-migration snapshot + redeploy the previous
   image. The safe path for irreversible/lossy migrations, but **requires a backed-up
-  DB tier** (`production: true` in `.do/app.yaml`); the current dev-grade tier has no
-  automated backups.
+  DB tier** (`production: true` in `.do/app.yaml`); a dev-grade tier
+  (`production: false`) has no automated backups. Whether a given app's managed DB is on
+  the backed-up tier yet is tracked in its instance sheet, not here.
 
 Decide per migration which applies, and note it in the migration docstring.
 
-## Running it (in the backend container)
+## The migration test suite
 
 The migration tests live in `backend/tests/migrations/` and drive the Alembic CLI
-against a **disposable** Postgres (never a real DB — they `DROP SCHEMA`). They
-`skip` unless `TEST_DATABASE_URL` is set and reachable, so the normal SQLite unit
-run is unaffected.
+against a **disposable** Postgres (never a real DB — they `DROP SCHEMA`). They `skip`
+unless `TEST_DATABASE_URL` is set and reachable, so the normal SQLite unit run is
+unaffected. `test_migrations_match_models` (an `alembic check`) is the gate that a
+migration actually matches `app/models/`; the suite implements Levels 1–2 above.
 
-**There is no host `python`/`alembic`/`psql` — run everything through Docker, from the
-repo root (the directory with `docker-compose.yml`).** The `backend` container's
-`WORKDIR` is `/app` (the backend root), so Alembic runs there without a `cd`. First
-ensure `.env` exists — the `backend` service has `env_file: - .env`, and `.env` is
-gitignored, so on a fresh clone `docker compose` aborts until you create it:
-
-```bash
-# 0a. Create .env if missing, or docker compose fails with "env file not found".
-[ -f .env ] || cp .env.example .env
-
-# 0b. A throwaway Postgres — a scratch database on the compose `db` service.
-#    Create it once (DROP and CREATE must be separate -c: DATABASE DDL can't run in a txn).
-docker compose exec db psql -U rozetta -d postgres \
-  -c "DROP DATABASE IF EXISTS pms_migrations_test;" \
-  -c "CREATE DATABASE pms_migrations_test;"
-
-# 1. Generate the baseline from the models (one-time, until it exists). This writes a
-#    file into backend/alembic/versions/ (via the bind mount); it does not alter the DB.
-docker compose run --rm \
-  -e DATABASE_URL='postgresql://rozetta:change_me_to_a_strong_password@db:5432/pms_migrations_test' \
-  backend sh -c 'echo "TARGET DB: $DATABASE_URL" && alembic revision --autogenerate -m baseline'
-#    Then HAND-CHECK the file: confirm every table/enum is present and, above all,
-#    that downgrade() is complete (autogenerate often leaves it partial).
-
-# 2. Run the migration tests. `test_migrations_match_models` (alembic check) is the
-#    gate that confirms the baseline actually matches app/models.
-docker compose run --rm \
-  -e TEST_DATABASE_URL='postgresql://rozetta:change_me_to_a_strong_password@db:5432/pms_migrations_test' \
-  backend sh -c 'pytest tests/migrations -m migrations'
-```
-
-For the full one-time cutover from `create_all()` to managed migrations (genesis
-generation, round-trip / empty-diff / `pg_dump` parity, then removing `create_all()` and
-enabling the deploy migrate job), follow the **`sop/db-bootstrap.md`** SOP and its
-Rozetta-PMS instance sheet (`sop/instances/rozetta-pms.md`), which carries the concrete
-containerised commands. Once green, remove `Base.metadata.create_all(...)` from
-`app/main.py` so Alembic is the sole owner of the schema.
+**Running them is procedure, not covered here.** There is no host
+`python`/`alembic`/`psql` — everything runs inside the compose containers. For the exact
+containerised commands (create a scratch DB, generate a migration, run this suite), see
+the instance sheet's command reference and the [`sop/bin/db.sh`](../../sop/bin/db.sh)
+wrapper; for the one-time `create_all()`→Alembic cutover, follow
+[`db-bootstrap.md`](../../sop/db-bootstrap.md), and for an ongoing schema change,
+[`db-change.md`](../../sop/db-change.md). This doc stays focused on *what* the tests prove.
 
 ## CI wiring
 
@@ -146,11 +125,12 @@ separate from the SQLite unit-test job — different database, different purpose
 
 ## Deploying migrations on DigitalOcean
 
-Once (1)–(2) above are done, enable the PRE_DEPLOY `migrate` job already stubbed at
-the bottom of `.do/app.yaml` (`run_command: alembic upgrade head`) and remove
-`create_all()` from `app/main.py` startup. PRE_DEPLOY runs the migration before the
-new app instances take traffic; combined with expand/contract, that keeps deploys
-zero-downtime and each step reversible.
+Schema is applied by a PRE_DEPLOY `migrate` job (`run_command: alembic upgrade head`)
+stubbed in `.do/app.yaml`. PRE_DEPLOY runs the migration **before** new app instances take
+traffic; combined with expand/contract, that keeps deploys zero-downtime and each step
+reversible, and it means the production migration is never run by hand. Enabling that job
+and removing `create_all()` is the cutover itself — performed once via
+[`db-bootstrap.md`](../../sop/db-bootstrap.md) Phase E (and backups enabled in Phase F).
 
 ## See also
 

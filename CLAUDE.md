@@ -31,6 +31,7 @@ There is no lint/typecheck tooling configured — don't assume one exists.
 backend/app/   FastAPI: api/routes, core (config/db/security), models, schemas, services
 frontend/src/  React: pages, components, contexts, services/api.js
 docs/          architecture.md, c4/, best-practices/
+sop/           db bootstrap/migration runbooks, tooling, instance sheets
 ```
 
 ## How work is organized (read these first)
@@ -44,6 +45,9 @@ mission-control artifacts at the root are:
   assertions it `fulfills` and lists its `verificationSteps`.
 - **`AGENTS.md`** — mission boundaries + coding conventions. Read before editing.
 - **`services.yaml`** — build/run/test commands and services.
+- **`sop/`** — Standard Operating Procedures: runbooks for database bootstrap
+  (`db-bootstrap.md`), schema changes (`db-change.md`), and tooling (`bin/db.sh`).
+  See `sop/instances/rozetta-pms.md` for app-specific values.
 
 To implement a feature: read its `features.json` entry → the `VAL-*` assertions it
 fulfills → `AGENTS.md` → the relevant best-practices doc → **write tests first** →

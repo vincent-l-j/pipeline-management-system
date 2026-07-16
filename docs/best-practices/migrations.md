@@ -6,23 +6,22 @@ Platform spec (`.do/app.yaml`).
 
 ## Current state (read this first)
 
-The migration path is **not yet wired up**. Before the plan below is meaningful,
-three gaps must close:
+The migration path is **partly wired up**. Remaining gaps:
 
-1. **No migrations exist.** `backend/alembic/versions/` is empty. The schema is
+1. **No migrations exist yet.** `backend/alembic/versions/` is empty. The schema is
    currently created by `Base.metadata.create_all(bind=engine)` at startup
    (`app/main.py`). That handles a first deploy but applies **no later schema
-   change** and gives **no rollback path**.
-2. **`alembic/env.py` ignores the environment.** It reads `sqlalchemy.url` from
-   `alembic.ini` — a hardcoded placeholder pointing at the local `db` host. It does
-   *not* read `settings.DATABASE_URL`, so the DO migrate job (which injects
-   `DATABASE_URL`) would run against the wrong database. Fix `env.py` to prefer
-   `os.environ["DATABASE_URL"]` / `settings.DATABASE_URL` before doing anything else.
+   change** and gives **no rollback path**. Generate the baseline (below), then
+   remove `create_all()` from startup.
+2. **`alembic/env.py` now resolves the URL from the environment** — it sets
+   `sqlalchemy.url` from `settings.DATABASE_URL` (falling back to `alembic.ini` only
+   for bare `alembic` runs), and enables `compare_type` / `compare_server_default`
+   so autogenerate detects enum/type/default drift. *(Done.)*
 3. **The deploy migrate job is commented out** in `.do/app.yaml`, and the managed DB
    is `production: false` (no automated backups → no restore-based rollback on that
    tier).
 
-Until (1) and (2) are done, any migration/rollback test is a false pass.
+Until a baseline migration exists (1), the migration tests skip rather than pass.
 
 ## Ground rules
 
@@ -92,6 +91,51 @@ Rehearse the rollback story you'll actually use — they differ:
   automated backups.
 
 Decide per migration which applies, and note it in the migration docstring.
+
+## Running it (in the backend container)
+
+The migration tests live in `backend/tests/migrations/` and drive the Alembic CLI
+against a **disposable** Postgres (never a real DB — they `DROP SCHEMA`). They
+`skip` unless `TEST_DATABASE_URL` is set and reachable, so the normal SQLite unit
+run is unaffected.
+
+**There is no host `python`/`alembic`/`psql` — run everything through Docker, from the
+repo root (the directory with `docker-compose.yml`).** The `backend` container's
+`WORKDIR` is `/app` (the backend root), so Alembic runs there without a `cd`. First
+ensure `.env` exists — the `backend` service has `env_file: - .env`, and `.env` is
+gitignored, so on a fresh clone `docker compose` aborts until you create it:
+
+```bash
+# 0a. Create .env if missing, or docker compose fails with "env file not found".
+[ -f .env ] || cp .env.example .env
+
+# 0b. A throwaway Postgres — a scratch database on the compose `db` service.
+#    Create it once (DROP and CREATE must be separate -c: DATABASE DDL can't run in a txn).
+docker compose exec db psql -U rozetta -d postgres \
+  -c "DROP DATABASE IF EXISTS pms_migrations_test;" \
+  -c "CREATE DATABASE pms_migrations_test;"
+
+# 1. Generate the baseline from the models (one-time, until it exists). This writes a
+#    file into backend/alembic/versions/ (via the bind mount); it does not alter the DB.
+docker compose run --rm \
+  -e DATABASE_URL='postgresql://rozetta:change_me_to_a_strong_password@db:5432/pms_migrations_test' \
+  backend sh -c 'echo "TARGET DB: $DATABASE_URL" && alembic revision --autogenerate -m baseline'
+#    Then HAND-CHECK the file: confirm every table/enum is present and, above all,
+#    that downgrade() is complete (autogenerate often leaves it partial).
+
+# 2. Run the migration tests. `test_migrations_match_models` (alembic check) is the
+#    gate that confirms the baseline actually matches app/models.
+docker compose run --rm \
+  -e TEST_DATABASE_URL='postgresql://rozetta:change_me_to_a_strong_password@db:5432/pms_migrations_test' \
+  backend sh -c 'pytest tests/migrations -m migrations'
+```
+
+For the full one-time cutover from `create_all()` to managed migrations (genesis
+generation, round-trip / empty-diff / `pg_dump` parity, then removing `create_all()` and
+enabling the deploy migrate job), follow the **`sop/db-bootstrap.md`** SOP and its
+Rozetta-PMS instance sheet (`sop/instances/rozetta-pms.md`), which carries the concrete
+containerised commands. Once green, remove `Base.metadata.create_all(...)` from
+`app/main.py` so Alembic is the sole owner of the schema.
 
 ## CI wiring
 

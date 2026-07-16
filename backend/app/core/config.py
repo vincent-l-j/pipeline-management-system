@@ -7,13 +7,16 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql://rozetta:change_me_to_a_strong_password@db:5432/rozetta_pms"
 
-    # Security
-    SECRET_KEY: str = "dev-secret-key-change-in-production"
+    # Security. No default: a missing SECRET_KEY must crash the app at boot rather
+    # than fall back to a known value that would let anyone forge valid JWTs.
+    SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8 hours
 
-    # Azure AD / Microsoft OAuth
+    # Azure AD / Microsoft OAuth. CLIENT_ID/TENANT_ID are public identifiers, but
+    # the CLIENT_SECRET is a real credential — required, no default, same reasoning
+    # as SECRET_KEY.
     AZURE_CLIENT_ID: str = "placeholder-client-id"
-    AZURE_CLIENT_SECRET: str = "placeholder-client-secret"
+    AZURE_CLIENT_SECRET: str
     AZURE_TENANT_ID: str = "placeholder-tenant-id"
     AZURE_AUTHORITY: str = ""
     AZURE_REDIRECT_URI: str = "http://localhost:8000/api/auth/callback"

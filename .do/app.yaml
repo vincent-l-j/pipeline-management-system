@@ -1,33 +1,33 @@
 # .do/app.yaml  —  DigitalOcean App Platform production spec
 # This REPLACES docker-compose.yml for production. Compose stays for local dev only.
 #
-# Before first deploy:
-#   1. Fill in the two remaining <PLACEHOLDER> values below — AZURE_CLIENT_ID
-#      and AZURE_TENANT_ID (from Azure Portal > App registrations; not secrets).
-#   2. Set the SECRET env vars in the DO control panel (or via `doctl apps update`):
-#      ANTHROPIC_API_KEY, SECRET_KEY, AZURE_CLIENT_SECRET.
-#   3. After the first deploy, copy the app's *.ondigitalocean.app URL and add
-#      <that-url>/api/auth/callback as a Redirect URI in the Azure app registration.
+# CI (.github/workflows/deploy.yml) applies this file to the live app on push to
+# main, so it must mirror the deployed app exactly — a field that drifts from
+# reality here will be pushed onto prod on the next deploy. SECRET env vars carry
+# no value: their values are set once in the DO control panel and App Platform
+# retains them across spec applies, so nothing secret is committed.
 # Validate locally with:  doctl apps spec validate .do/app.yaml
 
 name: rozetta-pms
 region: syd            # Sydney datacenter, lowest latency for you. Change if your DB/users are elsewhere.
 
+# Primary custom domain (CNAME/A configured in DNS). ${APP_URL} resolves to this.
+domains:
+  - domain: ims.rozettainstitute.com
+    type: PRIMARY
+
 # ---------------------------------------------------------------------------
-# Managed Postgres. This replaces the `db` container — you do NOT run your own
-# postgres:16 image in prod. `production: false` is the cheap dev-grade tier
-# (no HA, no automated daily backups). Flip to true before real data lands.
+# Managed Postgres (`production: true`) is the HA tier with automated
+# daily backups and point-in-time recovery.
+# WARNING: Downgrading to false drops backups/HA
 # ---------------------------------------------------------------------------
 databases:
   - name: db
     engine: PG
     version: "16"
-    production: false
+    production: true
+    cluster_name: app-57000c67-b383-4f33-9f44-10439fef0d5a
 
-# ---------------------------------------------------------------------------
-# Backend: FastAPI/uvicorn, built from your existing backend/Dockerfile.
-# run_command overrides the Dockerfile's `--reload` CMD.
-# ---------------------------------------------------------------------------
 services:
   - name: backend
     source_dir: backend
@@ -35,11 +35,13 @@ services:
     github:
       repo: vincent-l-j/pipeline-management-system
       branch: main
-      deploy_on_push: true
+      # deploy_on_push off: CI (.github/workflows/deploy.yml) is the single deploy
+      # path, applying this spec + code together. Leaving it on would double-deploy.
+      deploy_on_push: false
     run_command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     http_port: 8000
     instance_count: 1
-    instance_size_slug: apps-s-1vcpu-1gb   # verify with: doctl apps tier instance-size list
+    instance_size_slug: apps-s-1vcpu-0.5gb
     routes:
       - path: /api
         preserve_path_prefix: true   # without this, App Platform strips /api before forwarding
@@ -55,10 +57,7 @@ services:
       - key: DATABASE_URL
         value: ${db.DATABASE_URL}
         scope: RUN_TIME
-      - key: ANTHROPIC_API_KEY
-        type: SECRET
-        scope: RUN_TIME
-      # JWT signing key. config.py reads SECRET_KEY (not JWT_SECRET).
+      # JWT signing key. config.py reads SECRET_KEY
       - key: SECRET_KEY
         type: SECRET
         scope: RUN_TIME
@@ -91,14 +90,17 @@ services:
         scope: RUN_TIME
         value: ${APP_URL}
       # Emails granted ADMIN automatically on first sign-in (comma-separated).
+      # PII — kept out of git: set the value as an encrypted var in the DO control
+      # panel. Declared type: SECRET so App Platform retains that value across spec
+      # applies (a valueless non-secret var would be blanked on the next deploy).
       - key: ADMIN_EMAILS
+        type: SECRET
         scope: RUN_TIME
-        value: vincent.jadraque@rozettainstitute.com
       # Same-origin in prod, but config.py still requires the var; harmless to set.
       - key: BACKEND_CORS_ORIGINS
         scope: RUN_TIME
         value: ${APP_URL}
-      # Explicitly OFF. Your compose forces this true for local dev.
+      # Explicitly OFF for production
       - key: ENABLE_DEV_LOGIN
         value: "false"
         scope: RUN_TIME
@@ -114,7 +116,9 @@ static_sites:
     github:
       repo: vincent-l-j/pipeline-management-system
       branch: main
-      deploy_on_push: true
+      # deploy_on_push off: CI (.github/workflows/deploy.yml) is the single deploy
+      # path, applying this spec + code together. Leaving it on would double-deploy.
+      deploy_on_push: false
     build_command: npm run build
     output_dir: dist
     catchall_document: index.html   # so React Router deep links (/pitches/42) don't 404
@@ -129,12 +133,6 @@ static_sites:
       # VITE_ENABLE_DEV_LOGIN is deliberately NOT set here. Leaving it absent
       # keeps the "Dev Login (Admin)" button out of production.
 
-# ---------------------------------------------------------------------------
-# Alembic migrations as a pre-deploy job. Runs `alembic upgrade head` before new
-# app instances take traffic, so the schema is current on every deploy. This is
-# the only thing that manages the schema now — create_all() was removed from
-# app/main.py at the Alembic cutover; the two must never both own the schema.
-# ---------------------------------------------------------------------------
 jobs:
   - name: migrate
     kind: PRE_DEPLOY
@@ -144,7 +142,7 @@ jobs:
       repo: vincent-l-j/pipeline-management-system
       branch: main
     run_command: alembic upgrade head
-    instance_size_slug: apps-s-1vcpu-1gb
+    instance_size_slug: apps-s-1vcpu-0.5gb
     envs:
       - key: DATABASE_URL
         value: ${db.DATABASE_URL}

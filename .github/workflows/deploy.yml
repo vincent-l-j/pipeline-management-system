@@ -1,0 +1,28 @@
+name: App Platform Deploy
+
+# Single deploy path for production. On push to main, apply .do/app.yaml (spec +
+# code) to the live app. Components have deploy_on_push: false, so this workflow
+# is the only thing that deploys — no double deploys, and spec changes ship too.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - name: Deploy to App Platform
+        uses: digitalocean/app_action/deploy@v2
+        with:
+          app_name: rozetta-pms
+          token: ${{ secrets.PROD_DO_ACCESS_TOKEN }}

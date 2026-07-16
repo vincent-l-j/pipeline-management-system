@@ -4,12 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.core.database import engine
-from app.models import Base
 from app.api.routes import auth, users, organisations, contacts, pitches, meetings, assessments, search, timeline, reports
-
-# Create all database tables on startup
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Rozetta PMS",

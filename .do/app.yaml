@@ -130,23 +130,22 @@ static_sites:
       # keeps the "Dev Login (Admin)" button out of production.
 
 # ---------------------------------------------------------------------------
-# OPTIONAL — Alembic migrations as a pre-deploy job.
-# Your app currently builds tables via Base.metadata.create_all() at startup,
-# which works for the first deploy but will NOT apply later schema changes.
-# Once Alembic is wired up, uncomment this and remove create_all() from startup.
-# Leaving it commented avoids a failed deploy if alembic isn't configured yet.
+# Alembic migrations as a pre-deploy job. Runs `alembic upgrade head` before new
+# app instances take traffic, so the schema is current on every deploy. This is
+# the only thing that manages the schema now — create_all() was removed from
+# app/main.py at the Alembic cutover; the two must never both own the schema.
 # ---------------------------------------------------------------------------
-# jobs:
-#   - name: migrate
-#     kind: PRE_DEPLOY
-#     source_dir: backend
-#     dockerfile_path: backend/Dockerfile
-#     github:
-#       repo: vincent-l-j/pipeline-management-system
-#       branch: main
-#     run_command: alembic upgrade head
-#     instance_size_slug: apps-s-1vcpu-1gb
-#     envs:
-#       - key: DATABASE_URL
-#         value: ${db.DATABASE_URL}
-#         scope: RUN_TIME
+jobs:
+  - name: migrate
+    kind: PRE_DEPLOY
+    source_dir: backend
+    dockerfile_path: backend/Dockerfile
+    github:
+      repo: vincent-l-j/pipeline-management-system
+      branch: main
+    run_command: alembic upgrade head
+    instance_size_slug: apps-s-1vcpu-1gb
+    envs:
+      - key: DATABASE_URL
+        value: ${db.DATABASE_URL}
+        scope: RUN_TIME

@@ -10,6 +10,10 @@ import os
 # Must be set before app.core.config / app.core.database are imported.
 os.environ["DATABASE_URL"] = "sqlite://"
 os.environ["ENABLE_DEV_LOGIN"] = "false"
+# config.py has no defaults for these secrets (a missing secret must crash prod,
+# not run on a guessable key); give the test app throwaway values to boot with.
+os.environ.setdefault("SECRET_KEY", "test-secret-key")
+os.environ.setdefault("AZURE_CLIENT_SECRET", "test-azure-client-secret")
 
 import uuid
 from datetime import datetime, timezone

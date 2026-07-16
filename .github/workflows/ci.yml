@@ -24,3 +24,37 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
       - run: docker build --target ${{ matrix.target }} ./${{ matrix.service }}
+
+  # Alembic migration tests need a real Postgres (enums, UUID, server defaults).
+  # The `checks` job's `docker build --target test` runs with no DB and skips
+  # them, so this job is what actually exercises them.
+  migrations:
+    name: Migration tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: pms
+          POSTGRES_PASSWORD: pms
+          POSTGRES_DB: pms_migrations_test
+        ports:
+          - 5432:5432
+        # Gate steps until Postgres accepts connections, else the conftest's
+        # reachability check can race and silently skip the whole module.
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1  # v6.3.0
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+        working-directory: backend
+      - run: pytest tests/migrations -m migrations
+        working-directory: backend
+        env:
+          TEST_DATABASE_URL: postgresql://pms:pms@localhost:5432/pms_migrations_test

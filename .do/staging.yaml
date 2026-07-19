@@ -8,25 +8,14 @@
 # retains them across spec applies, so nothing secret is committed.
 # Validate locally with:  doctl apps spec validate .do/app.yaml
 
-name: rozetta-pms
+name: staging
 region: syd            # Sydney datacenter, lowest latency for you. Change if your DB/users are elsewhere.
 
-# Primary custom domain (CNAME/A configured in DNS). ${APP_URL} resolves to this.
-domains:
-  - domain: ims.rozettainstitute.com
-    type: PRIMARY
-
-# ---------------------------------------------------------------------------
-# Managed Postgres (`production: true`) is the HA tier with automated
-# daily backups and point-in-time recovery.
-# WARNING: Downgrading to false drops backups/HA
-# ---------------------------------------------------------------------------
 databases:
   - name: db
     engine: PG
     version: "16"
-    production: true
-    cluster_name: app-57000c67-b383-4f33-9f44-10439fef0d5a
+    production: false
 
 services:
   - name: backend

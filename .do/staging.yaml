@@ -23,7 +23,7 @@ services:
     dockerfile_path: backend/Dockerfile
     github:
       repo: vincent-l-j/pipeline-management-system
-      branch: main
+      branch: develop
       # deploy_on_push off: CI is the single deploy path - applies spec + code together
       # Leaving it on would double-deploy.
       deploy_on_push: false
@@ -104,7 +104,7 @@ static_sites:
     source_dir: frontend
     github:
       repo: vincent-l-j/pipeline-management-system
-      branch: main
+      branch: develop
       # deploy_on_push off: CI (.github/workflows/deploy.yml) is the single deploy
       # path, applying this spec + code together. Leaving it on would double-deploy.
       deploy_on_push: false
@@ -129,7 +129,7 @@ jobs:
     dockerfile_path: backend/Dockerfile
     github:
       repo: vincent-l-j/pipeline-management-system
-      branch: main
+      branch: develop
     run_command: alembic upgrade head
     instance_size_slug: apps-s-1vcpu-0.5gb
     envs:

@@ -1,17 +1,11 @@
-name: production
+name: staging
 region: syd
-
-# Primary custom domain (CNAME/A configured in DNS). ${APP_URL} resolves to this.
-domains:
-  - domain: ims.rozettainstitute.com
-    type: PRIMARY
 
 databases:
   - name: db
     engine: PG
     version: "16"
-    production: true
-    cluster_name: app-57000c67-b383-4f33-9f44-10439fef0d5a
+    production: false
 
 services:
   - name: backend
@@ -19,7 +13,7 @@ services:
     dockerfile_path: backend/Dockerfile
     github:
       repo: vincent-l-j/pipeline-management-system
-      branch: main
+      branch: develop
       deploy_on_push: false
     run_command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     http_port: 8000
@@ -94,7 +88,7 @@ static_sites:
     source_dir: frontend
     github:
       repo: vincent-l-j/pipeline-management-system
-      branch: main
+      branch: develop
       deploy_on_push: false
     build_command: npm run build
     output_dir: dist
@@ -117,7 +111,7 @@ jobs:
     dockerfile_path: backend/Dockerfile
     github:
       repo: vincent-l-j/pipeline-management-system
-      branch: main
+      branch: develop
     run_command: alembic upgrade head
     instance_size_slug: apps-s-1vcpu-0.5gb
     envs:

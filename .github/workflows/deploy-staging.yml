@@ -1,0 +1,27 @@
+name: App Platform Staging
+
+on:
+  push:
+    branches: [develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: deploy-staging
+    runs-on: ubuntu-latest
+    environment: uat
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
+      - name: Deploy staging to App Platform
+        uses: digitalocean/app_action/deploy@v2
+        with:
+          app_name: staging
+          app_spec_location: ./.do/staging.yaml
+          token: ${{ secrets.UAT_DO_ACCESS_TOKEN }}

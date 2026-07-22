@@ -30,7 +30,7 @@ There is no lint/typecheck tooling configured — don't assume one exists.
 ```
 backend/app/   FastAPI: api/routes, core (config/db/security), models, schemas, services
 frontend/src/  React: pages, components, contexts, services/api.js
-docs/          architecture.md, c4/, best-practices/
+docs/          architecture.md, best-practices/
 sop/           db bootstrap/migration runbooks, tooling, instance sheets
 ```
 

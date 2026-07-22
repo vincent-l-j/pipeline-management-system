@@ -88,20 +88,19 @@ change is covered before it reaches `main`.
 
 Note: the automated suite runs on SQLite (or another test engine), which does not have
 native Postgres enum types. A migration that relies on Postgres-specific DDL must be
-exercised against Postgres, not only the test suite — see
-[`database-seeding.md`](./database-seeding.md).
+exercised against Postgres, not only the test suite.
 
 ---
 
 ## 5. Ship
 
-Merge to `main`. `deploy_on_push` triggers the `PRE_DEPLOY` migrate job, which runs
+Merge to `main`. CI GitOps triggers the `PRE_DEPLOY` migrate job, which runs
 `alembic upgrade head` against the environment DB before the new release goes live. Do not
 run the production migration by hand.
 
 `[STOP IF]` the migration is destructive (drops a column/table, narrows a type) and the
 target DB holds data you care about: confirm a current backup/PITR window exists first
-(see [`migrations.md`](./migrations.md) §4).
+(see [`migrations.md`](../docs/best-practices/migrations.md), "Level 4 — Rollback rehearsal").
 
 ---
 

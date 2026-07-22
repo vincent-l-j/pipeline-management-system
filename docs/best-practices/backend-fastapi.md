@@ -89,8 +89,8 @@ for field, value in data.model_dump(exclude_unset=True).items():
 - **Least-privilege responses.** An `*Out` should expose only what the caller
   needs. Where a low-privilege caller needs a subset (e.g. names without emails),
   add a dedicated narrow schema rather than reusing the full one — this is the
-  intent behind the planned user directory (a minimal `id`/`display_name` schema
-  distinct from the admin-only `UserOut`; see `features.json`).
+  intent behind the user directory (`UserDirectoryOut`, a minimal `id`/`display_name`
+  schema distinct from the admin-only `UserOut`, served by `GET /users/directory`).
 
 ## Models (SQLAlchemy 2.0)
 

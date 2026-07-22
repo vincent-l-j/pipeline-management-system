@@ -116,7 +116,12 @@ Commit Phase A on its own branch. It changes no runtime behaviour.
    ```
 2. Generate:
    ```bash
-   cd backend && alembic revision --autogenerate -m "genesis schema"
+   docker compose run --rm -T backend sh -c 'alembic revision --autogenerate -m "genesis schema"'
+   ```
+   Subsequent runs will result in the following error and is the expected behaviour:
+   ```
+   ERROR [alembic.util.messaging] Target database is not up to date.
+   FAILED: Target database is not up to date.
    ```
 3. **Read the entire generated file.** Confirm:
    - every table from step A.4 is created;
@@ -136,16 +141,14 @@ points there first.
 
 1. **Round-trip.** The second upgrade is where dangling enum types surface.
    ```bash
-   alembic upgrade head
-   alembic downgrade base
-   alembic upgrade head
+   docker compose run --rm -T backend sh -c 'alembic upgrade head; alembic downgrade base; alembic upgrade head'
    ```
    PASS = all three succeed with exit 0. `[STOP IF]` the second `upgrade head` errors with
    "type already exists" — downgrade isn't dropping an enum type; fix `downgrade()`.
 
 2. **Empty-diff.** Prove the migration matches the models exactly.
    ```bash
-   alembic revision --autogenerate -m _tmp_check
+   docker compose run --rm -T backend sh -c 'alembic revision --autogenerate -m _tmp_check'
    ```
    PASS = the new file's `upgrade()` and `downgrade()` bodies contain only `pass` (no
    operations). Then delete `_tmp_check`. `[STOP IF]` it contains any operation — the
@@ -185,20 +188,28 @@ Follow the branch specified in `$CUTOVER_BRANCH` from `.env`.
 1. Provision (or convert to) the managed Postgres for the environment.
 2. `echo "TARGET DB: $DATABASE_URL"` → confirm it is the intended target `[HUMAN CONFIRM]`.
 3. `alembic upgrade head` against the empty managed DB.
-4. Reload test/seed data per [`database-seeding.md`](./database-seeding.md) if this is a
-   dev/preview environment. Never seed production.
-5. Remove `create_all()` from the app's startup code (find it by searching the app or
+4. Remove `create_all()` from the app's startup code (find it by searching the app or
    asking the team; e.g., `backend/app/main.py`).
-6. Uncomment the `PRE_DEPLOY` migrate job in `.do/app.yaml` that runs `alembic upgrade head`.
-7. No `stamp` is used on this branch.
+5. Uncomment the `PRE_DEPLOY` migrate job in `.do/app.yaml` that runs `alembic upgrade head`.
+6. No `stamp` is used on this branch.
 
 ### Branch `stamp` — source DB holds data to preserve
 
 1. **Back up first, unconditionally.** `pg_dump` the source DB to a safe location and
    confirm the dump restores into a throwaway before touching the original. `[STOP IF]`
    the backup can't be verified.
-2. Confirm Phase C parity passed. `[STOP IF]` it did not — stamping a DB whose schema
-   doesn't match the genesis migration corrupts migration history.
+2. Confirm Phase C parity passed **against the live source DB** (not just a local
+   `create_all` schema — the two can differ if a model change never reached the source, since
+   `create_all` never `ALTER`s existing columns). `[STOP IF]` it did not — stamping a DB whose
+   schema doesn't match the genesis migration corrupts migration history. On mismatch:
+   - **Minor drift** (a column type, a missing index): reconcile the source DB up to the
+     genesis baseline with a hand-run `ALTER` (verify the data conversion is lossless), re-diff
+     until only benign hunks remain, then stamp.
+   - **Drastic drift** (many tables/columns diverge): do **not** hand-align or stamp head.
+     Baseline the migration history on the source's *real* schema (autogenerate an initial
+     revision against a restored copy, `stamp` that), then author reviewed, CI-tested,
+     reversible forward migrations for each delta and `upgrade` through them. Stamp only a
+     revision the DB actually matches.
 3. `echo "TARGET DB: $DATABASE_URL"` → confirm target `[HUMAN CONFIRM]`.
 4. `alembic stamp head` — marks the existing schema as already at head. Do **not** run
    `upgrade` on this branch.
@@ -210,8 +221,9 @@ Follow the branch specified in `$CUTOVER_BRANCH` from `.env`.
 
 `[STOP IF]` production will hold real data and the managed DB is still `production: false`.
 Flip `production: true` on the `databases:` block in `.do/app.yaml` for HA, automated
-backups, and point-in-time recovery **before** real users depend on it. Restore/PITR do
-not exist on the dev tier (see [`migrations.md`](./migrations.md) §4).
+backups, and point-in-time recovery **before** real users depend on it. Automated
+backups/PITR do not exist on the dev tier (see
+[`migrations.md`](../docs/best-practices/migrations.md), "Level 4 — Rollback rehearsal").
 
 ---
 

@@ -5,7 +5,7 @@ docs/best-practices/migrations.md:
 
   Level 1  test_round_trip_is_reversible   — upgrade → downgrade → upgrade
            test_single_head                — history stays linear
-  Level 3  test_migrations_match_models    — `alembic check` (empty autogen diff)
+           test_migrations_match_models    — `alembic check` (empty autogen diff)
   Level 2  test_downgrade_runs_on_populated_db — downgrade doesn't choke on data
 
 Per-migration data-*preservation* assertions (Level 2, full form) belong in
@@ -40,7 +40,7 @@ def test_single_head(alembic):
     assert len(heads) == 1, f"expected a single head, got:\n{result.stdout}"
 
 
-# --- Level 3: model / migration parity --------------------------------------
+# --- Level 1 (cont.): model / migration parity ------------------------------
 
 def test_migrations_match_models(alembic, clean_db):
     """`alembic check` finds no drift between the models and migrations at head.

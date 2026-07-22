@@ -71,8 +71,9 @@ narrower schema that silently drops a field a caller relied on).
 
 This is the design rule behind **least-privilege responses**:
 
-- The planned user directory (a minimal `id`/`display_name` schema, distinct from
-  the full admin `UserOut` with email/role/status; see `features.json`) is a
+- The user directory (`UserDirectoryOut`, a minimal `id`/`display_name` schema,
+  distinct from the full admin `UserOut` with email/role/status; served by
+  `GET /users/directory`) is a
   worked example: name-resolution callers get exactly the interface they need and
   nothing sensitive. Widening one shared schema to serve both would violate ISP
   *and* leak data. `UserOut` itself already applies ISP today.

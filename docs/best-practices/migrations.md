@@ -9,8 +9,8 @@ Platform spec (`.do/app.yaml`).
 Every app on this stack moves through two stages once. This section describes the
 *pattern*; **it does not record where any given app currently sits** — that would rot.
 For an app's live position, see **"Current migration state"** in its instance sheet
-(`sop/instances/<app>.md`) and the phase it's on in
-[`db-bootstrap.md`](../../sop/db-bootstrap.md).
+(`sop/instances/<app>.md`); the [`db-bootstrap.md`](../../sop/db-bootstrap.md) SOP is the
+generic cutover procedure, not a per-app status record.
 
 1. **Scaffolding (`create_all`).** `Base.metadata.create_all(bind=engine)` at startup
    (`app/main.py`) builds the whole schema from the models on boot. Fine for the earliest
@@ -116,21 +116,12 @@ wrapper; for the one-time `create_all()`→Alembic cutover, follow
 [`db-bootstrap.md`](../../sop/db-bootstrap.md), and for an ongoing schema change,
 [`db-change.md`](../../sop/db-change.md). This doc stays focused on *what* the tests prove.
 
-## CI wiring
-
-Add a job that spins up ephemeral Postgres and runs **Levels 1–2** on every PR that
-touches `backend/alembic/` or `backend/app/models/`. This is the gate that stops a
-bad `downgrade()` (or a model change with no migration) reaching `main`. Keep it
-separate from the SQLite unit-test job — different database, different purpose.
-
 ## Deploying migrations on DigitalOcean
 
 Schema is applied by a PRE_DEPLOY `migrate` job (`run_command: alembic upgrade head`)
-stubbed in `.do/app.yaml`. PRE_DEPLOY runs the migration **before** new app instances take
+defined in `.do/app.yaml`. PRE_DEPLOY runs the migration **before** new app instances take
 traffic; combined with expand/contract, that keeps deploys zero-downtime and each step
-reversible, and it means the production migration is never run by hand. Enabling that job
-and removing `create_all()` is the cutover itself — performed once via
-[`db-bootstrap.md`](../../sop/db-bootstrap.md) Phase E (and backups enabled in Phase F).
+reversible, and it means the production migration is never run by hand (after initial setup).
 
 ## See also
 

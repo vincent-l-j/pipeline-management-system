@@ -45,9 +45,9 @@ rozetta-pms/
 └── docker-compose.yml  db (5432) + backend (8000) + frontend (5173)
 ```
 
-The frontend proxies `/api` requests to the backend (see `frontend/vite.config.js`). On startup the backend auto-creates database tables via `Base.metadata.create_all` — no migration step is required for a first run.
+The frontend proxies `/api` requests to the backend (see `frontend/vite.config.js`). The database schema is managed by Alembic — run `alembic upgrade head` to create/update tables (see [Database migrations](#database-migrations)).
 
-For a fuller breakdown of how the dev and production stacks differ (containers, routing, build stages, and where tests run), see [`docs/architecture.md`](./docs/architecture.md), or the [C4 diagrams](./docs/c4/README.md) for a visual view.
+For a fuller breakdown of how the dev and production stacks differ (containers, routing, build stages, and where tests run), see [`docs/architecture.md`](./docs/architecture.md).
 
 ## Quick start (Docker — recommended)
 
@@ -57,6 +57,7 @@ Requires **Docker** and **Docker Compose**.
 # 1. Create your environment file and edit the secrets
 cp .env.example .env
 #    At minimum, set a strong POSTGRES_PASSWORD and SECRET_KEY.
+#    Generate a SECRET_KEY with:  openssl rand -hex 32
 #    Azure AD and ANTHROPIC_API_KEY are optional (see below).
 
 # 2. Build and start all services
@@ -85,9 +86,10 @@ Copy `.env.example` to `.env` and fill in your values.
 |----------|----------|-------------|
 | `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Yes | Postgres credentials used by the `db` service |
 | `DATABASE_URL` | Yes | SQLAlchemy connection string (defaults to the `db` service) |
-| `SECRET_KEY` | Yes | Secret used to sign JWTs — set a long random string |
+| `SECRET_KEY` | Yes | Secret used to sign JWTs. Generate a fresh one with `openssl rand -hex 32` (required — no default; the app refuses to boot without it) |
 | `BACKEND_CORS_ORIGINS` | Yes | Comma-separated allowed origins (e.g. `http://localhost:5173`) |
-| `AZURE_CLIENT_ID` / `AZURE_CLIENT_SECRET` / `AZURE_TENANT_ID` | Optional | Microsoft OAuth (omit to use Dev Login) |
+| `AZURE_CLIENT_ID` / `AZURE_TENANT_ID` | Optional | Microsoft OAuth (omit to use Dev Login) |
+| `AZURE_CLIENT_SECRET` | Yes | Required for Microsoft OAuth (no default → app won't boot) |
 | `ANTHROPIC_API_KEY` | Optional | Enables AI note parsing; without it, a basic text parser is used |
 
 ## Running locally without Docker
@@ -118,42 +120,64 @@ npm run dev          # serves http://localhost:5173
 
 > When running outside Docker, the Vite proxy target (`http://backend:8000` in `vite.config.js`) won't resolve. Change it to `http://localhost:8000` for local-only development.
 
-### Database migrations (optional)
+### Database migrations
 
-Tables are created automatically on backend startup. Alembic is configured (`backend/alembic.ini`) if you prefer managed migrations:
+The schema is owned by **Alembic** (`backend/alembic.ini`); the app no longer creates tables
+on startup. Every environment applies migrations before release — in production/staging the
+`PRE_DEPLOY` `migrate` job runs `alembic upgrade head`; locally:
 
 ```bash
 cd backend
-alembic revision --autogenerate -m "your message"
+alembic revision --autogenerate -m "your message"   # after changing models
 alembic upgrade head
 ```
+
+See [`sop/db-change.md`](./sop/db-change.md) for the full schema-change runbook.
 
 ## Production deployment
 
 Production runs on **DigitalOcean App Platform**, declared as code in
-[`.do/app.yaml`](./.do/app.yaml). It is a fully managed, push-to-deploy setup — there is no
-server to provision, no Docker Compose, and no reverse proxy to run yourself. The spec defines
-three things:
+[`.do/app.yaml`](./.do/app.yaml). There is no server to provision, no Docker Compose, and no
+reverse proxy to run yourself. Deploys are **GitOps**: CI applies the spec, not App Platform's
+push-to-deploy (see [Shipping updates](#shipping-updates)). The spec defines four things:
 
 | Component | How it's deployed |
 |-----------|-------------------|
-| **Backend** (FastAPI) | A *service* built from `backend/Dockerfile` (App Platform builds the final `prod` stage and overrides its CMD via `run_command`). Routed at `/api`, internal health check at `/health`. |
+| **Backend** (FastAPI) | A *service* built from `backend/Dockerfile` (App Platform builds the final `prod` stage and overrides its CMD via `run_command`). Routed at `/api`, health check at `/api/health`. |
 | **Frontend** (React SPA) | A *static site* built with App Platform's Node buildpack (`npm run build` → `dist/`), served from the edge at `/`. SPA deep links fall back to `index.html`. Same origin as the backend, so `/api` calls need no CORS. |
 | **Database** (PostgreSQL 16) | A *managed database* (`databases:` block). `DATABASE_URL` is injected automatically — no `db` container in production. |
+| **Migrate job** (Alembic) | A `PRE_DEPLOY` job that runs `alembic upgrade head` against the DB before each release, so schema changes ship atomically with the code that needs them. Needs only `DATABASE_URL`, not the app secrets. |
 
 Because the SPA and API share one origin, there is no separate domain juggling and no TLS to
 manage (App Platform terminates HTTPS for you), and the localStorage JWT travels normally.
 
 ### First deploy
 
-1. Review `.do/app.yaml` and confirm the GitHub repo, Azure IDs, and `ADMIN_EMAILS` match your
+1. Review `.do/app.yaml` and confirm the GitHub repo, Azure IDs, and `domains` match your
    environment (the app URL resolves automatically via the `${APP_URL}` bindable variable).
 2. Validate the spec: `doctl apps spec validate .do/app.yaml`.
 3. Create the app (`doctl apps create --spec .do/app.yaml`) or point the DO control panel at the
-   repo. Set the **secret** env vars (`SECRET_KEY`, `AZURE_CLIENT_SECRET`, `ANTHROPIC_API_KEY`) in
-   the control panel — they are typed `SECRET` in the spec and are not stored in Git.
-4. Register the App Platform URL's `/api/auth/callback` as the Redirect URI on the Azure app
+   repo. Set the **secret** env vars in the control panel — they are typed `SECRET` in the spec
+   and are not stored in Git. App Platform retains their values across spec applies:
+   - `SECRET_KEY` — generate a fresh, environment-specific value with `openssl rand -hex 32`
+     (never reuse the staging key in production; see [SECRET_KEY lifecycle](#secret_key-lifecycle))
+   - `AZURE_CLIENT_SECRET`, `ADMIN_EMAILS`, and (optional) `ANTHROPIC_API_KEY`
+4. Register the App Platform URL's `/api/auth/callback` as a Redirect URI on the Azure app
    registration, and make sure it matches `AZURE_REDIRECT_URI` in the spec exactly.
+5. Store a DO API token as the `PROD_DO_ACCESS_TOKEN` GitHub secret so
+   [`.github/workflows/deploy-production.yml`](./.github/workflows/deploy-production.yml) can apply the spec on push.
+
+**Migrating an existing (`create_all`-built) database:** the genesis migration reproduces the
+`create_all` schema, so a DB that already has the tables must be marked as already-migrated
+**once**, before the first migrate-job run, or `alembic upgrade head` fails on
+"relation already exists":
+
+```bash
+# one-time, against the live DB (temporarily allow your IP on the DB firewall)
+DATABASE_URL=<prod-db-url> alembic stamp head
+```
+
+A fresh/empty DB needs no stamp — `upgrade head` builds it from scratch.
 
 ### Production environment variables
 
@@ -172,29 +196,76 @@ file. See the spec for the authoritative list and inline notes.
 
 ### Shipping updates
 
-Both the backend service and the static site set `deploy_on_push: true`, so **merging to `main`
-triggers an automatic rebuild and deploy** — there is no `deploy.sh` step. Managed Postgres data
-persists across deploys and is backed up by the platform when `production: true` is set on the DB.
+Deploys are **GitOps**, applied by CI — `deploy_on_push: false` is set on every component so App
+Platform never deploys on its own (that would double-deploy and, more importantly, would ignore
+the repo spec). CI is the single deploy path:
+
+| Branch | Workflow | App | Spec |
+|--------|----------|-----|------|
+| `main` | [`deploy-production.yml`](./.github/workflows/deploy-production.yml) | `production` (prod) | `.do/app.yaml` |
+| `develop` | [`deploy-staging.yml`](./.github/workflows/deploy-staging.yml) | `staging` (UAT) | `.do/staging.yaml` |
+
+Each workflow runs `digitalocean/app_action/deploy@v2`, which applies **both** the spec and the
+code together — so a field that drifts from reality in the committed spec gets pushed onto the
+live app on the next deploy. Keep the spec mirroring the deployed app. Branch flow:
+PRs → `develop` (staging/UAT) → `main` (prod). Managed Postgres data persists across deploys and
+is backed up by the platform when `production: true` is set on the DB.
+
+### Staging / UAT environment
+
+A persistent **`staging`** app (spec: [`.do/staging.yaml`](./.do/staging.yaml)) deployed from the
+`develop` branch gives a stable URL for user-acceptance testing before anything reaches prod. It
+mirrors the prod spec with two deliberate differences: its database is a **dev-tier** DB
+(`production: false` — cheaper, no HA/backups, adequate for throwaway test data), and it carries
+its own secrets. It is *persistent* (not an ephemeral per-PR preview) precisely so its callback
+URL is stable enough to register in Azure once.
+
+Bringing staging up (one-time):
+
+1. **Create the app once, manually.** `app_action/deploy@v2` only *updates* an existing app — it
+   fails with `app "staging" does not exist` on a first run — so bootstrap it with `doctl` (then
+   the workflow takes over):
+   ```bash
+   doctl apps create --spec .do/staging.yaml   # provisions the app + its dev DB
+   ```
+   This also runs the migrate job, building the schema (`alembic upgrade head` on the empty DB —
+   no stamp needed).
+2. In the `staging` app's DO control panel, set the `SECRET` env vars. The backend stays
+   unhealthy until `SECRET_KEY` and `AZURE_CLIENT_SECRET` are set (both are required, no default):
+   - `SECRET_KEY` — a **fresh** `openssl rand -hex 32`, **distinct from prod**
+   - `AZURE_CLIENT_SECRET`, `ADMIN_EMAILS`
+3. Register staging's stable `${APP_URL}/api/auth/callback` as a Redirect URI on the Azure app
+   registration (do this once — the reason for a persistent app over ephemeral previews, whose
+   unpredictable URLs can't be pre-registered).
+4. Seed the staging dev DB with test data (e.g. `pg_dump --data-only` from local dev).
+5. Ensure the `UAT_DO_ACCESS_TOKEN` GitHub secret exists (used by `deploy-staging.yml`).
+
+Thereafter, every push to `develop` redeploys staging; the dev DB and its secrets persist across
+deploys.
+
+### SECRET_KEY lifecycle
+
+`SECRET_KEY` signs the app's JWTs. Treat it like a password:
+
+- **Generate once per environment** with `openssl rand -hex 32` and store it as a `SECRET` env
+  var in that app's DO control panel. It is not committed and is retained across spec applies.
+- **Use a different key per environment** (prod ≠ staging ≠ local) so a leaked staging key can't
+  forge prod tokens.
+- **Rotate** only if you suspect it leaked (or on a periodic policy). Rotating invalidates every
+  outstanding JWT, so all users must log in again — a deliberate, low-frequency action, not part
+  of routine deploys.
 
 ### Sizing & scaling
 
-The backend runs at `apps-s-1vcpu-1gb` (`instance_count: 1`) and the managed DB at the dev-grade
-tier (`production: false` — no HA or automated backups). Both scale by editing `.do/app.yaml`:
-bump `instance_size_slug`/`instance_count` for the backend, and flip the DB to `production: true`
-before real data lands. The frontend is a static site served from the edge, so it needs no sizing.
+The backend runs at `apps-s-1vcpu-0.5gb` (`instance_count: 1`) and the managed DB at the HA tier
+(`production: true` — automated daily backups + point-in-time recovery). Scale by editing
+`.do/app.yaml`: bump `instance_size_slug`/`instance_count` for the backend. The frontend is a
+static site served from the edge, so it needs no sizing.
 
 ### Outstanding before production hardening
 
 Kept simple for the pilot; do these before real users depend on the system:
 
-- **Promote the database.** Flip `production: false` → `true` on the managed DB in `.do/app.yaml`
-  for HA and automated daily backups + point-in-time recovery before real data lands.
-- **Wire up migrations.** The app currently builds tables via `Base.metadata.create_all()` at
-  startup, which works for the first deploy but won't apply later schema changes. Uncomment the
-  `PRE_DEPLOY` Alembic `migrate` job in `.do/app.yaml` and remove `create_all()` from startup.
-- **Fail loud on missing config.** `FRONTEND_URL` (and other prod-critical settings) default to
-  `localhost` in `config.py`; consider removing the defaults so an unset value errors at startup
-  instead of silently breaking the login redirect.
 - **Tighten CORS.** `backend/app/main.py` allows `methods=["*"]`/`headers=["*"]`; scope these down
   (same-origin on App Platform means CORS is barely exercised, but don't ship `*` long-term).
 - **Expand test coverage.** Backend (`pytest`) and frontend (Vitest) suites plus GitHub Actions
@@ -206,8 +277,8 @@ Kept simple for the pilot; do these before real users depend on the system:
 The backend has a `pytest` suite (in `backend/tests/`) that runs against an in-memory SQLite
 database — no Postgres needed. The frontend has a [Vitest](https://vitest.dev/) +
 React Testing Library suite (co-located in `__tests__/` folders under `frontend/src/`).
-**GitHub Actions runs three jobs on every push and pull request** — backend tests,
-frontend build, and frontend tests (`.github/workflows/ci.yml`) — so regressions are
+**GitHub Actions runs jobs on every push and pull request** — backend tests,
+frontend build, frontend tests and db migration tests (`.github/workflows/ci.yml`) — so regressions are
 caught before deploy.
 
 ### Running the backend tests

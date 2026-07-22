@@ -5,9 +5,6 @@ with Microsoft Azure AD for auth and the Anthropic Claude API powering the AI No
 The **same application code** runs in both environments — only the way it's built, served,
 and wired together differs.
 
-> For diagram form, see the [C4 diagrams](./c4/README.md) (Context, Container, Component, and
-> the dev/prod deployment views).
-
 | Concern | Development | Production |
 |---------|-------------|------------|
 | Orchestration | `docker-compose.yml` (local) | DigitalOcean App Platform (`.do/app.yaml`) |
@@ -18,7 +15,7 @@ and wired together differs.
 | TLS | none (plain HTTP) | Terminated by App Platform |
 | Dev login | enabled (`ENABLE_DEV_LOGIN=true`) | disabled; `dev.py` route stripped from the `prod` image |
 | Config source | `.env` file | `.do/app.yaml` + DO control panel (secrets) |
-| Deploy | `docker compose up --build` | `git push` to `main` (`deploy_on_push: true`) |
+| Deploy | `docker compose up --build` | CI GitOps: push to `main` → `deploy-production.yml` applies `.do/app.yaml` (`deploy_on_push: false`) |
 
 ---
 
@@ -52,24 +49,27 @@ Three containers defined in `docker-compose.yml`, all source-mounted for hot rel
   bind-mounted. `/api` requests are proxied to `backend:8000` (see `frontend/vite.config.js`),
   so the browser only ever talks to `5173`.
 - **Backend** — `backend/Dockerfile` target `dev`: installs `requirements-dev.txt` (test
-  tooling), runs `uvicorn ... --reload`, and includes the dev-only routes (`dev.py`). On
-  startup it creates tables via `Base.metadata.create_all` — no migration step needed for a
-  first run.
+  tooling), runs `uvicorn ... --reload`, and includes the dev-only routes (`dev.py`). The app
+  does **not** create tables on startup and compose runs no migrate step, so apply the schema
+  to the dev DB by hand — `docker compose run --rm backend alembic upgrade head` — on first
+  bring-up and after any `docker compose down -v`.
 - **Database** — stock `postgres:16` with a named `pgdata` volume. Credentials come from `.env`.
 - **Auth** — the **Dev Login (Admin)** button is enabled (`ENABLE_DEV_LOGIN=true` /
   `VITE_ENABLE_DEV_LOGIN=true`) so you can sign in without Azure AD configured.
 - **Config** — everything is read from `.env` (copy from `.env.example`).
 
-Start it with `docker compose up --build`. Frontend on `:5173`, API on `:8000/api`,
-Swagger on `:8000/docs`.
+Start it with `docker compose up --build`, then apply the schema once with
+`docker compose run --rm backend alembic upgrade head` (see **Backend** above — nothing
+creates tables automatically). Frontend on `:5173`, API on `:8000/api`, Swagger on `:8000/docs`.
 
 ---
 
 ## Production
 
-DigitalOcean App Platform, declared as code in `.do/app.yaml`. Fully managed and
-push-to-deploy — there is no server to provision, no Docker Compose, and no reverse proxy
-to run yourself. Three platform primitives:
+DigitalOcean App Platform, declared as code in `.do/app.yaml` and deployed via CI (GitOps —
+see **Deploy** below). Fully managed — there is no server to provision, no Docker Compose, and
+no reverse proxy to run yourself. A parallel `staging` (UAT) app on the `develop` branch mirrors
+this from `.do/staging.yaml`. Platform primitives:
 
 ```
                     https://<app-url>   (HTTPS terminated by App Platform)
@@ -104,17 +104,25 @@ to run yourself. Three platform primitives:
 - **Backend (service)** — built from `backend/Dockerfile`; App Platform builds the **final
   stage** (`prod`), which carries runtime deps only (no test tooling) and removes `dev.py`.
   `run_command` overrides the image CMD to run uvicorn without `--reload`. Routed at `/api`
-  (`preserve_path_prefix: true`), with a health check at `/health`.
+  (`preserve_path_prefix: true`), with a health check at `/api/health`.
+- **Migrate job (`PRE_DEPLOY`)** — a short-lived job runs `alembic upgrade head` before each
+  release, so schema changes ship atomically with their code. The app does **not** create tables
+  on startup. The job needs only `DATABASE_URL` (`env.py` reads it from the environment, not the
+  app `Settings`), so it runs without the app secrets.
 - **Database (managed)** — managed PostgreSQL 16; `DATABASE_URL` is injected by the platform
-  (arrives with `?sslmode=require`). No `db` container in production. Currently the dev-grade
-  tier (`production: false` — no HA / automated backups); flip to `true` before real data lands.
+  (arrives with `?sslmode=require`). No `db` container in production. Prod is the HA tier
+  (`production: true` — automated daily backups + PITR); staging uses a dev-tier DB.
 - **Same origin** — the SPA and API share one origin, so `/api` calls need no CORS and the
   `localStorage` JWT travels normally. App Platform terminates HTTPS.
 - **Config** — non-secret values live in `.do/app.yaml`; secrets (`SECRET_KEY`,
-  `AZURE_CLIENT_SECRET`, `ANTHROPIC_API_KEY`) are set in the DO control panel.
-- **Deploy** — both the service and the static site set `deploy_on_push: true`, so merging to
-  `main` triggers an automatic rebuild and deploy. (Note: App Platform builds `prod` directly
-  and does **not** run the `test` stage — tests gate at the CI / merge layer; see below.)
+  `AZURE_CLIENT_SECRET`, `ADMIN_EMAILS`, `ANTHROPIC_API_KEY`) are set in the DO control panel.
+  `SECRET_KEY` is generated per environment with `openssl rand -hex 32`.
+- **Deploy (GitOps)** — every component sets `deploy_on_push: false`; CI is the single deploy
+  path. Push to `main` → `deploy-production.yml` applies `.do/app.yaml` to the `production` app; push to
+  `develop` → `deploy-staging.yml` applies `.do/staging.yaml` to the persistent `staging` (UAT)
+  app. `app_action/deploy@v2` applies spec **and** code together, so the committed spec must
+  mirror the live app. (App Platform builds `prod` directly and does **not** run the `test`
+  stage — tests gate at the CI / merge layer; see below.)
 
 ---
 
@@ -132,7 +140,7 @@ they're a separate target that CI builds explicitly.
 CI (`.github/workflows/ci.yml`) runs `docker build --target test` (backend + frontend) and
 `--target build` (frontend) on every push and PR, so a red test fails the build there.
 Production builds don't re-run tests — protect `main` with required CI checks so untested code
-never reaches the branch App Platform deploys from.
+never reaches the branch App Platform deploys from. CI also runs database migrations tests too.
 
 ---
 
@@ -144,6 +152,6 @@ never reaches the branch App Platform deploys from.
 - **AI Notetaker** — `backend/app/services/ai_notetaker.py` calls the Anthropic Claude API to
   turn raw meeting notes into structured records, with a basic text-parser fallback when
   `ANTHROPIC_API_KEY` is unset.
-- **Schema** — tables are auto-created at startup via `Base.metadata.create_all`. Alembic is
-  configured for managed migrations; the `PRE_DEPLOY` job in `.do/app.yaml` is the place to wire
-  `alembic upgrade head` once you move off `create_all`.
+- **Schema** — owned by Alembic (`backend/alembic/`). The `PRE_DEPLOY` `migrate` job runs
+  `alembic upgrade head` before each release; the app never creates tables on startup. See
+  `sop/db-change.md` for the schema-change runbook.

@@ -145,7 +145,6 @@ case "$cmd" in
 
   alembic)
     db="${1:-}"; [ -n "$db" ] || { echo "usage: $PROG alembic <db> <args…>" >&2; exit 1; }
-    shift
     url="$(db_url "$db")"
     is_write=""
     for a in "$@"; do

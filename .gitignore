@@ -29,6 +29,10 @@ Thumbs.db
 # Database
 *.db
 
+# Database dumps — may contain production data; never commit
+*.sql
+!backend/alembic/**/*.sql
+
 # Logs
 *.log
 

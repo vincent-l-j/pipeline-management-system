@@ -12,6 +12,8 @@ databases:
     version: "16"
     production: true
     cluster_name: app-57000c67-b383-4f33-9f44-10439fef0d5a
+    db_name: db
+    db_user: db
 
 services:
   - name: backend

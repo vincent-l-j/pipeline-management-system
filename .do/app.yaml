@@ -1,128 +1,109 @@
-name: production
-region: syd
+databases:
+  - cluster_name: app-57000c67-b383-4f33-9f44-10439fef0d5a
+    db_name: db
+    db_user: db
+    engine: PG
+    name: db
+    production: true
+    version: "16"
 
-# Primary custom domain (CNAME/A configured in DNS). ${APP_URL} resolves to this.
 domains:
   - domain: ims.rozettainstitute.com
     type: PRIMARY
 
-databases:
-  - name: db
-    engine: PG
-    version: "16"
-    production: true
-    cluster_name: app-57000c67-b383-4f33-9f44-10439fef0d5a
-    db_name: db
-    db_user: db
+ingress:
+  rules:
+    - component:
+        name: backend
+        preserve_path_prefix: true
+      match:
+        path:
+          prefix: /api
+    - component:
+        name: frontend
+      match:
+        path:
+          prefix: /
 
-services:
-  - name: backend
-    source_dir: backend
-    dockerfile_path: backend/Dockerfile
+jobs:
+  - dockerfile_path: backend/Dockerfile
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${db.DATABASE_URL}
     github:
+      deploy_on_push: false
       repo: vincent-l-j/pipeline-management-system
       branch: main
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    kind: PRE_DEPLOY
+    name: migrate
+    run_command: alembic upgrade head
+    source_dir: backend
+
+name: production
+region: syd
+
+services:
+  - dockerfile_path: backend/Dockerfile
+    envs:
+    - key: SECRET_KEY
+      scope: RUN_TIME
+      type: SECRET
+      value: EV[1:CF0SRH9MMYNHvE1AAG2gQBWZBpEmYtJg:RTp5PC0JJO73MUlkIM2YLowpFXaKiNR1qUeXxk5jEHPbovf2E8xDNsqswsREbDtfvB8xLEq4xfNX9WBiFjpZTD9VVpeA+fpssboE5EaBX0k=]
+    - key: AZURE_CLIENT_ID
+      scope: RUN_TIME
+      value: 2a94d264-6fd7-4b60-a542-986cf1e9c6da
+    - key: AZURE_TENANT_ID
+      scope: RUN_TIME
+      value: dc0fb419-bc2a-4fc8-8735-f6e20537bf0c
+    - key: AZURE_CLIENT_SECRET
+      scope: RUN_TIME
+      type: SECRET
+      value: EV[1:QzMOjY6h74/2NHZ3vGGrpf/eJTO6zOBh:S16NLn7l3KK6tar/kpC+TD0YwS9B+gyPefZhKyFw3hCVIYjtLhT8Yxr6h9hCA4MUkQTbAYUchsU=]
+    - key: AZURE_REDIRECT_URI
+      scope: RUN_TIME
+      value: ${APP_URL}/api/auth/callback
+    - key: FRONTEND_URL
+      scope: RUN_TIME
+      value: ${APP_URL}
+    - key: ADMIN_EMAILS
+      scope: RUN_TIME
+      type: SECRET
+      value: EV[1:3KexvBVJqVm7a0J7NJD7wD3H8wfD5bIo:8PtI30horJLdTK6Q3DN+JwrSple4oZ57ndsibOYSAltc10FarIAi2ro5XgBfMNpfvmU9XhmFREDT5uCZ4amOYTD0qUSGbanA2wM8tbUkmfyxPCM33acxvLTbii9u3u1/mXoLculofdeu743zXCpSIN6WWj5NIew=]
+    - key: BACKEND_CORS_ORIGINS
+      scope: RUN_TIME
+      value: ${APP_URL}
+    - key: ENABLE_DEV_LOGIN
+      scope: RUN_TIME
+      value: "false"
+    - key: DATABASE_URL
+      scope: RUN_TIME
+      value: ${db.DATABASE_URL}
+    github:
       deploy_on_push: false
-    run_command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+      branch: main
+      repo: vincent-l-j/pipeline-management-system
+    health_check:
+      http_path: /api/health
     http_port: 8000
     instance_count: 1
     instance_size_slug: apps-s-1vcpu-0.5gb
-    routes:
-      - path: /api
-        preserve_path_prefix: true   # without this, App Platform strips /api before forwarding
-    health_check:
-      http_path: /api/health         # matches @app.get("/api/health") in app/main.py. NOTE: this is
-                                      # the literal path on the container — health checks bypass the
-                                      # /api route mapping, so it must include the /api prefix.
-    envs:
-      - key: DATABASE_URL
-        value: ${db.DATABASE_URL}
-        scope: RUN_TIME
-      # JWT signing key. config.py reads SECRET_KEY
-      - key: SECRET_KEY
-        type: SECRET
-        scope: RUN_TIME
-      - key: AZURE_CLIENT_ID
-        scope: RUN_TIME
-        value: 2a94d264-6fd7-4b60-a542-986cf1e9c6da
-      - key: AZURE_TENANT_ID
-        scope: RUN_TIME
-        value: dc0fb419-bc2a-4fc8-8735-f6e20537bf0c
-      # Required: the backend uses MSAL ConfidentialClientApplication, which
-      # needs the client secret to exchange the auth code for a token.
-      - key: AZURE_CLIENT_SECRET
-        type: SECRET
-        scope: RUN_TIME
-      # Must EXACTLY match the Redirect URI registered on the Azure app
-      # (scheme + host + path). On App Platform the frontend and backend share
-      # one origin, so this is your app's public URL + /api/auth/callback.
-      # ${APP_URL} is a platform bindable var → your app's live URL (the
-      # *.ondigitalocean.app default, or a custom primary domain later). It
-      # already includes the https:// scheme, so do NOT prefix it.
-      # NOTE: register this exact callback URL in your Azure app registration
-      # after the first deploy (you won't know the *.ondigitalocean.app host
-      # until then). Bindable vars resolve at RUN_TIME only — fine here.
-      - key: AZURE_REDIRECT_URI
-        scope: RUN_TIME
-        value: ${APP_URL}/api/auth/callback
-      # Where the backend redirects the browser (with the JWT) after login.
-      # Same-origin deployment → your app's public URL.
-      - key: FRONTEND_URL
-        scope: RUN_TIME
-        value: ${APP_URL}
-      # Emails granted ADMIN automatically on first sign-in (comma-separated).
-      # PII — kept out of git: set the value as an encrypted var in the DO control
-      # panel. Declared type: SECRET so App Platform retains that value across spec
-      # applies (a valueless non-secret var would be blanked on the next deploy).
-      - key: ADMIN_EMAILS
-        type: SECRET
-        scope: RUN_TIME
-      # Same-origin in prod, but config.py still requires the var; harmless to set.
-      - key: BACKEND_CORS_ORIGINS
-        scope: RUN_TIME
-        value: ${APP_URL}
-      # Explicitly OFF for production
-      - key: ENABLE_DEV_LOGIN
-        value: "false"
-        scope: RUN_TIME
-
-# ---------------------------------------------------------------------------
-# Frontend: Vite SPA as a static site (buildpack, not the Dockerfile).
-# Served from the edge under the same origin as the backend, so /api requests
-# are same-origin: no CORS, and the localStorage JWT travels normally.
-# ---------------------------------------------------------------------------
-static_sites:
-  - name: frontend
-    source_dir: frontend
-    github:
-      repo: vincent-l-j/pipeline-management-system
-      branch: main
-      deploy_on_push: false
-    build_command: npm run build
-    output_dir: dist
-    catchall_document: index.html   # so React Router deep links (/pitches/42) don't 404
-    routes:
-      - path: /
-    envs:
-      # MUST be BUILD_TIME — Vite inlines VITE_* into the bundle at build.
-      # Setting it RUN_TIME does nothing.
-      - key: VITE_API_BASE_URL
-        scope: BUILD_TIME
-        value: /api
-      # VITE_ENABLE_DEV_LOGIN is deliberately NOT set here. Leaving it absent
-      # keeps the "Dev Login (Admin)" button out of production.
-
-jobs:
-  - name: migrate
-    kind: PRE_DEPLOY
+    name: backend
+    run_command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     source_dir: backend
-    dockerfile_path: backend/Dockerfile
-    github:
-      repo: vincent-l-j/pipeline-management-system
-      branch: main
-    run_command: alembic upgrade head
-    instance_size_slug: apps-s-1vcpu-0.5gb
+
+static_sites:
+  - build_command: npm run build
+    catchall_document: index.html
     envs:
-      - key: DATABASE_URL
-        value: ${db.DATABASE_URL}
-        scope: RUN_TIME
+    - key: VITE_API_BASE_URL
+      scope: BUILD_TIME
+      value: /api
+    github:
+      deploy_on_push: false
+      branch: main
+      repo: vincent-l-j/pipeline-management-system
+    name: frontend
+    output_dir: dist
+    source_dir: frontend

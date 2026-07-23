@@ -6,16 +6,13 @@ databases:
     name: db
     production: true
     version: "16"
-
 domains:
   - domain: ims.rozettainstitute.com
     type: PRIMARY
-
 envs:
   - key: GIT_BRANCH
     scope: BUILD_TIME
     value: main
-
 ingress:
   rules:
     - component:
@@ -29,7 +26,6 @@ ingress:
       match:
         path:
           prefix: /
-
 jobs:
   - dockerfile_path: backend/Dockerfile
     envs:
@@ -45,46 +41,44 @@ jobs:
     name: migrate
     run_command: alembic upgrade head
     source_dir: backend
-
 name: production
 region: syd
-
 services:
   - dockerfile_path: backend/Dockerfile
     envs:
-    - key: DATABASE_URL
-      scope: RUN_TIME
-      value: ${db.DATABASE_URL}
-    - key: SECRET_KEY
-      scope: RUN_TIME
-      type: SECRET
-      value: EV[1:CF0SRH9MMYNHvE1AAG2gQBWZBpEmYtJg:RTp5PC0JJO73MUlkIM2YLowpFXaKiNR1qUeXxk5jEHPbovf2E8xDNsqswsREbDtfvB8xLEq4xfNX9WBiFjpZTD9VVpeA+fpssboE5EaBX0k=]
-    - key: AZURE_CLIENT_ID
-      scope: RUN_TIME
-      value: 2a94d264-6fd7-4b60-a542-986cf1e9c6da
-    - key: AZURE_TENANT_ID
-      scope: RUN_TIME
-      value: dc0fb419-bc2a-4fc8-8735-f6e20537bf0c
-    - key: AZURE_CLIENT_SECRET
-      scope: RUN_TIME
-      type: SECRET
-      value: EV[1:QzMOjY6h74/2NHZ3vGGrpf/eJTO6zOBh:S16NLn7l3KK6tar/kpC+TD0YwS9B+gyPefZhKyFw3hCVIYjtLhT8Yxr6h9hCA4MUkQTbAYUchsU=]
-    - key: AZURE_REDIRECT_URI
-      scope: RUN_TIME
-      value: ${APP_URL}/api/auth/callback
-    - key: FRONTEND_URL
-      scope: RUN_TIME
-      value: ${APP_URL}
-    - key: ADMIN_EMAILS
-      scope: RUN_TIME
-      type: SECRET
-      value: EV[1:3KexvBVJqVm7a0J7NJD7wD3H8wfD5bIo:8PtI30horJLdTK6Q3DN+JwrSple4oZ57ndsibOYSAltc10FarIAi2ro5XgBfMNpfvmU9XhmFREDT5uCZ4amOYTD0qUSGbanA2wM8tbUkmfyxPCM33acxvLTbii9u3u1/mXoLculofdeu743zXCpSIN6WWj5NIew=]
-    - key: BACKEND_CORS_ORIGINS
-      scope: RUN_TIME
-      value: ${APP_URL}
-    - key: ENABLE_DEV_LOGIN
-      scope: RUN_TIME
-      value: "false"
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${db.DATABASE_URL}
+      - key: SECRET_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: EV[1:CF0SRH9MMYNHvE1AAG2gQBWZBpEmYtJg:RTp5PC0JJO73MUlkIM2YLowpFXaKiNR1qUeXxk5jEHPbovf2E8xDNsqswsREbDtfvB8xLEq4xfNX9WBiFjpZTD9VVpeA+fpssboE5EaBX0k=]
+      - key: AZURE_CLIENT_ID
+        scope: RUN_TIME
+        value: 2a94d264-6fd7-4b60-a542-986cf1e9c6da
+      - key: AZURE_TENANT_ID
+        scope: RUN_TIME
+        value: dc0fb419-bc2a-4fc8-8735-f6e20537bf0c
+      - key: AZURE_CLIENT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: EV[1:QzMOjY6h74/2NHZ3vGGrpf/eJTO6zOBh:S16NLn7l3KK6tar/kpC+TD0YwS9B+gyPefZhKyFw3hCVIYjtLhT8Yxr6h9hCA4MUkQTbAYUchsU=]
+      - key: AZURE_REDIRECT_URI
+        scope: RUN_TIME
+        value: ${APP_URL}/api/auth/callback
+      - key: FRONTEND_URL
+        scope: RUN_TIME
+        value: ${APP_URL}
+      - key: ADMIN_EMAILS
+        scope: RUN_TIME
+        type: SECRET
+        value: EV[1:3KexvBVJqVm7a0J7NJD7wD3H8wfD5bIo:8PtI30horJLdTK6Q3DN+JwrSple4oZ57ndsibOYSAltc10FarIAi2ro5XgBfMNpfvmU9XhmFREDT5uCZ4amOYTD0qUSGbanA2wM8tbUkmfyxPCM33acxvLTbii9u3u1/mXoLculofdeu743zXCpSIN6WWj5NIew=]
+      - key: BACKEND_CORS_ORIGINS
+        scope: RUN_TIME
+        value: ${APP_URL}
+      - key: ENABLE_DEV_LOGIN
+        scope: RUN_TIME
+        value: "false"
     github:
       branch: ${GIT_BRANCH}
       deploy_on_push: false
@@ -96,14 +90,13 @@ services:
     name: backend
     run_command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     source_dir: backend
-
 static_sites:
   - build_command: npm run build
     catchall_document: index.html
     envs:
-    - key: VITE_API_BASE_URL
-      scope: BUILD_TIME
-      value: /api
+      - key: VITE_API_BASE_URL
+        scope: BUILD_TIME
+        value: /api
     github:
       branch: ${GIT_BRANCH}
       deploy_on_push: false

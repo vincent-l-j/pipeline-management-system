@@ -1,0 +1,12 @@
+{
+  "devDependencies": {
+    "prettier": "3.9.6",
+    "prettier-plugin-yaml": "1.2.0"
+  },
+  "scripts": {
+    "format": "npm run format:do && npm run format:workflows",
+    "format:do": "prettier --write .do/",
+    "format:workflows": "prettier --write .github/workflows",
+    "format:workflows:check": "prettier --check .github/workflows"
+  }
+}

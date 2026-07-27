@@ -82,7 +82,7 @@
       "cd frontend && npm test -- ContactsPage"
     ],
     "fulfills": ["VAL-CON-EDIT-001", "VAL-CON-EDIT-003"],
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": "organisation-create-api",

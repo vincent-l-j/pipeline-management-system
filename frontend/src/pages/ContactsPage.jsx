@@ -13,10 +13,13 @@ export default function ContactsPage() {
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({ name: '', role: '', email: '' })
+  const [editingId, setEditingId] = useState(null)
+  const [editForm, setEditForm] = useState({ name: '', role: '', email: '' })
   const [confirmingId, setConfirmingId] = useState(null)
   const [error, setError] = useState('')
 
   const canAdd = user?.role === 'admin' || user?.role === 'assessor'
+  const canEdit = user?.role === 'admin' || user?.role === 'assessor'
   const canRemove = user?.role === 'admin'
 
   useEffect(() => {
@@ -40,6 +43,40 @@ export default function ContactsPage() {
       setShowAdd(false)
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to add contact')
+    }
+  }
+
+  function startEdit(contact) {
+    setError('')
+    setEditingId(contact.id)
+    setEditForm({
+      name: contact.name || '',
+      role: contact.role || '',
+      email: contact.email || '',
+    })
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+  }
+
+  async function saveEdit(contact) {
+    const changes = {}
+    for (const field of ['name', 'role', 'email']) {
+      const next = editForm[field].trim() || null
+      if (next !== (contact[field] ?? null)) changes[field] = next
+    }
+    if (!editForm.name.trim() || Object.keys(changes).length === 0) {
+      setEditingId(null)
+      return
+    }
+    setError('')
+    try {
+      const { data } = await api.patch(`/contacts/${contact.id}`, changes)
+      setContacts((prev) => prev.map((c) => (c.id === contact.id ? data : c)))
+      setEditingId(null)
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to update contact')
     }
   }
 
@@ -134,19 +171,67 @@ export default function ContactsPage() {
                 <th className="text-left px-4 py-3 font-semibold text-navy-700">Role</th>
                 <th className="text-left px-4 py-3 font-semibold text-navy-700">Email</th>
                 <th className="text-left px-4 py-3 font-semibold text-navy-700">Last Contacted</th>
-                {canRemove && (
+                {(canEdit || canRemove) && (
                   <th className="text-right px-4 py-3 font-semibold text-navy-700">Actions</th>
                 )}
               </tr>
             </thead>
             <tbody className="divide-y divide-navy-50">
-              {contacts.map((c) => (
+              {contacts.map((c) => editingId === c.id ? (
+                <tr key={c.id} className="bg-navy-50/50">
+                  <td className="px-4 py-3">
+                    <input
+                      type="text"
+                      value={editForm.name}
+                      onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
+                      aria-label="Contact name"
+                      className={inputClass}
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <input
+                      type="text"
+                      value={editForm.role}
+                      onChange={(e) => setEditForm((p) => ({ ...p, role: e.target.value }))}
+                      aria-label="Contact role"
+                      className={inputClass}
+                    />
+                  </td>
+                  <td className="px-4 py-3">
+                    <input
+                      type="email"
+                      value={editForm.email}
+                      onChange={(e) => setEditForm((p) => ({ ...p, email: e.target.value }))}
+                      aria-label="Contact email"
+                      className={inputClass}
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-navy-500">{c.last_contacted || '-'}</td>
+                  <td className="px-4 py-3 text-right">
+                    <span className="inline-flex gap-2">
+                      <button
+                        onClick={() => saveEdit(c)}
+                        disabled={!editForm.name.trim()}
+                        className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        className="text-xs border border-navy-200 text-navy-600 px-3 py-1.5 rounded-lg"
+                      >
+                        Cancel
+                      </button>
+                    </span>
+                  </td>
+                </tr>
+              ) : (
                 <tr key={c.id} className="hover:bg-navy-50/50 transition-colors">
                   <td className="px-4 py-3 font-medium text-navy-900">{c.name}</td>
                   <td className="px-4 py-3 text-navy-500">{c.role || '-'}</td>
                   <td className="px-4 py-3 text-navy-500">{c.email || '-'}</td>
                   <td className="px-4 py-3 text-navy-500">{c.last_contacted || '-'}</td>
-                  {canRemove && (
+                  {(canEdit || canRemove) && (
                     <td className="px-4 py-3 text-right">
                       {confirmingId === c.id ? (
                         <span className="inline-flex gap-2">
@@ -164,12 +249,24 @@ export default function ContactsPage() {
                           </button>
                         </span>
                       ) : (
-                        <button
-                          onClick={() => { setConfirmingId(c.id); setError('') }}
-                          className="text-xs text-red-500 hover:text-red-700"
-                        >
-                          Remove
-                        </button>
+                        <span className="inline-flex gap-3">
+                          {canEdit && (
+                            <button
+                              onClick={() => startEdit(c)}
+                              className="text-xs text-navy-600 hover:text-navy-900"
+                            >
+                              Edit
+                            </button>
+                          )}
+                          {canRemove && (
+                            <button
+                              onClick={() => { setConfirmingId(c.id); setError('') }}
+                              className="text-xs text-red-500 hover:text-red-700"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </span>
                       )}
                     </td>
                   )}

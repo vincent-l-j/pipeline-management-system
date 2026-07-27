@@ -1,7 +1,5 @@
 databases:
-  - cluster_name: app-57000c67-b383-4f33-9f44-10439fef0d5a
-    db_name: db
-    db_user: db
+  - cluster_name: db-pgsql-syd1-51653
     engine: PG
     name: db
     production: true
@@ -9,10 +7,6 @@ databases:
 domains:
   - domain: ims.rozettainstitute.com
     type: PRIMARY
-envs:
-  - key: GIT_BRANCH
-    scope: BUILD_TIME
-    value: main
 ingress:
   rules:
     - component:
@@ -33,7 +27,7 @@ jobs:
         scope: RUN_TIME
         value: ${db.DATABASE_URL}
     github:
-      branch: ${GIT_BRANCH}
+      branch: main
       deploy_on_push: false
       repo: vincent-l-j/pipeline-management-system
     instance_size_slug: apps-s-1vcpu-0.5gb
@@ -46,9 +40,6 @@ region: syd
 services:
   - dockerfile_path: backend/Dockerfile
     envs:
-      - key: DATABASE_URL
-        scope: RUN_TIME
-        value: ${db.DATABASE_URL}
       - key: SECRET_KEY
         scope: RUN_TIME
         type: SECRET
@@ -79,8 +70,11 @@ services:
       - key: ENABLE_DEV_LOGIN
         scope: RUN_TIME
         value: "false"
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${db.DATABASE_URL}
     github:
-      branch: ${GIT_BRANCH}
+      branch: main
       deploy_on_push: false
       repo: vincent-l-j/pipeline-management-system
     health_check:
@@ -98,7 +92,7 @@ static_sites:
         scope: BUILD_TIME
         value: /api
     github:
-      branch: ${GIT_BRANCH}
+      branch: main
       deploy_on_push: false
       repo: vincent-l-j/pipeline-management-system
     name: frontend

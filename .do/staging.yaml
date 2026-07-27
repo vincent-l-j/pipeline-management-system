@@ -3,10 +3,6 @@ databases:
     name: db
     production: false
     version: "16"
-envs:
-  - key: GIT_BRANCH
-    scope: BUILD_TIME
-    value: develop
 ingress:
   rules:
     - component:
@@ -27,7 +23,7 @@ jobs:
         scope: RUN_TIME
         value: ${db.DATABASE_URL}
     github:
-      branch: ${GIT_BRANCH}
+      branch: develop
       deploy_on_push: false
       repo: vincent-l-j/pipeline-management-system
     instance_count: 1
@@ -41,9 +37,6 @@ region: syd
 services:
   - dockerfile_path: backend/Dockerfile
     envs:
-      - key: DATABASE_URL
-        scope: RUN_TIME
-        value: ${db.DATABASE_URL}
       - key: SECRET_KEY
         scope: RUN_TIME
         type: SECRET
@@ -74,8 +67,11 @@ services:
       - key: ENABLE_DEV_LOGIN
         scope: RUN_TIME
         value: "false"
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${db.DATABASE_URL}
     github:
-      branch: ${GIT_BRANCH}
+      branch: develop
       deploy_on_push: false
       repo: vincent-l-j/pipeline-management-system
     health_check:
@@ -94,7 +90,7 @@ static_sites:
         scope: BUILD_TIME
         value: /api
     github:
-      branch: ${GIT_BRANCH}
+      branch: develop
       deploy_on_push: false
       repo: vincent-l-j/pipeline-management-system
     name: frontend

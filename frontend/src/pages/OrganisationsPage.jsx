@@ -13,10 +13,13 @@ export default function OrganisationsPage() {
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState({ name: '', sector: '' })
+  const [editingId, setEditingId] = useState(null)
+  const [editForm, setEditForm] = useState({ name: '', sector: '' })
   const [confirmingId, setConfirmingId] = useState(null)
   const [error, setError] = useState('')
 
   const canAdd = user?.role === 'admin' || user?.role === 'assessor'
+  const canEdit = user?.role === 'admin' || user?.role === 'assessor'
   const canRemove = user?.role === 'admin'
 
   useEffect(() => {
@@ -39,6 +42,39 @@ export default function OrganisationsPage() {
       setShowAdd(false)
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to add organisation')
+    }
+  }
+
+  function startEdit(org) {
+    setError('')
+    setEditingId(org.id)
+    setEditForm({
+      name: org.name || '',
+      sector: org.sector || '',
+    })
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+  }
+
+  async function saveEdit(org) {
+    const changes = {}
+    for (const field of ['name', 'sector']) {
+      const next = editForm[field].trim() || null
+      if (next !== (org[field] ?? null)) changes[field] = next
+    }
+    if (!editForm.name.trim() || Object.keys(changes).length === 0) {
+      setEditingId(null)
+      return
+    }
+    setError('')
+    try {
+      const { data } = await api.patch(`/organisations/${org.id}`, changes)
+      setOrgs((prev) => prev.map((o) => (o.id === org.id ? data : o)))
+      setEditingId(null)
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to update organisation')
     }
   }
 
@@ -124,19 +160,59 @@ export default function OrganisationsPage() {
                 <th className="text-left px-4 py-3 font-semibold text-navy-700">Type</th>
                 <th className="text-left px-4 py-3 font-semibold text-navy-700">Sector</th>
                 <th className="text-left px-4 py-3 font-semibold text-navy-700">State</th>
-                {canRemove && (
+                {(canEdit || canRemove) && (
                   <th className="text-right px-4 py-3 font-semibold text-navy-700">Actions</th>
                 )}
               </tr>
             </thead>
             <tbody className="divide-y divide-navy-50">
-              {orgs.map((org) => (
+              {orgs.map((org) => editingId === org.id ? (
+                <tr key={org.id} className="bg-navy-50/50">
+                  <td className="px-4 py-3">
+                    <input
+                      type="text"
+                      value={editForm.name}
+                      onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
+                      aria-label="Organisation name"
+                      className={inputClass}
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-navy-500 capitalize">{org.org_type?.replace('_', ' ') || '-'}</td>
+                  <td className="px-4 py-3">
+                    <input
+                      type="text"
+                      value={editForm.sector}
+                      onChange={(e) => setEditForm((p) => ({ ...p, sector: e.target.value }))}
+                      aria-label="Organisation sector"
+                      className={inputClass}
+                    />
+                  </td>
+                  <td className="px-4 py-3 text-navy-500">{org.state_territory || '-'}</td>
+                  <td className="px-4 py-3 text-right">
+                    <span className="inline-flex gap-2">
+                      <button
+                        onClick={() => saveEdit(org)}
+                        disabled={!editForm.name.trim()}
+                        className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={cancelEdit}
+                        className="text-xs border border-navy-200 text-navy-600 px-3 py-1.5 rounded-lg"
+                      >
+                        Cancel
+                      </button>
+                    </span>
+                  </td>
+                </tr>
+              ) : (
                 <tr key={org.id} className="hover:bg-navy-50/50 transition-colors">
                   <td className="px-4 py-3 font-medium text-navy-900">{org.name}</td>
                   <td className="px-4 py-3 text-navy-500 capitalize">{org.org_type?.replace('_', ' ') || '-'}</td>
                   <td className="px-4 py-3 text-navy-500">{org.sector || '-'}</td>
                   <td className="px-4 py-3 text-navy-500">{org.state_territory || '-'}</td>
-                  {canRemove && (
+                  {(canEdit || canRemove) && (
                     <td className="px-4 py-3 text-right">
                       {confirmingId === org.id ? (
                         <span className="inline-flex gap-2">
@@ -154,12 +230,24 @@ export default function OrganisationsPage() {
                           </button>
                         </span>
                       ) : (
-                        <button
-                          onClick={() => { setConfirmingId(org.id); setError('') }}
-                          className="text-xs text-red-500 hover:text-red-700"
-                        >
-                          Remove
-                        </button>
+                        <span className="inline-flex gap-3">
+                          {canEdit && (
+                            <button
+                              onClick={() => startEdit(org)}
+                              className="text-xs text-navy-600 hover:text-navy-900"
+                            >
+                              Edit
+                            </button>
+                          )}
+                          {canRemove && (
+                            <button
+                              onClick={() => { setConfirmingId(org.id); setError('') }}
+                              className="text-xs text-red-500 hover:text-red-700"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </span>
                       )}
                     </td>
                   )}

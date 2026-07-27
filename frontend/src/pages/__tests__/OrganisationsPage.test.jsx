@@ -4,7 +4,7 @@ import OrganisationsPage from '../OrganisationsPage'
 import api from '../../services/api'
 
 vi.mock('../../services/api', () => ({
-  default: { get: vi.fn(), post: vi.fn(), delete: vi.fn() },
+  default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }))
 
 let mockUser = { role: 'admin' }
@@ -18,7 +18,7 @@ vi.mock('../../components/Layout', () => ({
 }))
 
 const ORGS = [
-  { id: 'o1', name: 'Soil Tech Labs', org_type: null, sector: 'Agriculture', state_territory: 'NSW' },
+  { id: 'o1', name: 'Soil Tech Labs', org_type: null, sector: 'Agriculture', state_territory: 'NSW', website: 'https://soil.example' },
 ]
 
 function setupGet(list = ORGS) {
@@ -29,6 +29,7 @@ describe('OrganisationsPage', () => {
   beforeEach(() => {
     vi.mocked(api.get).mockReset()
     vi.mocked(api.post).mockReset()
+    vi.mocked(api.patch).mockReset()
     vi.mocked(api.delete).mockReset()
     mockUser = { role: 'admin' }
   })
@@ -110,5 +111,85 @@ describe('OrganisationsPage', () => {
     await user.click(await screen.findByRole('button', { name: 'Confirm' }))
     await waitFor(() => expect(screen.getByText(/Delete failed/)).toBeInTheDocument())
     expect(screen.getByText('Soil Tech Labs')).toBeInTheDocument()
+  })
+
+  it('admin and assessor see per-row Edit; viewer does not', async () => {
+    setupGet()
+    const { unmount } = render(<OrganisationsPage />)
+    await waitFor(() => screen.getByText('Soil Tech Labs'))
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+    unmount()
+
+    mockUser = { role: 'assessor' }
+    setupGet()
+    const second = render(<OrganisationsPage />)
+    await waitFor(() => screen.getByText('Soil Tech Labs'))
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+    second.unmount()
+
+    mockUser = { role: 'viewer' }
+    setupGet()
+    render(<OrganisationsPage />)
+    await waitFor(() => screen.getByText('Soil Tech Labs'))
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+  })
+
+  it('Edit opens a form pre-filled with the current values', async () => {
+    const user = userEvent.setup()
+    setupGet()
+    render(<OrganisationsPage />)
+    await waitFor(() => screen.getByText('Soil Tech Labs'))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    expect(screen.getByDisplayValue('Soil Tech Labs')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('Agriculture')).toBeInTheDocument()
+  })
+
+  it('saving an edit patches the changed fields and updates the row in place', async () => {
+    const user = userEvent.setup()
+    setupGet()
+    vi.mocked(api.patch).mockResolvedValue({
+      data: { ...ORGS[0], sector: 'Energy' },
+    })
+    render(<OrganisationsPage />)
+    await waitFor(() => screen.getByText('Soil Tech Labs'))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    const sectorInput = screen.getByDisplayValue('Agriculture')
+    await user.clear(sectorInput)
+    await user.type(sectorInput, 'Energy')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(api.patch).toHaveBeenCalledWith('/organisations/o1', { sector: 'Energy' })
+    await waitFor(() => expect(screen.getByText('Energy')).toBeInTheDocument())
+    expect(screen.queryByText('Agriculture')).not.toBeInTheDocument()
+  })
+
+  it('cancelling the edit makes no api.patch call', async () => {
+    const user = userEvent.setup()
+    setupGet()
+    render(<OrganisationsPage />)
+    await waitFor(() => screen.getByText('Soil Tech Labs'))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    const sectorInput = screen.getByDisplayValue('Agriculture')
+    await user.clear(sectorInput)
+    await user.type(sectorInput, 'Energy')
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(api.patch).not.toHaveBeenCalled()
+    expect(screen.getByText('Agriculture')).toBeInTheDocument()
+  })
+
+  it('a rejected edit leaves the row unchanged and shows an error', async () => {
+    const user = userEvent.setup()
+    setupGet()
+    vi.mocked(api.patch).mockRejectedValue({ response: { data: { detail: 'Update failed' } } })
+    render(<OrganisationsPage />)
+    await waitFor(() => screen.getByText('Soil Tech Labs'))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    const sectorInput = screen.getByDisplayValue('Agriculture')
+    await user.clear(sectorInput)
+    await user.type(sectorInput, 'Energy')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(screen.getByText(/Update failed/)).toBeInTheDocument())
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.getByText('Agriculture')).toBeInTheDocument()
+    expect(screen.queryByText('Energy')).not.toBeInTheDocument()
   })
 })

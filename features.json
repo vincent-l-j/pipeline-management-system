@@ -115,6 +115,6 @@
       "cd frontend && npm test -- OrganisationsPage"
     ],
     "fulfills": ["VAL-ORG-EDIT-001", "VAL-ORG-EDIT-003"],
-    "status": "pending"
+    "status": "done"
   }
 ]

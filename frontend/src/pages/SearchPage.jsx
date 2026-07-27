@@ -18,6 +18,16 @@ const CATEGORY_CONFIG = {
   assessments: { label: 'Assessments', icon: '◇', basePath: '/assessments' },
 }
 
+// Each result carries a singular `type`; map it to its detail route directly
+// rather than naively pluralising (e.g. 'pitch' -> 'pitches', not 'pitchs').
+const TYPE_BASE_PATH = {
+  pitch: '/pitches',
+  organisation: '/organisations',
+  contact: '/contacts',
+  meeting: '/meetings',
+  assessment: '/assessments',
+}
+
 const BADGE_COLORS = {
   pitch: 'bg-blue-100 text-blue-700',
   organisation: 'bg-teal-100 text-teal-700',
@@ -58,8 +68,9 @@ export default function SearchPage() {
   }
 
   function handleResultClick(item) {
-    const config = CATEGORY_CONFIG[item.type + 's'] || {}
-    navigate(`${config.basePath || ''}/${item.id}`)
+    const basePath = TYPE_BASE_PATH[item.type]
+    if (!basePath) return
+    navigate(`${basePath}/${item.id}`)
   }
 
   const categories = results

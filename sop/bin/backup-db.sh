@@ -10,7 +10,6 @@ SSL_SUFFIX="sslmode=verify-full&sslrootcert=$CONTAINER_CERT"
 
 db_names=(
     defaultdb
-    db
 )
 for DB in "${db_names[@]}"; do
     docker compose run --rm -T \

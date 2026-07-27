@@ -49,6 +49,27 @@ Platform. No deviations.
 for your environment. See that file for all variables. Database credentials and URLs are
 derived from `$POSTGRES_USER`, `$POSTGRES_PASSWORD`, and database names you choose.
 
+## DigitalOcean Bindable Variables & Non-Default Credentials ⚠️
+
+**Gotcha:** The `DATABASE_URL` bindable variable (`${db-pgsql-*.DATABASE_URL}`) in DO App Platform
+only resolves to the **default db_user and db_name**. If your app uses non-default credentials
+(a different `db_user` or `db_name`), the bindable variable will **not work** — the app will fail
+to connect.
+
+**Why this matters:** You may want different credentials per environment (e.g., separate databases
+in the same cluster), but the bindable variable bypasses your custom values.
+
+**Solution:** Instead of using the bindable variable, manually copy the connection string from the
+DigitalOcean Database UI:
+
+1. Go to DigitalOcean Dashboard → Databases → your cluster
+2. Click **Connection Details**
+3. Copy the **"Connection string"** for your specific db_user and db_name
+4. Paste it as the `DATABASE_URL` env var in your app spec (replace the bindable variable)
+
+The manual connection string will include your exact username and database name, so the app
+connects as intended.
+
 ## Environment: where and how to run SOP commands
 
 **This host has no local `python`, `alembic`, `psql`, or `pg_dump`.** The whole
@@ -201,48 +222,24 @@ every remaining hunk is one of these — observed, expected, and **not** schema 
 `[STOP IF]` any hunk touches structural DDL — a table, column, index, constraint, or enum
 type/value. That must match exactly before stamping.
 
-## Production stamp cutover (Phase E, `stamp` branch)
+## Production TLS connections
 
-Production runs on a **DigitalOcean managed Postgres cluster** reached over TLS, so its
-cutover differs from the local throwaway work above in two ways: connections must use
-`sslmode=verify-full` with DO's CA certificate, and every `pg_dump`/`psql` runs in the
-**`db` container** (`postgres:16`) — the `backend` image has no Postgres client tools.
-
-**Connecting with `verify-full`.** Download the CA from the DO control panel (Databases →
-cluster → Connection Details → *Download CA certificate*). It lives on the host, so it must
-be **mounted into the container** — a host path passed to a container-side `sslrootcert=`
-fails with `root certificate file "…" does not exist`. Bind-mount it and point
-`sslrootcert=` at the in-container path:
+Production runs on a **DigitalOcean managed Postgres cluster** reached over TLS. Connections
+(for backup/restore) must use `sslmode=verify-full` with DO's CA certificate. Download the CA
+from the DO control panel (Databases → cluster → Connection Details → *Download CA certificate*).
+It lives on the host, so it must be **mounted into the container**:
 
 ```bash
 export PROD_DATABASE_URL='postgresql://doadmin:<pw>@<cluster-host>.db.ondigitalocean.com:25060'  # no db name / query
 export HOST_CERT='/absolute/path/to/ca-certificate.crt'   # absolute; quote it — spaces break `-v`
-# The helper scripts append /<db>?sslmode=verify-full&sslrootcert=/tmp/ca-certificate.crt
+# Helper scripts append /defaultdb?sslmode=verify-full&sslrootcert=/tmp/ca-certificate.crt
 ```
+
 `verify-full` also checks the hostname against the cert, so connect via DO's hostname (not an
 IP). If you hit a hostname mismatch, fall back to `sslmode=verify-ca`.
 
-**Backup + restore verification (done).** Two helper scripts drive this
-(`PROD_DATABASE_URL` + `HOST_CERT` must be exported first):
-
-- [`sop/bin/backup-db.sh`](../bin/backup-db.sh) — `pg_dump`s both `defaultdb` and `db` from
-  the cluster to `prod-<db>-backup.sql`.
-- [`sop/bin/restore-db.sh`](../bin/restore-db.sh) — creates a **disposable** `restore_check`
-  database on the cluster (connecting via `defaultdb` for the `CREATE`, since you cannot
-  create a DB while connected to it), reloads `prod-db-backup.sql` into it with
-  `psql -v ON_ERROR_STOP=1`, re-dumps it, and `diff`s the re-dump against the original —
-  an empty diff proves the backup restores faithfully. `[STOP IF]` the diff is non-empty.
-
-Drop the scratch DB when finished (connect via `defaultdb`, add `WITH (FORCE)` if sessions
-are open):
-```bash
-docker compose run --rm -T -v "$HOST_CERT:/tmp/ca-certificate.crt:ro" \
-  -e U="$PROD_DATABASE_URL/defaultdb?sslmode=verify-full&sslrootcert=/tmp/ca-certificate.crt" \
-  db sh -c 'psql "$U" -c "DROP DATABASE restore_check;"'
-```
-
-> **The `prod-*.sql` dumps contain production data** and are gitignored (`*.sql`). Never
-> commit them; delete them from the working tree once the cutover is verified.
+> **The `prod-db-backup.sql` dump contains production data** and is gitignored (`*.sql`).
+> Never commit it; delete it from the working tree once verified.
 
 **Reconciliation record — `pitch_stage_history.changed_at` (drift found at parity check).**
 The prod-vs-genesis schema diff surfaced one real structural hunk: prod had
@@ -266,8 +263,90 @@ migrate forward instead.
 1. First production deploy — push to `main` (triggers `.github/workflows/deploy-production.yml`);
    the `PRE_DEPLOY` migrate job's `alembic upgrade head` is then a no-op (already at head).
    Merge the genesis migration + `.do/app.yaml` to `main` first (the spec pins `branch: main`).
-2. Post-deploy: `curl -sf https://ims.rozettainstitute.com/api/health`, drop the on-cluster
-   `restore_check` scratch DB, and delete the local `prod-*.sql` dumps.
+2. Post-deploy: `curl -sf https://ims.rozettainstitute.com/api/health` and delete the local
+   `prod-*.sql` dumps.
+
+## Disaster Recovery: Cluster Restoration
+
+Procedure for restoring a production database from backup, e.g., if the current cluster is
+corrupted or lost. This creates an entirely new PostgreSQL cluster in DigitalOcean, restores
+data from a backup, and reconnects the app.
+
+**Prerequisites:**
+
+- An existing backup dump file (`prod-db-backup.sql`, created with `sop/bin/backup-db.sh`)
+- Access to DigitalOcean API/dashboard and GitHub repo
+- The app's `.do/app.yaml` app spec accessible for editing
+
+**Workflow (test with GitHub Actions):**
+
+1. **Create new empty PostgreSQL cluster in DigitalOcean.**
+   - Dashboard → Databases → Create Cluster
+   - Use same version as original (currently PostgreSQL 16), same region, same tier
+   - Wait for it to fully provision and display Connection Details
+   - **Download the CA certificate** from Connection Details (you'll need it for restore)
+
+2. **Backup from the old cluster (if not already done).**
+
+   ```bash
+   export PROD_DATABASE_URL='postgresql://doadmin:<pw>@<old-cluster-host>.db.ondigitalocean.com:25060'
+   export HOST_CERT='/absolute/path/to/ca-certificate.crt'  # from old cluster
+   sop/bin/backup-db.sh
+   # Creates prod-db-backup.sql
+   ```
+
+3. **Restore into the new cluster.**
+   - Update env vars to point at the new cluster:
+     ```bash
+     export PROD_DATABASE_URL='postgresql://doadmin:<pw>@<new-cluster-host>.db.ondigitalocean.com:25060'
+     export HOST_CERT='/absolute/path/to/new-ca-certificate.crt'  # from NEW cluster
+     ```
+   - Run the restore:
+     ```bash
+     sop/bin/restore-db.sh
+     # Restores prod-db-backup.sql into defaultdb, verifies via re-dump and diff
+     ```
+   - The script re-dumps `defaultdb` and diffs it against the original backup. If the diff is
+     clean (empty output), the restore is faithful. If not, [STOP] — investigate the drift.
+
+4. **Prepare app spec (`.do/app.yaml`) for two-phase deployment.**
+
+   **Phase 1: Remove migration job and old database.**
+   - Edit `.do/app.yaml` and:
+     - Delete the entire `jobs:` block (or just the `migrate` job if there are others)
+     - Delete the old `databases:` entry (the cluster that failed/is being replaced)
+   - Commit and push to `main` (or your deploy branch)
+   - GitHub Actions triggers `deploy-production.yml` → waits for approval → deploys
+   - **Verify:** App is unreachable or errors (it has no database attached — this is expected)
+
+5. **Phase 2: Attach new database and restore migration job.**
+   - Edit `.do/app.yaml` and add:
+     - New `databases:` block pointing to the new cluster (copy the connection details from DO)
+     - Re-add the `jobs:` block with the `migrate` job
+     - **Critical:** Ensure the job's `DATABASE_URL` bindable var (`${db.DATABASE_URL}`) matches the
+       `databases` component name (`db`). Mismatch causes the migration to fail.
+   - Commit and push
+   - GitHub Actions triggers `deploy-production.yml` → waits for approval → deploys
+   - **Verify:** `curl -sf https://ims.rozettainstitute.com/api/health` returns 200
+   - App should now serve the restored data
+
+6. **Cleanup.**
+   - Delete the old PostgreSQL cluster from DigitalOcean Dashboard (it is no longer needed)
+   - Delete local backup and CA certificate files (they contain sensitive data):
+     ```bash
+     rm prod-db-backup.sql ca-certificate.crt new-ca-certificate.crt
+     ```
+
+**Gotchas:**
+
+- DigitalOcean App Platform won't delete and add a database in the same deployment. It must be
+  two separate deployments (remove old, then add new), else the migration job tries to run
+  against a non-existent database and the deploy reverts.
+- Every cluster has its own CA certificate. When you create a new cluster, download its new CA
+  cert; the old one won't work for the new cluster.
+- The `databases` component name must match the job's `DATABASE_URL` bindable var. If they
+  disagree (e.g. `databases: [db]` but `DATABASE_URL: ${mydb.DATABASE_URL}`), the migration
+  job fails.
 
 ## Expected tables (registry completeness check, Bootstrap §A.4)
 

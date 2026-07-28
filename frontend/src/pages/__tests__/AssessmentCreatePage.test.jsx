@@ -72,8 +72,9 @@ describe('AssessmentCreatePage (amend)', () => {
 
     await user.click(screen.getByRole('button', { name: /submit assessment/i }))
 
+    // When amending, the query parameter is passed to validate the pitch hasn't changed
     expect(api.post).toHaveBeenCalledWith(
-      '/assessments',
+      '/assessments?amending_from_id=a2',
       expect.objectContaining({
         pitch_id: 'p1',
         recommendation: 'proceed',

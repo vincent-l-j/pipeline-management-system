@@ -224,3 +224,60 @@ def test_list_shows_only_latest_version_per_pitch_multiple_pitches(admin_client)
     assert len(b_assessments) == 1
     assert b_assessments[0]["version"] == 2
     assert b_assessments[0]["id"] == b_v2["id"]
+
+
+# --- Amending (pitch cannot change) ---
+
+def test_amend_assessment_with_valid_from_id(admin_client):
+    """When amending, amending_from_id query param is accepted."""
+    pitch_id = _create_pitch(admin_client)
+    v1 = admin_client.post(
+        "/api/assessments",
+        json={**SCORE_PAYLOAD, "pitch_id": pitch_id},
+    ).json()
+
+    # Amend with the amending_from_id parameter
+    resp = admin_client.post(
+        f"/api/assessments?amending_from_id={v1['id']}",
+        json={**SCORE_PAYLOAD, "pitch_id": pitch_id},
+    )
+    assert resp.status_code == 200
+    v2 = resp.json()
+    assert v2["version"] == 2
+    assert v2["pitch_id"] == pitch_id
+
+
+def test_amend_with_different_pitch_rejected(admin_client):
+    """Cannot amend an assessment and reassign it to a different pitch."""
+    pitch_a = _create_pitch(admin_client)
+    pitch_b = _create_pitch(admin_client)
+
+    v1 = admin_client.post(
+        "/api/assessments",
+        json={**SCORE_PAYLOAD, "pitch_id": pitch_a},
+    ).json()
+
+    # Try to amend but change the pitch_id
+    resp = admin_client.post(
+        f"/api/assessments?amending_from_id={v1['id']}",
+        json={**SCORE_PAYLOAD, "pitch_id": pitch_b},
+    )
+    assert resp.status_code == 422
+    assert "cannot change pitch" in resp.json()["detail"].lower()
+
+    # Verify no new version was created
+    list_resp = admin_client.get(f"/pitches/{pitch_b}/assessments")
+    assert len(list_resp.json()) == 0
+
+
+def test_amend_with_nonexistent_from_id_rejected(admin_client):
+    """Cannot amend from a non-existent assessment."""
+    pitch_id = _create_pitch(admin_client)
+    fake_id = "00000000-0000-0000-0000-000000000000"
+
+    resp = admin_client.post(
+        f"/api/assessments?amending_from_id={fake_id}",
+        json={**SCORE_PAYLOAD, "pitch_id": pitch_id},
+    )
+    assert resp.status_code == 404
+    assert "not found" in resp.json()["detail"].lower()

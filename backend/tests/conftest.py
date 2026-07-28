@@ -77,8 +77,46 @@ def client():
     app.dependency_overrides.clear()
 
 
+class _AuthenticatedTestClient:
+    """Wrapper around TestClient that manages authentication per request."""
+    def __init__(self, user):
+        self.user = user
+        app.dependency_overrides[get_db] = _get_test_db
+        self.client = TestClient(app, follow_redirects=False)
+
+    def _make_request(self, method, *args, **kwargs):
+        # Set up the override just before making the request
+        app.dependency_overrides[get_current_user] = lambda: self.user
+        try:
+            return method(*args, **kwargs)
+        finally:
+            # Clean up after the request
+            app.dependency_overrides.pop(get_current_user, None)
+
+    def get(self, *args, **kwargs):
+        return self._make_request(self.client.get, *args, **kwargs)
+
+    def post(self, *args, **kwargs):
+        return self._make_request(self.client.post, *args, **kwargs)
+
+    def patch(self, *args, **kwargs):
+        return self._make_request(self.client.patch, *args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        return self._make_request(self.client.delete, *args, **kwargs)
+
+    def put(self, *args, **kwargs):
+        return self._make_request(self.client.put, *args, **kwargs)
+
+    def head(self, *args, **kwargs):
+        return self._make_request(self.client.head, *args, **kwargs)
+
+    def options(self, *args, **kwargs):
+        return self._make_request(self.client.options, *args, **kwargs)
+
+
 @pytest.fixture
-def admin_client(client):
+def admin_client():
     """Client authenticated as an admin (auth dependency overridden)."""
     admin = User(
         id=_ADMIN_ID,
@@ -89,13 +127,13 @@ def admin_client(client):
         created_at=_NOW,
         updated_at=_NOW,
     )
-    app.dependency_overrides[get_current_user] = lambda: admin
+    client = _AuthenticatedTestClient(admin)
     yield client
-    app.dependency_overrides.pop(get_current_user, None)
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
-def assessor_client(client):
+def assessor_client():
     """Client authenticated as an assessor."""
     assessor = User(
         id=_ASSESSOR_ID,
@@ -106,13 +144,13 @@ def assessor_client(client):
         created_at=_NOW,
         updated_at=_NOW,
     )
-    app.dependency_overrides[get_current_user] = lambda: assessor
+    client = _AuthenticatedTestClient(assessor)
     yield client
-    app.dependency_overrides.pop(get_current_user, None)
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
-def viewer_client(client):
+def viewer_client():
     """Client authenticated as a viewer (read-only role)."""
     viewer = User(
         id=_VIEWER_ID,
@@ -123,6 +161,6 @@ def viewer_client(client):
         created_at=_NOW,
         updated_at=_NOW,
     )
-    app.dependency_overrides[get_current_user] = lambda: viewer
+    client = _AuthenticatedTestClient(viewer)
     yield client
-    app.dependency_overrides.pop(get_current_user, None)
+    app.dependency_overrides.clear()

@@ -7,16 +7,37 @@ import api from '../services/api'
 const inputClass =
   'w-full border border-navy-200 rounded-lg px-3 py-1.5 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300'
 
+const ORG_TYPES = ['startup', 'university', 'ngo', 'government', 'consortium', 'research_centre', 'other']
+
 export default function OrganisationsPage() {
   const { user } = useAuth()
   const [orgs, setOrgs] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
-  const [form, setForm] = useState({ name: '', sector: '' })
+  const [form, setForm] = useState({
+    name: '',
+    org_type: '',
+    sector: '',
+    state_territory: '',
+    website: '',
+    abn: '',
+    notes: '',
+  })
+  const [editingId, setEditingId] = useState(null)
+  const [editForm, setEditForm] = useState({
+    name: '',
+    org_type: '',
+    sector: '',
+    state_territory: '',
+    website: '',
+    abn: '',
+    notes: '',
+  })
   const [confirmingId, setConfirmingId] = useState(null)
   const [error, setError] = useState('')
 
   const canAdd = user?.role === 'admin' || user?.role === 'assessor'
+  const canEdit = user?.role === 'admin' || user?.role === 'assessor'
   const canRemove = user?.role === 'admin'
 
   useEffect(() => {
@@ -32,13 +53,64 @@ export default function OrganisationsPage() {
     try {
       const { data } = await api.post('/organisations', {
         name: form.name.trim(),
+        org_type: form.org_type || null,
         sector: form.sector.trim() || null,
+        state_territory: form.state_territory.trim() || null,
+        website: form.website.trim() || null,
+        abn: form.abn.trim() || null,
+        notes: form.notes.trim() || null,
       })
       setOrgs((prev) => [...prev, data])
-      setForm({ name: '', sector: '' })
+      setForm({
+        name: '',
+        org_type: '',
+        sector: '',
+        state_territory: '',
+        website: '',
+        abn: '',
+        notes: '',
+      })
       setShowAdd(false)
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to add organisation')
+    }
+  }
+
+  function startEdit(org) {
+    setError('')
+    setEditingId(org.id)
+    setEditForm({
+      name: org.name || '',
+      org_type: org.org_type || '',
+      sector: org.sector || '',
+      state_territory: org.state_territory || '',
+      website: org.website || '',
+      abn: org.abn || '',
+      notes: org.notes || '',
+    })
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+  }
+
+  async function saveEdit(org) {
+    const changes = {}
+    for (const field of ['name', 'org_type', 'sector', 'state_territory', 'website', 'abn', 'notes']) {
+      const next = field === 'org_type' ? (editForm[field] || null) : (editForm[field].trim() || null)
+      if (next !== (org[field] ?? null)) changes[field] = next
+    }
+    if (!editForm.name.trim() || Object.keys(changes).length === 0) {
+      setEditingId(null)
+      return
+    }
+    setError('')
+    try {
+      const { data } = await api.patch(`/organisations/${org.id}`, changes)
+      setOrgs((prev) => prev.map((o) => (o.id === org.id ? data : o)))
+      setEditingId(null)
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to update organisation')
     }
   }
 
@@ -81,15 +153,55 @@ export default function OrganisationsPage() {
             type="text"
             value={form.name}
             onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-            placeholder="Organisation name"
+            placeholder="Organisation name (required)"
             className={inputClass}
           />
+          <select
+            value={form.org_type}
+            onChange={(e) => setForm((p) => ({ ...p, org_type: e.target.value }))}
+            className={inputClass}
+          >
+            <option value="">Type (optional)</option>
+            {ORG_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {type.replace(/_/g, ' ')}
+              </option>
+            ))}
+          </select>
           <input
             type="text"
             value={form.sector}
             onChange={(e) => setForm((p) => ({ ...p, sector: e.target.value }))}
             placeholder="Sector (optional)"
             className={inputClass}
+          />
+          <input
+            type="text"
+            value={form.state_territory}
+            onChange={(e) => setForm((p) => ({ ...p, state_territory: e.target.value }))}
+            placeholder="State/Territory (optional)"
+            className={inputClass}
+          />
+          <input
+            type="text"
+            value={form.website}
+            onChange={(e) => setForm((p) => ({ ...p, website: e.target.value }))}
+            placeholder="Website (optional)"
+            className={inputClass}
+          />
+          <input
+            type="text"
+            value={form.abn}
+            onChange={(e) => setForm((p) => ({ ...p, abn: e.target.value }))}
+            placeholder="ABN (optional)"
+            className={inputClass}
+          />
+          <textarea
+            value={form.notes}
+            onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+            placeholder="Notes (optional)"
+            className={`${inputClass} resize-none`}
+            rows="3"
           />
           <div className="flex gap-2">
             <button
@@ -100,7 +212,18 @@ export default function OrganisationsPage() {
               Create
             </button>
             <button
-              onClick={() => { setShowAdd(false); setForm({ name: '', sector: '' }) }}
+              onClick={() => {
+                setShowAdd(false)
+                setForm({
+                  name: '',
+                  org_type: '',
+                  sector: '',
+                  state_territory: '',
+                  website: '',
+                  abn: '',
+                  notes: '',
+                })
+              }}
               className="text-xs border border-navy-200 text-navy-600 px-3 py-1.5 rounded-lg"
             >
               Cancel
@@ -124,19 +247,102 @@ export default function OrganisationsPage() {
                 <th className="text-left px-4 py-3 font-semibold text-navy-700">Type</th>
                 <th className="text-left px-4 py-3 font-semibold text-navy-700">Sector</th>
                 <th className="text-left px-4 py-3 font-semibold text-navy-700">State</th>
-                {canRemove && (
+                {(canEdit || canRemove) && (
                   <th className="text-right px-4 py-3 font-semibold text-navy-700">Actions</th>
                 )}
               </tr>
             </thead>
             <tbody className="divide-y divide-navy-50">
-              {orgs.map((org) => (
+              {orgs.map((org) => editingId === org.id ? (
+                <tr key={org.id} className="bg-navy-50/50">
+                  <td colSpan="5" className="px-4 py-3">
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={editForm.name}
+                        onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
+                        placeholder="Organisation name (required)"
+                        aria-label="Organisation name"
+                        className={inputClass}
+                      />
+                      <select
+                        value={editForm.org_type}
+                        onChange={(e) => setEditForm((p) => ({ ...p, org_type: e.target.value }))}
+                        aria-label="Organisation type"
+                        className={inputClass}
+                      >
+                        <option value="">Type (optional)</option>
+                        {ORG_TYPES.map((type) => (
+                          <option key={type} value={type}>
+                            {type.replace(/_/g, ' ')}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        value={editForm.sector}
+                        onChange={(e) => setEditForm((p) => ({ ...p, sector: e.target.value }))}
+                        placeholder="Sector (optional)"
+                        aria-label="Organisation sector"
+                        className={inputClass}
+                      />
+                      <input
+                        type="text"
+                        value={editForm.state_territory}
+                        onChange={(e) => setEditForm((p) => ({ ...p, state_territory: e.target.value }))}
+                        placeholder="State/Territory (optional)"
+                        aria-label="Organisation state/territory"
+                        className={inputClass}
+                      />
+                      <input
+                        type="text"
+                        value={editForm.website}
+                        onChange={(e) => setEditForm((p) => ({ ...p, website: e.target.value }))}
+                        placeholder="Website (optional)"
+                        aria-label="Organisation website"
+                        className={inputClass}
+                      />
+                      <input
+                        type="text"
+                        value={editForm.abn}
+                        onChange={(e) => setEditForm((p) => ({ ...p, abn: e.target.value }))}
+                        placeholder="ABN (optional)"
+                        aria-label="Organisation ABN"
+                        className={inputClass}
+                      />
+                      <textarea
+                        value={editForm.notes}
+                        onChange={(e) => setEditForm((p) => ({ ...p, notes: e.target.value }))}
+                        placeholder="Notes (optional)"
+                        aria-label="Organisation notes"
+                        className={`${inputClass} resize-none`}
+                        rows="2"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => saveEdit(org)}
+                          disabled={!editForm.name.trim()}
+                          className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          className="text-xs border border-navy-200 text-navy-600 px-3 py-1.5 rounded-lg"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
                 <tr key={org.id} className="hover:bg-navy-50/50 transition-colors">
                   <td className="px-4 py-3 font-medium text-navy-900">{org.name}</td>
                   <td className="px-4 py-3 text-navy-500 capitalize">{org.org_type?.replace('_', ' ') || '-'}</td>
                   <td className="px-4 py-3 text-navy-500">{org.sector || '-'}</td>
                   <td className="px-4 py-3 text-navy-500">{org.state_territory || '-'}</td>
-                  {canRemove && (
+                  {(canEdit || canRemove) && (
                     <td className="px-4 py-3 text-right">
                       {confirmingId === org.id ? (
                         <span className="inline-flex gap-2">
@@ -154,12 +360,24 @@ export default function OrganisationsPage() {
                           </button>
                         </span>
                       ) : (
-                        <button
-                          onClick={() => { setConfirmingId(org.id); setError('') }}
-                          className="text-xs text-red-500 hover:text-red-700"
-                        >
-                          Remove
-                        </button>
+                        <span className="inline-flex gap-3">
+                          {canEdit && (
+                            <button
+                              onClick={() => startEdit(org)}
+                              className="text-xs text-navy-600 hover:text-navy-900"
+                            >
+                              Edit
+                            </button>
+                          )}
+                          {canRemove && (
+                            <button
+                              onClick={() => { setConfirmingId(org.id); setError('') }}
+                              className="text-xs text-red-500 hover:text-red-700"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </span>
                       )}
                     </td>
                   )}

@@ -112,20 +112,22 @@ describe('ContactsPage', () => {
     expect(screen.getByText('Jane Doe')).toBeInTheDocument()
   })
 
-  it('admin and assessor see per-row Edit; viewer does not', async () => {
+  it('admin sees per-row Edit button', async () => {
     setupGet()
-    const { unmount } = render(<ContactsPage />)
+    render(<ContactsPage />)
     await waitFor(() => screen.getByText('Jane Doe'))
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
-    unmount()
+  })
 
+  it('assessor sees per-row Edit button', async () => {
     mockUser = { role: 'assessor' }
     setupGet()
-    const second = render(<ContactsPage />)
+    render(<ContactsPage />)
     await waitFor(() => screen.getByText('Jane Doe'))
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
-    second.unmount()
+  })
 
+  it('viewer does not see Edit button', async () => {
     mockUser = { role: 'viewer' }
     setupGet()
     render(<ContactsPage />)

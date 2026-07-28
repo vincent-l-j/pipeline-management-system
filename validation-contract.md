@@ -119,21 +119,49 @@ Evidence: screenshot(viewer-no-edit-control), network(PATCH /api/contacts/{id} a
 
 ---
 
+## Creating an organisation
+
+### VAL-ORG-CREATE-001: Admin/assessor can create an organisation with all fields
+
+From the organisations list, an admin or assessor clicks "Add Organisation", the form
+includes fields for name (required), org_type, sector, state_territory, website, abn,
+and notes (all optional), fills in any combination of fields, saves, and the new
+organisation is created and appears in the list with all supplied values set.
+Tool: agent-browser
+Evidence: screenshot(add-form-with-all-fields), screenshot(organisation-created), network(POST /api/organisations -> 201 with all supplied fields persisted)
+
+### VAL-ORG-CREATE-002: Creating an organisation accepts all optional fields
+
+Posting to POST /api/organisations with org_type, sector, state_territory, website,
+abn, or notes creates the organisation with those fields set; omitting them stores
+them as null.
+Tool: agent-api
+Evidence: network(POST /api/organisations with org_type and state_territory -> 201), network(GET /api/organisations/{id} -> 200 with those fields set)
+
+### VAL-ORG-CREATE-003: Organisation creation respects roles, server-side
+
+A viewer sees no Add control and cannot create an organisation. The restriction holds
+against a direct API call that bypasses the UI.
+Tool: agent-browser, agent-api
+Evidence: screenshot(viewer-no-add-control), network(POST /api/organisations as viewer -> 403)
+
+---
+
 ## Editing an existing organisation
 
 ### VAL-ORG-EDIT-001: Admin/assessor can edit an existing organisation
 
 From the organisations list (or an organisation's view), an admin or assessor opens
-an "Edit" affordance, the form is pre-filled with the organisation's current values,
-they change a field (e.g. name, sector or website), save, and the updated value is
-shown without a reload.
+an "Edit" affordance, the form is pre-filled with the organisation's current values
+for all fields (name, org_type, sector, state_territory, website, abn, notes), they
+change any field(s), save, and the updated values are shown without a reload.
 Tool: agent-browser
-Evidence: screenshot(edit-form-prefilled), screenshot(organisation-updated), network(PATCH /api/organisations/{id} -> 200)
+Evidence: screenshot(edit-form-prefilled-all-fields), screenshot(organisation-updated), network(PATCH /api/organisations/{id} -> 200)
 
 ### VAL-ORG-EDIT-002: Editing an organisation is a partial update
 
-Saving an edit that changes one field leaves the organisation's other fields (e.g.
-org_type, abn, notes) intact — only the changed fields are altered.
+Saving an edit that changes one field leaves the organisation's other fields intact
+— only the changed fields are altered.
 Tool: agent-api
 Evidence: network(PATCH /api/organisations/{id} with one field -> 200), network(GET /api/organisations/{id} -> 200 with untouched fields preserved)
 

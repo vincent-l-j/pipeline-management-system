@@ -85,6 +85,40 @@
     "status": "pending"
   },
   {
+    "id": "organisation-create-api",
+    "description": "Confirm and pin POST /api/organisations as creating an organisation with all optional fields. OrganisationCreate allowlist (name, org_type, sector, state_territory, website, abn, notes) - do not widen it. admin+assessor allowed; viewer 403; unauthenticated 401. Supplied optional fields are persisted; omitted optional fields default to null.",
+    "skillName": "backend-worker",
+    "milestone": "organisations-edit",
+    "expectedBehavior": [
+      "admin/assessor POST with name and any optional fields returns 201 with all supplied fields set",
+      "POST with missing name returns 422; POST with only name returns 201 with optional fields null",
+      "viewer POST -> 403; unauthenticated -> 401",
+      "Fields outside the OrganisationCreate allowlist are ignored, not persisted"
+    ],
+    "verificationSteps": [
+      "cd backend && pytest tests/test_organisations.py -k 'create or post or rbac'"
+    ],
+    "fulfills": ["VAL-ORG-CREATE-002", "VAL-ORG-CREATE-003", "VAL-CROSS-001"],
+    "status": "done"
+  },
+  {
+    "id": "organisation-create-ui",
+    "description": "Add an 'Add Organisation' form on OrganisationsPage (admin+assessor only) with input fields for name (required), org_type, sector, state_territory, website, abn, and notes (all optional). Pre-populate org_type enum options. On save, POST /api/organisations with all supplied fields, add the new organisation to the list, and close the form. Cancel makes no API call. Surface API errors without creating the row. Viewers see no Add control.",
+    "skillName": "frontend-worker",
+    "milestone": "organisations-edit",
+    "expectedBehavior": [
+      "OrganisationsPage shows Add button for admin/assessor and hides it for viewer",
+      "Add form includes all editable fields: name, org_type (select), sector, state_territory, website, abn, notes",
+      "Saving calls api.post('/organisations', {...all supplied fields...}) and adds the organisation to the list on resolve; Cancel makes no api.post call",
+      "A rejected post shows an error without adding the organisation"
+    ],
+    "verificationSteps": [
+      "cd frontend && npm test -- OrganisationsPage"
+    ],
+    "fulfills": ["VAL-ORG-CREATE-001", "VAL-ORG-CREATE-003"],
+    "status": "pending"
+  },
+  {
     "id": "organisation-edit-api",
     "description": "Confirm and pin PATCH /api/organisations/{id} as a partial update over OrganisationUpdate. Only supplied fields change; omitted fields are preserved. admin+assessor allowed; viewer 403; unauthenticated 401; unknown id 404. OrganisationUpdate stays an explicit allowlist (name, org_type, sector, state_territory, website, abn, notes) - do not widen it.",
     "skillName": "backend-worker",
@@ -98,16 +132,16 @@
       "cd backend && pytest tests/test_organisations.py -k 'patch or update or rbac'"
     ],
     "fulfills": ["VAL-ORG-EDIT-002", "VAL-ORG-EDIT-003", "VAL-CROSS-001"],
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": "organisation-edit-ui",
-    "description": "Add an 'Edit' control on OrganisationsPage (admin+assessor only) that opens a form pre-filled from the organisation's current values and submits PATCH /api/organisations/{id} on save, updating the row in place without a reload. Cancel makes no API call. Surface API errors without mutating the row. Viewers see no Edit control.",
+    "description": "Add an 'Edit' control on OrganisationsPage (admin+assessor only) that opens a form pre-filled from the organisation's current values for all editable fields (name, org_type, sector, state_territory, website, abn, notes) and submits PATCH /api/organisations/{id} on save, updating the row in place without a reload. Cancel makes no API call. Surface API errors without mutating the row. Viewers see no Edit control.",
     "skillName": "frontend-worker",
     "milestone": "organisations-edit",
     "expectedBehavior": [
       "OrganisationsPage shows Edit for admin/assessor and hides it for viewer",
-      "Edit opens a form pre-filled with the organisation's current values",
+      "Edit opens a form pre-filled with the organisation's current values for all fields: name, org_type (select), sector, state_territory, website, abn, notes",
       "Saving calls api.patch('/organisations/{id}', ...) with the changed fields and updates the row on resolve; Cancel makes no api.patch call",
       "A rejected patch leaves the row unchanged and shows an error"
     ],
@@ -115,6 +149,6 @@
       "cd frontend && npm test -- OrganisationsPage"
     ],
     "fulfills": ["VAL-ORG-EDIT-001", "VAL-ORG-EDIT-003"],
-    "status": "done"
+    "status": "pending"
   }
 ]

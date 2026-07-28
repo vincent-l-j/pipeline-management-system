@@ -120,14 +120,14 @@ def test_score_below_1_rejected(admin_client, field):
 
 # --- Filter by pitch_id ---
 
-def test_filter_assessments_by_pitch_returns_all_versions(admin_client):
-    """When filtering by pitch_id, return ALL versions (for version history)."""
+def test_get_pitch_assessments_returns_all_versions(admin_client):
+    """GET /pitches/{id}/assessments returns ALL versions for that pitch."""
     pitch_id = _create_pitch(admin_client)
     v1 = admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id}).json()
     v2 = admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id}).json()
     v3 = admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id}).json()
 
-    resp = admin_client.get(f"/api/assessments?pitch_id={pitch_id}")
+    resp = admin_client.get(f"/api/pitches/{pitch_id}/assessments")
     assert resp.status_code == 200
     results = resp.json()
     # Should return all 3 versions

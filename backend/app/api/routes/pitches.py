@@ -9,10 +9,12 @@ from app.core.database import get_db
 from app.core.security import get_current_user, require_role
 from app.models.user import User, UserRole
 from app.models.pitch import Pitch, PitchStageHistory, PitchFileLink, PipelineStage
+from app.models.assessment import Assessment
 from app.schemas.pitch import (
     PitchCreate, PitchUpdate, PitchOut, PitchStageUpdate,
     StageHistoryOut, PitchFileLinkCreate, PitchFileLinkOut,
 )
+from app.schemas.assessment import AssessmentOut
 
 router = APIRouter(prefix="/pitches", tags=["pitches"])
 
@@ -123,6 +125,24 @@ def get_pitch_history(
         db.query(PitchStageHistory)
         .filter(PitchStageHistory.pitch_id == pitch_id)
         .order_by(PitchStageHistory.changed_at)
+        .all()
+    )
+
+
+@router.get("/{pitch_id}/assessments", response_model=list[AssessmentOut])
+def get_pitch_assessments(
+    pitch_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get all assessment versions for a pitch, ordered by version (newest first)."""
+    pitch = db.query(Pitch).filter(Pitch.id == pitch_id).first()
+    if not pitch:
+        raise HTTPException(status_code=404, detail="Pitch not found")
+    return (
+        db.query(Assessment)
+        .filter(Assessment.pitch_id == pitch_id)
+        .order_by(Assessment.version.desc())
         .all()
     )
 

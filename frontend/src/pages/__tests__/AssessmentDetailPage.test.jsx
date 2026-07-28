@@ -41,7 +41,7 @@ function setupGet() {
       { id: 'u1', display_name: 'Alice' }, { id: 'u2', display_name: 'Bob' },
     ] })
     if (url === '/pitches/p1') return Promise.resolve({ data: { id: 'p1', title: 'Solar Pitch' } })
-    if (url === '/assessments?pitch_id=p1') return Promise.resolve({ data: [V1, V2] })
+    if (url === '/pitches/p1/assessments') return Promise.resolve({ data: [V1, V2] })
     return Promise.resolve({ data: [] })
   })
 }

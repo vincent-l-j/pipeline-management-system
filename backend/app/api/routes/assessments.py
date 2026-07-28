@@ -16,31 +16,30 @@ router = APIRouter(prefix="/assessments", tags=["assessments"])
 
 @router.get("", response_model=list[AssessmentOut])
 def list_assessments(
-    pitch_id: UUID | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    query = db.query(Assessment)
-
-    if pitch_id:
-        # When filtering by pitch_id, return all versions for that pitch (for history view)
-        query = query.filter(Assessment.pitch_id == pitch_id)
-    else:
-        # When listing all assessments, return only the latest version per pitch
-        subquery = (
-            db.query(
-                Assessment.pitch_id,
-                func.max(Assessment.version).label("max_version")
-            )
-            .group_by(Assessment.pitch_id)
-            .subquery()
+    """Get the latest assessment version for each pitch (no historical versions)."""
+    # Subquery to get the max version for each pitch
+    subquery = (
+        db.query(
+            Assessment.pitch_id,
+            func.max(Assessment.version).label("max_version")
         )
-        query = query.join(
+        .group_by(Assessment.pitch_id)
+        .subquery()
+    )
+
+    # Join to get only rows matching the max version per pitch
+    return (
+        db.query(Assessment)
+        .join(
             subquery,
             (Assessment.pitch_id == subquery.c.pitch_id) & (Assessment.version == subquery.c.max_version)
         )
-
-    return query.order_by(Assessment.assessment_date.desc()).all()
+        .order_by(Assessment.assessment_date.desc())
+        .all()
+    )
 
 
 @router.get("/{assessment_id}", response_model=AssessmentOut)

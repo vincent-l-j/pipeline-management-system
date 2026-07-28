@@ -37,7 +37,7 @@ export default function AssessmentDetailPage() {
       // Load the pitch and all assessments for this pitch
       return Promise.all([
         api.get(`/pitches/${a.pitch_id}`),
-        api.get(`/assessments?pitch_id=${a.pitch_id}`),
+        api.get(`/pitches/${a.pitch_id}/assessments`),
       ])
     }).then(([pitchRes, versionsRes]) => {
       setPitch(pitchRes.data)

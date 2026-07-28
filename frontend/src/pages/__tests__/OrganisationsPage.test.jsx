@@ -18,7 +18,7 @@ vi.mock('../../components/Layout', () => ({
 }))
 
 const ORGS = [
-  { id: 'o1', name: 'Soil Tech Labs', org_type: null, sector: 'Agriculture', state_territory: 'NSW', website: 'https://soil.example' },
+  { id: 'o1', name: 'Soil Tech Labs', org_type: null, sector: 'Agriculture', state_territory: 'NSW', website: 'https://soil.example', abn: null, notes: null },
 ]
 
 function setupGet(list = ORGS) {
@@ -64,7 +64,7 @@ describe('OrganisationsPage', () => {
     const user = userEvent.setup()
     setupGet([])
     vi.mocked(api.post).mockResolvedValue({
-      data: { id: 'o2', name: 'New Org', org_type: null, sector: 'Energy', state_territory: null },
+      data: { id: 'o2', name: 'New Org', org_type: null, sector: 'Energy', state_territory: null, website: null, abn: null, notes: null },
     })
     render(<OrganisationsPage />)
     await waitFor(() => screen.getByRole('button', { name: /Add Organisation/i }))
@@ -76,6 +76,46 @@ describe('OrganisationsPage', () => {
       expect.objectContaining({ name: 'New Org' }),
     )
     await waitFor(() => expect(screen.getByText('New Org')).toBeInTheDocument())
+  })
+
+  it('Add form includes all optional fields', async () => {
+    const user = userEvent.setup()
+    setupGet([])
+    vi.mocked(api.post).mockResolvedValue({
+      data: {
+        id: 'o2',
+        name: 'TechCorp',
+        org_type: 'startup',
+        sector: 'Technology',
+        state_territory: 'NSW',
+        website: 'https://techcorp.example',
+        abn: '12345678901',
+        notes: 'A tech startup',
+      },
+    })
+    render(<OrganisationsPage />)
+    await waitFor(() => screen.getByRole('button', { name: /Add Organisation/i }))
+    await user.click(screen.getByRole('button', { name: /Add Organisation/i }))
+    await user.type(screen.getByPlaceholderText(/Organisation name/i), 'TechCorp')
+    await user.selectOptions(screen.getByDisplayValue(/Type/), 'startup')
+    await user.type(screen.getByPlaceholderText(/Sector/), 'Technology')
+    await user.type(screen.getByPlaceholderText(/State\/Territory/), 'NSW')
+    await user.type(screen.getByPlaceholderText(/Website/), 'https://techcorp.example')
+    await user.type(screen.getByPlaceholderText(/ABN/), '12345678901')
+    await user.type(screen.getByPlaceholderText(/Notes/), 'A tech startup')
+    await user.click(screen.getByRole('button', { name: 'Create' }))
+    expect(api.post).toHaveBeenCalledWith(
+      '/organisations',
+      expect.objectContaining({
+        name: 'TechCorp',
+        org_type: 'startup',
+        sector: 'Technology',
+        state_territory: 'NSW',
+        website: 'https://techcorp.example',
+        abn: '12345678901',
+        notes: 'A tech startup',
+      }),
+    )
   })
 
   it('Remove asks for confirmation; confirming deletes and removes the row', async () => {
@@ -134,7 +174,7 @@ describe('OrganisationsPage', () => {
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
   })
 
-  it('Edit opens a form pre-filled with the current values', async () => {
+  it('Edit opens a form pre-filled with all current values', async () => {
     const user = userEvent.setup()
     setupGet()
     render(<OrganisationsPage />)
@@ -142,6 +182,8 @@ describe('OrganisationsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Edit' }))
     expect(screen.getByDisplayValue('Soil Tech Labs')).toBeInTheDocument()
     expect(screen.getByDisplayValue('Agriculture')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('NSW')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('https://soil.example')).toBeInTheDocument()
   })
 
   it('saving an edit patches the changed fields and updates the row in place', async () => {
@@ -160,6 +202,26 @@ describe('OrganisationsPage', () => {
     expect(api.patch).toHaveBeenCalledWith('/organisations/o1', { sector: 'Energy' })
     await waitFor(() => expect(screen.getByText('Energy')).toBeInTheDocument())
     expect(screen.queryByText('Agriculture')).not.toBeInTheDocument()
+  })
+
+  it('saving an edit with optional fields included patches all changed fields', async () => {
+    const user = userEvent.setup()
+    setupGet()
+    vi.mocked(api.patch).mockResolvedValue({
+      data: { ...ORGS[0], org_type: 'startup', abn: '98765432100' },
+    })
+    render(<OrganisationsPage />)
+    await waitFor(() => screen.getByText('Soil Tech Labs'))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    const typeSelect = screen.getByDisplayValue(/Type/i)
+    const abnInput = screen.getByPlaceholderText(/ABN/)
+    await user.selectOptions(typeSelect, 'startup')
+    await user.type(abnInput, '98765432100')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(api.patch).toHaveBeenCalledWith(
+      '/organisations/o1',
+      expect.objectContaining({ org_type: 'startup', abn: '98765432100' }),
+    )
   })
 
   it('cancelling the edit makes no api.patch call', async () => {

@@ -116,7 +116,7 @@
       "cd frontend && npm test -- OrganisationsPage"
     ],
     "fulfills": ["VAL-ORG-CREATE-001", "VAL-ORG-CREATE-003"],
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": "organisation-edit-api",
@@ -149,6 +149,6 @@
       "cd frontend && npm test -- OrganisationsPage"
     ],
     "fulfills": ["VAL-ORG-EDIT-001", "VAL-ORG-EDIT-003"],
-    "status": "pending"
+    "status": "done"
   }
 ]

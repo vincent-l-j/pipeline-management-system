@@ -1,6 +1,7 @@
 """Assessment CRUD routes — scoring cards linked to pitches."""
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from uuid import UUID
 
@@ -20,8 +21,25 @@ def list_assessments(
     current_user: User = Depends(get_current_user),
 ):
     query = db.query(Assessment)
+
     if pitch_id:
+        # When filtering by pitch_id, return all versions for that pitch (for history view)
         query = query.filter(Assessment.pitch_id == pitch_id)
+    else:
+        # When listing all assessments, return only the latest version per pitch
+        subquery = (
+            db.query(
+                Assessment.pitch_id,
+                func.max(Assessment.version).label("max_version")
+            )
+            .group_by(Assessment.pitch_id)
+            .subquery()
+        )
+        query = query.join(
+            subquery,
+            (Assessment.pitch_id == subquery.c.pitch_id) & (Assessment.version == subquery.c.max_version)
+        )
+
     return query.order_by(Assessment.assessment_date.desc()).all()
 
 

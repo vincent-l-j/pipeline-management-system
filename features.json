@@ -1,7 +1,7 @@
 [
   {
     "id": "assessment-versioning-api",
-    "description": "Confirm and pin POST /api/assessments as the amend mechanism. Creating an assessment for a pitch that already has one appends a NEW row with version = previous latest + 1; it never mutates or overwrites a prior version. assessor_id is set to the acting user and assessment_date is taken from the request. Criteria scores are validated to the 1-5 range. admin+assessor may create; viewer 403; all authenticated roles may list/read. There is no PATCH/PUT/DELETE for assessments (versioning is the only amendment path).",
+    "description": "Confirm and pin POST /api/assessments as the amend mechanism. Creating an assessment for a pitch that already has one appends a NEW row with version = previous latest + 1; it never mutates or overwrites a prior version. assessor_id is set to the acting user and assessment_date is taken from the request. Criteria scores are validated to the 1-5 range. admin+assessor may create; viewer 403; all authenticated roles may list/read. There is no PATCH/PUT/DELETE for assessments (versioning is the only amendment path). The list endpoint returns only the latest version per pitch when called without a filter, but returns all versions when filtering by pitch_id (for version history views).",
     "skillName": "backend-worker",
     "milestone": "assessments-amend",
     "expectedBehavior": [
@@ -9,13 +9,15 @@
       "The created version's assessor_id is the acting user and assessment_date is the supplied date",
       "A score outside 1-5 (e.g. 0 or 6) returns 422 and creates no new version",
       "viewer POST -> 403; unauthenticated -> 401; GET list/detail -> 200 for admin/assessor/viewer",
-      "No update or delete endpoint exists for assessments"
+      "No update or delete endpoint exists for assessments",
+      "GET /api/assessments (no filter) returns only the latest version per pitch",
+      "GET /api/assessments?pitch_id={id} returns all versions for that pitch (for history)"
     ],
     "verificationSteps": [
-      "cd backend && pytest tests/test_assessments.py -k 'version or create or rbac or validation'"
+      "cd backend && pytest tests/test_assessments.py -k 'version or create or rbac or validation or latest or filter'"
     ],
-    "fulfills": ["VAL-ASSESS-001", "VAL-ASSESS-002", "VAL-ASSESS-003", "VAL-ASSESS-006", "VAL-CROSS-001"],
-    "status": "pending"
+    "fulfills": ["VAL-ASSESS-001", "VAL-ASSESS-002", "VAL-ASSESS-003", "VAL-ASSESS-006", "VAL-ASSESS-004", "VAL-ASSESS-007", "VAL-CROSS-001"],
+    "status": "done"
   },
   {
     "id": "assessment-amend-ui",

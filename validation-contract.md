@@ -46,13 +46,11 @@ own assessment date, independently of who authored the prior version.
 Tool: agent-browser
 Evidence: screenshot(version-attribution), network(POST /api/assessments -> 200 with assessor_id = acting user)
 
-### VAL-ASSESS-004: The full version history is visible
+### VAL-ASSESS-004: The assessments list shows only the latest version, but history is archived and accessible
 
-On a pitch's assessment view, every version for that pitch is listed (newest to
-oldest), the current version is identifiable as the latest, and any prior version
-can be opened and read.
+On the assessments list, each pitch appears once, showing its latest assessment version (amending a pitch's assessment updates that row in-place). The prior versions are not shown in the list but are fully preserved; on a pitch's detail view, every version is listed (newest to oldest), the current version is identifiable as the latest, and any prior version can be opened and read.
 Tool: agent-browser
-Evidence: screenshot(version-history-list), screenshot(opened-prior-version)
+Evidence: screenshot(assessments-list-shows-latest-only), screenshot(version-history-list-on-detail), screenshot(opened-prior-version)
 
 ### VAL-ASSESS-005: Amendment respects roles, server-side
 
@@ -68,6 +66,14 @@ Saving an assessment with a criterion score outside the allowed 1–5 range is
 rejected and no new version is created.
 Tool: agent-api
 Evidence: network(POST /api/assessments with a score of 0 or 6 -> 422), network(GET /api/assessments?pitch_id={id} -> 200 with version count unchanged)
+
+### VAL-ASSESS-007: The assessments list shows only the latest version per pitch
+
+On the `/assessments` list view, each pitch with assessments is shown exactly once,
+displaying its latest assessment version. Historical versions are not visible in the
+list (but remain visible and readable in the pitch detail view's version history).
+Tool: agent-browser
+Evidence: screenshot(assessments-list-one-per-pitch), network(GET /api/assessments -> 200 with one entry per pitch containing only latest version)
 
 ---
 

@@ -19,18 +19,20 @@
   },
   {
     "id": "assessment-amend-ui",
-    "description": "On AssessmentDetailPage (and/or the pitch view), add an 'Amend' / 'New version' affordance (admin+assessor only) that opens the assessment form pre-filled from the current latest version, and on save POSTs to /api/assessments to create the next version, then shows the new version. Render the full version history (newest first) with the latest marked as current and every prior version openable and read-only. Hide the amend control for viewers.",
+    "description": "On AssessmentDetailPage (and/or the pitch view), add an 'Amend' / 'New version' affordance (admin+assessor only) that opens the assessment form pre-filled from the current latest version, and on save POSTs to /api/assessments to create the next version, then shows the new version. Render the full version history (newest first) with the latest marked as current and every prior version openable and read-only. The assessments list (/assessments) shows only the latest version per pitch, updating in-place when amended; prior versions are archived but remain accessible in the detail view. Hide the amend control for viewers.",
     "skillName": "frontend-worker",
     "milestone": "assessments-amend",
     "expectedBehavior": [
       "Detail view shows an amend/new-version control for admin/assessor and hides it for viewer",
       "The amend form is pre-filled from the current latest version; saving calls api.post('/assessments', ...) and shows the incremented version",
       "The version-history list shows all versions newest-first with the current one marked; prior versions open read-only",
+      "The assessments list shows each pitch once with its latest assessment; amending updates that row in-place without creating a new list entry",
       "Cancelling the amend form makes no api.post call"
     ],
     "verificationSteps": [
       "cd frontend && npm test -- AssessmentDetailPage",
-      "cd frontend && npm test -- AssessmentCreatePage"
+      "cd frontend && npm test -- AssessmentCreatePage",
+      "cd frontend && npm test -- AssessmentsPage"
     ],
     "fulfills": ["VAL-ASSESS-001", "VAL-ASSESS-004", "VAL-ASSESS-005"],
     "status": "done"

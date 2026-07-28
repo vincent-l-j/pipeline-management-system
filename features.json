@@ -33,7 +33,7 @@
       "cd frontend && npm test -- AssessmentCreatePage"
     ],
     "fulfills": ["VAL-ASSESS-001", "VAL-ASSESS-004", "VAL-ASSESS-005"],
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": "search-result-navigation-ui",

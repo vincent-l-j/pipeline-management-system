@@ -11,11 +11,14 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import PageHeader from '../components/PageHeader'
 import ScoringCard from '../components/assessments/ScoringCard'
+import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 
 export default function AssessmentDetailPage() {
   const { assessmentId } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const canAmend = user?.role === 'admin' || user?.role === 'assessor'
   const [assessment, setAssessment] = useState(null)
   const [allVersions, setAllVersions] = useState([])
   const [users, setUsers] = useState([])
@@ -55,6 +58,9 @@ export default function AssessmentDetailPage() {
     return <Layout><p className="text-navy-400">Loading assessment...</p></Layout>
   }
 
+  // The current version is the highest-versioned assessment for this pitch.
+  const latestVersion = allVersions[0]
+
   return (
     <Layout>
       <PageHeader
@@ -62,12 +68,14 @@ export default function AssessmentDetailPage() {
         description={`Version ${assessment.version} — ${assessment.assessment_date}`}
         action={
           <div className="flex gap-2">
-            <Link
-              to={`/assessments/new?pitch_id=${assessment.pitch_id}`}
-              className="bg-navy-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-navy-800 transition-colors"
-            >
-              New Assessment
-            </Link>
+            {canAmend && (
+              <Link
+                to={`/assessments/new?pitch_id=${assessment.pitch_id}&from=${latestVersion.id}`}
+                className="bg-navy-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-navy-800 transition-colors"
+              >
+                Amend
+              </Link>
+            )}
             <Link
               to="/assessments"
               className="border border-navy-200 text-navy-600 px-4 py-2 rounded-lg text-sm font-medium hover:border-navy-400 transition-colors"
@@ -100,7 +108,8 @@ export default function AssessmentDetailPage() {
 
             <div className="space-y-2">
               {allVersions.map(v => {
-                const isCurrent = v.id === assessment.id
+                const isViewing = v.id === assessment.id
+                const isCurrent = v.id === latestVersion.id
                 const recColor = {
                   proceed: 'bg-green-100 text-green-700',
                   park: 'bg-amber-100 text-amber-700',
@@ -113,7 +122,7 @@ export default function AssessmentDetailPage() {
                     onClick={() => navigate(`/assessments/${v.id}`)}
                     className={`
                       w-full text-left p-3 rounded-lg border transition-colors
-                      ${isCurrent
+                      ${isViewing
                         ? 'border-navy-300 bg-navy-50'
                         : 'border-navy-100 hover:bg-navy-50/50'
                       }
@@ -122,7 +131,8 @@ export default function AssessmentDetailPage() {
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-semibold text-navy-900">
                         v{v.version}
-                        {isCurrent && <span className="text-xs text-navy-400 ml-1">(viewing)</span>}
+                        {isCurrent && <span className="text-xs text-green-600 ml-1">(current)</span>}
+                        {isViewing && !isCurrent && <span className="text-xs text-navy-400 ml-1">(viewing)</span>}
                       </span>
                       <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full capitalize ${recColor}`}>
                         {v.recommendation}

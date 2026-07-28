@@ -4,7 +4,7 @@ import ContactsPage from '../ContactsPage'
 import api from '../../services/api'
 
 vi.mock('../../services/api', () => ({
-  default: { get: vi.fn(), post: vi.fn(), delete: vi.fn() },
+  default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }))
 
 let mockUser = { role: 'admin' }
@@ -28,6 +28,7 @@ describe('ContactsPage', () => {
   beforeEach(() => {
     vi.mocked(api.get).mockReset()
     vi.mocked(api.post).mockReset()
+    vi.mocked(api.patch).mockReset()
     vi.mocked(api.delete).mockReset()
     mockUser = { role: 'admin' }
   })
@@ -109,5 +110,89 @@ describe('ContactsPage', () => {
     await user.click(await screen.findByRole('button', { name: 'Confirm' }))
     await waitFor(() => expect(screen.getByText(/Delete failed/)).toBeInTheDocument())
     expect(screen.getByText('Jane Doe')).toBeInTheDocument()
+  })
+
+  it('admin sees per-row Edit button', async () => {
+    setupGet()
+    render(<ContactsPage />)
+    await waitFor(() => screen.getByText('Jane Doe'))
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+  })
+
+  it('assessor sees per-row Edit button', async () => {
+    mockUser = { role: 'assessor' }
+    setupGet()
+    render(<ContactsPage />)
+    await waitFor(() => screen.getByText('Jane Doe'))
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+  })
+
+  it('viewer does not see Edit button', async () => {
+    mockUser = { role: 'viewer' }
+    setupGet()
+    render(<ContactsPage />)
+    await waitFor(() => screen.getByText('Jane Doe'))
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+  })
+
+  it('Edit opens a form pre-filled with the current values', async () => {
+    const user = userEvent.setup()
+    setupGet()
+    render(<ContactsPage />)
+    await waitFor(() => screen.getByText('Jane Doe'))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    expect(screen.getByDisplayValue('Jane Doe')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('CTO')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('jane@example.com')).toBeInTheDocument()
+  })
+
+  it('saving an edit patches the changed fields and updates the row in place', async () => {
+    const user = userEvent.setup()
+    setupGet()
+    vi.mocked(api.patch).mockResolvedValue({
+      data: { ...CONTACTS[0], name: 'Jane Smith' },
+    })
+    render(<ContactsPage />)
+    await waitFor(() => screen.getByText('Jane Doe'))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    const nameInput = screen.getByDisplayValue('Jane Doe')
+    await user.clear(nameInput)
+    await user.type(nameInput, 'Jane Smith')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    expect(api.patch).toHaveBeenCalledWith('/contacts/c1', { name: 'Jane Smith' })
+    await waitFor(() => expect(screen.getByText('Jane Smith')).toBeInTheDocument())
+    expect(screen.queryByText('Jane Doe')).not.toBeInTheDocument()
+  })
+
+  it('cancelling the edit makes no api.patch call', async () => {
+    const user = userEvent.setup()
+    setupGet()
+    render(<ContactsPage />)
+    await waitFor(() => screen.getByText('Jane Doe'))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    const nameInput = screen.getByDisplayValue('Jane Doe')
+    await user.clear(nameInput)
+    await user.type(nameInput, 'Jane Smith')
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(api.patch).not.toHaveBeenCalled()
+    expect(screen.getByText('Jane Doe')).toBeInTheDocument()
+  })
+
+  it('a rejected edit leaves the row unchanged and shows an error', async () => {
+    const user = userEvent.setup()
+    setupGet()
+    vi.mocked(api.patch).mockRejectedValue({ response: { data: { detail: 'Update failed' } } })
+    render(<ContactsPage />)
+    await waitFor(() => screen.getByText('Jane Doe'))
+    await user.click(screen.getByRole('button', { name: 'Edit' }))
+    const nameInput = screen.getByDisplayValue('Jane Doe')
+    await user.clear(nameInput)
+    await user.type(nameInput, 'Jane Smith')
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await waitFor(() => expect(screen.getByText(/Update failed/)).toBeInTheDocument())
+    // The underlying row was never mutated: cancelling restores the original value.
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(screen.getByText('Jane Doe')).toBeInTheDocument()
+    expect(screen.queryByText('Jane Smith')).not.toBeInTheDocument()
   })
 })

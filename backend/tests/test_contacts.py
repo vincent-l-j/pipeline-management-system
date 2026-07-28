@@ -161,3 +161,73 @@ def test_viewer_can_list_contacts(viewer_client):
 def test_viewer_cannot_delete_contact(viewer_client):
     resp = viewer_client.delete("/api/contacts/00000000-0000-0000-0000-000000000099")
     assert resp.status_code == 403
+
+
+# --- PATCH /api/contacts/{id}: partial update, allowlist, RBAC (VAL-CON-EDIT-002/003, VAL-CROSS-001) ---
+
+
+def test_patch_contact_is_partial_update_preserving_omitted_fields(admin_client):
+    """Changing one field leaves the others intact (VAL-CON-EDIT-002)."""
+    created = admin_client.post(
+        "/api/contacts",
+        json={"name": "Partial", "email": "keep@example.com", "phone": "12345", "notes": "keep me"},
+    ).json()
+    contact_id = created["id"]
+
+    resp = admin_client.patch(f"/api/contacts/{contact_id}", json={"name": "Partial Renamed"})
+    assert resp.status_code == 200
+
+    fetched = admin_client.get(f"/api/contacts/{contact_id}").json()
+    assert fetched["name"] == "Partial Renamed"
+    assert fetched["email"] == "keep@example.com"
+    assert fetched["phone"] == "12345"
+    assert fetched["notes"] == "keep me"
+
+
+def test_assessor_can_patch_contact_rbac(assessor_client):
+    contact_id = assessor_client.post("/api/contacts", json={"name": "Assessor Editable"}).json()["id"]
+    resp = assessor_client.patch(f"/api/contacts/{contact_id}", json={"role": "Advisor"})
+    assert resp.status_code == 200
+    assert resp.json()["role"] == "Advisor"
+
+
+def test_viewer_cannot_patch_contact_rbac(admin_client, viewer_client):
+    """Edit is admin/assessor only; a viewer is rejected server-side (VAL-CON-EDIT-003, VAL-CROSS-001)."""
+    contact_id = admin_client.post("/api/contacts", json={"name": "Viewer No Edit"}).json()["id"]
+    resp = viewer_client.patch(f"/api/contacts/{contact_id}", json={"name": "Hacked"})
+    assert resp.status_code == 403
+    # The row is untouched.
+    assert admin_client.get(f"/api/contacts/{contact_id}").json()["name"] == "Viewer No Edit"
+
+
+def test_unauthenticated_patch_contact_is_rejected(client):
+    # Missing credentials -> 403 from HTTPBearer; an invalid token -> 401. Either
+    # way the edit is refused without a valid session.
+    resp = client.patch(
+        "/api/contacts/00000000-0000-0000-0000-000000000099", json={"name": "Nope"}
+    )
+    assert resp.status_code in (401, 403)
+
+
+def test_patch_unknown_contact_returns_404(admin_client):
+    resp = admin_client.patch(
+        "/api/contacts/00000000-0000-0000-0000-000000000099", json={"name": "Ghost"}
+    )
+    assert resp.status_code == 404
+
+
+def test_patch_contact_ignores_fields_outside_allowlist(admin_client):
+    """ContactUpdate is an allowlist — non-client-settable fields are dropped, not persisted."""
+    created = admin_client.post("/api/contacts", json={"name": "Allowlisted"}).json()
+    contact_id = created["id"]
+    original_created_at = created["created_at"]
+
+    resp = admin_client.patch(
+        f"/api/contacts/{contact_id}",
+        json={"name": "Allowlisted 2", "created_at": "1999-01-01T00:00:00", "bogus": "x"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["name"] == "Allowlisted 2"
+    assert body["created_at"] == original_created_at
+    assert "bogus" not in body

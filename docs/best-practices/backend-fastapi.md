@@ -143,10 +143,13 @@ def test_viewer_cannot_delete_org(viewer_client):
 ```
 
 Guidelines:
-- One behaviour per test; name it for the behaviour (`test_<subject>_<expectation>`).
+- **One behaviour per test; name it for the behaviour** (`test_<subject>_<expectation>`).
+  This applies SRP to tests — each test should have one reason to fail. Don't
+  combine multiple roles or states into a single test; write one test per scenario.
 - Assert **status code first**, then body.
-- Cover RBAC explicitly: `200`/`201` for allowed roles, `403` for disallowed, `401`
-  unauthenticated. These are the assertions the validation contract leans on.
+- **Cover RBAC as separate tests**, not combined: write `test_admin_can_delete`
+  and `test_viewer_cannot_delete` as two distinct tests, not one test that checks
+  both roles. This makes debugging easier when a role's behaviour breaks.
 - For data-integrity features (orphan/cascade), assert the *side effects*: the
   child survives with a nulled FK, or the join row is gone.
 

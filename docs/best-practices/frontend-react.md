@@ -75,6 +75,10 @@ useEffect(() => {
   which imports `@testing-library/jest-dom`). Because `globals` is on, `describe`/
   `it`/`expect`/`vi` need no import.
 - Location: co-located `__tests__/` next to the component under test.
+- **One behaviour per test.** Each test should have one reason to fail; if you're
+  rendering multiple times with different state in one test, split it. This applies
+  especially to role-gated UI: write one test per role, not one test covering all
+  roles.
 - **Mock the network** by mocking `src/services/api`:
 
 ```jsx

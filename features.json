@@ -8,6 +8,7 @@
       "POST for a pitch with an existing assessment returns 200 with version = previous latest + 1; the prior row is unchanged on a subsequent GET",
       "The created version's assessor_id is the acting user and assessment_date is the supplied date",
       "A score outside 1-5 (e.g. 0 or 6) returns 422 and creates no new version",
+      "Posting with a pitch_id different from the latest version's pitch_id returns 422 and creates no new version",
       "viewer POST -> 403; unauthenticated -> 401; GET list/detail -> 200 for admin/assessor/viewer",
       "No update or delete endpoint exists for assessments",
       "GET /api/assessments (no filter) returns only the latest version per pitch",
@@ -16,17 +17,17 @@
     "verificationSteps": [
       "cd backend && pytest tests/test_assessments.py -k 'version or create or rbac or validation or latest or filter'"
     ],
-    "fulfills": ["VAL-ASSESS-001", "VAL-ASSESS-002", "VAL-ASSESS-003", "VAL-ASSESS-006", "VAL-ASSESS-004", "VAL-ASSESS-007", "VAL-CROSS-001"],
+    "fulfills": ["VAL-ASSESS-001", "VAL-ASSESS-002", "VAL-ASSESS-003", "VAL-ASSESS-003a", "VAL-ASSESS-006", "VAL-ASSESS-004", "VAL-ASSESS-007", "VAL-CROSS-001"],
     "status": "done"
   },
   {
     "id": "assessment-amend-ui",
-    "description": "On AssessmentDetailPage (and/or the pitch view), add an 'Amend' / 'New version' affordance (admin+assessor only) that opens the assessment form pre-filled from the current latest version, and on save POSTs to /api/assessments to create the next version, then shows the new version. Render the full version history (newest first) with the latest marked as current and every prior version openable and read-only. The assessments list (/assessments) shows only the latest version per pitch, updating in-place when amended; prior versions are archived but remain accessible in the detail view. Hide the amend control for viewers.",
+    "description": "On AssessmentDetailPage (and/or the pitch view), add an 'Amend' / 'New version' affordance (admin+assessor only) that opens the assessment form pre-filled from the current latest version, and on save POSTs to /api/assessments to create the next version, then shows the new version. The pitch field is disabled/read-only when amending (assessments cannot be reassigned to different pitches). Render the full version history (newest first) with the latest marked as current and every prior version openable and read-only. The assessments list (/assessments) shows only the latest version per pitch, updating in-place when amended; prior versions are archived but remain accessible in the detail view. Hide the amend control for viewers.",
     "skillName": "frontend-worker",
     "milestone": "assessments-amend",
     "expectedBehavior": [
       "Detail view shows an amend/new-version control for admin/assessor and hides it for viewer",
-      "The amend form is pre-filled from the current latest version; saving calls api.post('/assessments', ...) and shows the incremented version",
+      "The amend form is pre-filled from the current latest version with pitch field disabled; saving calls api.post('/assessments', ...) and shows the incremented version",
       "The version-history list shows all versions newest-first with the current one marked; prior versions open read-only",
       "The assessments list shows each pitch once with its latest assessment; amending updates that row in-place without creating a new list entry",
       "Cancelling the amend form makes no api.post call"

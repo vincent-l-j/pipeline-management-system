@@ -1,6 +1,6 @@
 """Assessment CRUD routes — scoring cards linked to pitches."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from uuid import UUID
@@ -59,7 +59,19 @@ def create_assessment(
     data: AssessmentCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.ASSESSOR)),
+    amending_from_id: UUID | None = Query(None),
 ):
+    # If amending an existing assessment, validate the pitch hasn't changed
+    if amending_from_id:
+        prior = db.query(Assessment).filter(Assessment.id == amending_from_id).first()
+        if not prior:
+            raise HTTPException(status_code=404, detail="Assessment not found")
+        if prior.pitch_id != data.pitch_id:
+            raise HTTPException(
+                status_code=422,
+                detail="Cannot change pitch when amending an assessment"
+            )
+
     # Auto-increment version for this pitch
     latest = (
         db.query(Assessment)

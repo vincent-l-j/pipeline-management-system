@@ -46,6 +46,14 @@ own assessment date, independently of who authored the prior version.
 Tool: agent-browser
 Evidence: screenshot(version-attribution), network(POST /api/assessments -> 200 with assessor_id = acting user)
 
+### VAL-ASSESS-003a: Amending an assessment keeps it pinned to the original pitch
+
+When creating a new version, the pitch_id must remain the same as the previous
+version. Attempting to change the pitch_id (creating a version for a different pitch)
+is rejected with 422 (Unprocessable Entity).
+Tool: agent-api
+Evidence: network(POST /api/assessments with pitch_id = previous version's pitch -> 200 with version incremented), network(POST /api/assessments with pitch_id ≠ previous version's pitch -> 422)
+
 ### VAL-ASSESS-004: The assessments list shows only the latest version, but history is archived and accessible
 
 On the assessments list, each pitch appears once, showing its latest assessment version (amending a pitch's assessment updates that row in-place). The prior versions are not shown in the list but are fully preserved; on a pitch's detail view, every version is listed (newest to oldest), the current version is identifiable as the latest, and any prior version can be opened and read.

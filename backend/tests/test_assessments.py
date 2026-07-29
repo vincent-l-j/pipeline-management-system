@@ -266,7 +266,7 @@ def test_amend_with_different_pitch_rejected(admin_client):
     assert "cannot change pitch" in resp.json()["detail"].lower()
 
     # Verify no new version was created
-    list_resp = admin_client.get(f"/pitches/{pitch_b}/assessments")
+    list_resp = admin_client.get(f"/api/pitches/{pitch_b}/assessments")
     assert len(list_resp.json()) == 0
 
 

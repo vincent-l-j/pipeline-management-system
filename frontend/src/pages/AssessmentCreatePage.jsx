@@ -17,6 +17,7 @@ import api from '../services/api'
 export default function AssessmentCreatePage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const amendFromId = searchParams.get('from')
   const [pitches, setPitches] = useState([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -37,6 +38,26 @@ export default function AssessmentCreatePage() {
   useEffect(() => {
     api.get('/pitches').then(({ data }) => setPitches(data))
   }, [])
+
+  // When amending, pre-fill scores/recommendation/rationale from the version
+  // being amended. The date defaults to today so the new version records its own.
+  useEffect(() => {
+    if (!amendFromId) return
+    api.get(`/assessments/${amendFromId}`).then(({ data }) => {
+      setForm(prev => ({
+        ...prev,
+        pitch_id: data.pitch_id,
+        recommendation: data.recommendation || '',
+        rationale: data.rationale || '',
+        national_impact: data.national_impact,
+        translation_readiness: data.translation_readiness,
+        team_capability: data.team_capability,
+        ecosystem_fit: data.ecosystem_fit,
+        funding_pathway_clarity: data.funding_pathway_clarity,
+        masterplan_alignment: data.masterplan_alignment,
+      }))
+    })
+  }, [amendFromId])
 
   function updateScore(key, value) {
     setForm(prev => ({ ...prev, [key]: value }))
@@ -60,7 +81,8 @@ export default function AssessmentCreatePage() {
     setError(null)
 
     try {
-      const { data } = await api.post('/assessments', form)
+      const url = amendFromId ? `/assessments?amending_from_id=${amendFromId}` : '/assessments'
+      const { data } = await api.post(url, form)
       navigate(`/assessments/${data.id}`)
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to create assessment')
@@ -71,8 +93,10 @@ export default function AssessmentCreatePage() {
   return (
     <Layout>
       <PageHeader
-        title="New Assessment"
-        description="Score a pitch against Rozetta's six assessment criteria"
+        title={amendFromId ? 'Amend Assessment' : 'New Assessment'}
+        description={amendFromId
+          ? 'Adjust the scores and recommendation to save a new version'
+          : "Score a pitch against Rozetta's six assessment criteria"}
       />
 
       <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
@@ -89,9 +113,12 @@ export default function AssessmentCreatePage() {
               <label className="block text-sm font-medium text-navy-700 mb-1">Pitch *</label>
               <select
                 required
+                disabled={!!amendFromId}
                 value={form.pitch_id}
                 onChange={e => setForm(prev => ({ ...prev, pitch_id: e.target.value }))}
-                className="w-full border border-navy-200 rounded-lg px-3 py-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300"
+                className={`w-full border border-navy-200 rounded-lg px-3 py-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300 ${
+                  amendFromId ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''
+                }`}
               >
                 <option value="">Select a pitch...</option>
                 {pitches.map(p => (

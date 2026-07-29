@@ -120,15 +120,22 @@ def test_score_below_1_rejected(admin_client, field):
 
 # --- Filter by pitch_id ---
 
-def test_filter_assessments_by_pitch(admin_client):
+def test_get_pitch_assessments_returns_all_versions(admin_client):
+    """GET /pitches/{id}/assessments returns ALL versions for that pitch."""
     pitch_id = _create_pitch(admin_client)
-    admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id})
+    v1 = admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id}).json()
+    v2 = admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id}).json()
+    v3 = admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id}).json()
 
-    resp = admin_client.get(f"/api/assessments?pitch_id={pitch_id}")
+    resp = admin_client.get(f"/api/pitches/{pitch_id}/assessments")
     assert resp.status_code == 200
     results = resp.json()
-    assert len(results) >= 1
+    # Should return all 3 versions
+    assert len(results) == 3
     assert all(a["pitch_id"] == pitch_id for a in results)
+    # Verify we got all three versions
+    result_ids = {a["id"] for a in results}
+    assert result_ids == {v1["id"], v2["id"], v3["id"]}
 
 
 # --- RBAC ---
@@ -148,3 +155,129 @@ def test_assessor_can_create_assessment(assessor_client):
     pitch_id = _create_pitch(assessor_client)
     resp = assessor_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id})
     assert resp.status_code == 200
+
+
+# --- Latest-version-only list ---
+
+def test_list_shows_only_latest_version_per_pitch(admin_client):
+    pitch_id = _create_pitch(admin_client)
+
+    # Create three versions of the same assessment
+    v1 = admin_client.post(
+        "/api/assessments",
+        json={**SCORE_PAYLOAD, "pitch_id": pitch_id},
+    ).json()
+    v2 = admin_client.post(
+        "/api/assessments",
+        json={**SCORE_PAYLOAD, "pitch_id": pitch_id},
+    ).json()
+    v3 = admin_client.post(
+        "/api/assessments",
+        json={**SCORE_PAYLOAD, "pitch_id": pitch_id},
+    ).json()
+
+    # List all assessments
+    resp = admin_client.get("/api/assessments")
+    assert resp.status_code == 200
+    results = resp.json()
+
+    # Filter to this pitch's assessments
+    pitch_assessments = [a for a in results if a["pitch_id"] == pitch_id]
+
+    # Should have exactly one: the latest version
+    assert len(pitch_assessments) == 1
+    assert pitch_assessments[0]["version"] == 3
+    assert pitch_assessments[0]["id"] == v3["id"]
+
+
+def test_list_shows_only_latest_version_per_pitch_multiple_pitches(admin_client):
+    pitch_a = _create_pitch(admin_client)
+    pitch_b = _create_pitch(admin_client)
+
+    # Create versions for pitch A
+    admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_a})
+    admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_a})
+    a2_v3 = admin_client.post(
+        "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_a}
+    ).json()
+
+    # Create versions for pitch B
+    admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_b})
+    b_v2 = admin_client.post(
+        "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_b}
+    ).json()
+
+    # List all assessments
+    resp = admin_client.get("/api/assessments")
+    assert resp.status_code == 200
+    results = resp.json()
+
+    # Find assessments for our pitches
+    a_assessments = [a for a in results if a["pitch_id"] == pitch_a]
+    b_assessments = [a for a in results if a["pitch_id"] == pitch_b]
+
+    # Should have exactly one of each pitch
+    assert len(a_assessments) == 1
+    assert a_assessments[0]["version"] == 3
+    assert a_assessments[0]["id"] == a2_v3["id"]
+
+    assert len(b_assessments) == 1
+    assert b_assessments[0]["version"] == 2
+    assert b_assessments[0]["id"] == b_v2["id"]
+
+
+# --- Amending (pitch cannot change) ---
+
+def test_amend_assessment_with_valid_from_id(admin_client):
+    """When amending, amending_from_id query param is accepted."""
+    pitch_id = _create_pitch(admin_client)
+    v1 = admin_client.post(
+        "/api/assessments",
+        json={**SCORE_PAYLOAD, "pitch_id": pitch_id},
+    ).json()
+
+    # Amend with the amending_from_id parameter
+    resp = admin_client.post(
+        f"/api/assessments?amending_from_id={v1['id']}",
+        json={**SCORE_PAYLOAD, "pitch_id": pitch_id},
+    )
+    assert resp.status_code == 200
+    v2 = resp.json()
+    assert v2["version"] == 2
+    assert v2["pitch_id"] == pitch_id
+
+
+def test_amend_with_different_pitch_rejected(admin_client):
+    """Cannot amend an assessment and reassign it to a different pitch."""
+    pitch_a = _create_pitch(admin_client)
+    pitch_b = _create_pitch(admin_client)
+
+    v1 = admin_client.post(
+        "/api/assessments",
+        json={**SCORE_PAYLOAD, "pitch_id": pitch_a},
+    ).json()
+
+    # Try to amend but change the pitch_id
+    resp = admin_client.post(
+        f"/api/assessments?amending_from_id={v1['id']}",
+        json={**SCORE_PAYLOAD, "pitch_id": pitch_b},
+    )
+    assert resp.status_code == 422
+    assert "cannot change pitch" in resp.json()["detail"].lower()
+
+    # Verify no new version was created
+    list_resp = admin_client.get(f"/api/pitches/{pitch_b}/assessments")
+    assert len(list_resp.json()) == 0
+
+
+def test_amend_with_nonexistent_from_id_rejected(admin_client):
+    """Cannot amend from a non-existent assessment."""
+    pitch_id = _create_pitch(admin_client)
+    fake_id = "00000000-0000-0000-0000-000000000000"
+
+    resp = admin_client.post(
+        f"/api/assessments?amending_from_id={fake_id}",
+        json={**SCORE_PAYLOAD, "pitch_id": pitch_id},
+    )
+    assert resp.status_code == 404
+    assert "not found" in resp.json()["detail"].lower()

@@ -40,7 +40,7 @@ export default function PitchDetailPage() {
       // Load related data
       const promises = [
         api.get(`/meetings?pitch_id=${pitchId}`),
-        api.get(`/assessments?pitch_id=${pitchId}`),
+        api.get(`/pitches/${pitchId}/assessments`),
       ]
       if (p.organisation_id) {
         promises.push(api.get(`/organisations/${p.organisation_id}`))

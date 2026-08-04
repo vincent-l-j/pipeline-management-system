@@ -156,3 +156,55 @@ def test_viewer_can_still_get_me(viewer_client):
     resp = viewer_client.get("/api/users/me")
     assert resp.status_code == 200
     assert resp.json()["role"] == "viewer"
+
+
+# --- Contributor role tests ---
+
+def test_contributor_role_exists(admin_client):
+    """Verify the contributor role can be assigned to a user."""
+    resp = admin_client.post(
+        "/api/users",
+        json={"email": "contrib@example.com", "display_name": "Contributor", "role": "contributor"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["role"] == "contributor"
+
+
+def test_default_role_is_contributor(admin_client):
+    """When no role is specified, new users should default to contributor."""
+    resp = admin_client.post(
+        "/api/users",
+        json={"email": "default@example.com", "display_name": "Default Role"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["role"] == "contributor"
+
+
+def test_contributor_cannot_list_users(contributor_client):
+    resp = contributor_client.get("/api/users")
+    assert resp.status_code == 403
+
+
+def test_contributor_cannot_create_user(contributor_client):
+    resp = contributor_client.post(
+        "/api/users",
+        json={"email": "nope@example.com", "display_name": "Nope", "role": "viewer"},
+    )
+    assert resp.status_code == 403
+
+
+def test_contributor_cannot_get_user_by_id(contributor_client):
+    resp = contributor_client.get("/api/users/00000000-0000-0000-0000-000000000099")
+    assert resp.status_code == 403
+
+
+def test_contributor_can_read_directory(contributor_client):
+    resp = contributor_client.get("/api/users/directory")
+    assert resp.status_code == 200
+    assert isinstance(resp.json(), list)
+
+
+def test_contributor_can_get_me(contributor_client):
+    resp = contributor_client.get("/api/users/me")
+    assert resp.status_code == 200
+    assert resp.json()["role"] == "contributor"

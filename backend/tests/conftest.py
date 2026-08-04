@@ -35,6 +35,7 @@ _NOW = datetime(2026, 1, 1, tzinfo=timezone.utc)
 _ADMIN_ID = uuid.UUID("aaaaaaaa-0000-0000-0000-000000000001")
 _ASSESSOR_ID = uuid.UUID("aaaaaaaa-0000-0000-0000-000000000002")
 _VIEWER_ID = uuid.UUID("aaaaaaaa-0000-0000-0000-000000000003")
+_CONTRIBUTOR_ID = uuid.UUID("aaaaaaaa-0000-0000-0000-000000000004")
 
 _engine = create_engine(
     "sqlite://",
@@ -162,5 +163,22 @@ def viewer_client():
         updated_at=_NOW,
     )
     client = _AuthenticatedTestClient(viewer)
+    yield client
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def contributor_client():
+    """Client authenticated as a contributor."""
+    contributor = User(
+        id=_CONTRIBUTOR_ID,
+        email="contributor@rozettainstitute.com",
+        display_name="Contributor",
+        role=UserRole.CONTRIBUTOR,
+        is_active=True,
+        created_at=_NOW,
+        updated_at=_NOW,
+    )
+    client = _AuthenticatedTestClient(contributor)
     yield client
     app.dependency_overrides.clear()

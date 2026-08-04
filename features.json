@@ -54,7 +54,7 @@
       "cd frontend && npm test -- SearchPage"
     ],
     "fulfills": ["VAL-SEARCH-001", "VAL-SEARCH-002"],
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": "contact-edit-api",

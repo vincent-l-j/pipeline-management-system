@@ -66,9 +66,9 @@ def callback(code: str, db: Session = Depends(get_db)):
     # Find or create user
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        # Bootstrap admins from config so the first real sign-in isn't stuck as ASSESSOR
+        # Bootstrap admins from config so the first real sign-in isn't stuck as CONTRIBUTOR
         admin_emails = {e.strip().lower() for e in settings.ADMIN_EMAILS.split(",") if e.strip()}
-        role = UserRole.ADMIN if email in admin_emails else UserRole.ASSESSOR
+        role = UserRole.ADMIN if email in admin_emails else UserRole.CONTRIBUTOR
         user = User(
             email=email,
             display_name=name,

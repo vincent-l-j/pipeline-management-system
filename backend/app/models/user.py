@@ -11,6 +11,7 @@ from app.models.base import Base, TimestampMixin
 class UserRole(str, enum.Enum):
     ADMIN = "admin"
     ASSESSOR = "assessor"
+    CONTRIBUTOR = "contributor"
     VIEWER = "viewer"
 
 
@@ -21,7 +22,7 @@ class User(Base, TimestampMixin):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     display_name: Mapped[str] = mapped_column(String(255))
     azure_oid: Mapped[str | None] = mapped_column(String(255), unique=True)
-    role: Mapped[UserRole] = mapped_column(SAEnum(UserRole), default=UserRole.ASSESSOR)
+    role: Mapped[UserRole] = mapped_column(SAEnum(UserRole), default=UserRole.CONTRIBUTOR)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Relationships

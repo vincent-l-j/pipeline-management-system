@@ -7,7 +7,7 @@ from app.models.user import UserRole
 class UserCreate(BaseModel):
     email: EmailStr
     display_name: str
-    role: UserRole = UserRole.ASSESSOR
+    role: UserRole = UserRole.CONTRIBUTOR
 
 
 class UserUpdate(BaseModel):

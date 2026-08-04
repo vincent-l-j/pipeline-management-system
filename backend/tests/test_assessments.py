@@ -6,6 +6,14 @@ def _create_pitch(client):
     return client.post("/api/pitches", json={"title": "Assessment Target Pitch"}).json()["id"]
 
 
+def _create_assessment(client):
+    pitch_id = _create_pitch(client)
+    assessment_id = client.post(
+        "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id}
+    ).json()["id"]
+    return f"/api/assessments/{assessment_id}"
+
+
 SCORE_PAYLOAD = {
     "national_impact": 4,
     "translation_readiness": 3,
@@ -54,7 +62,8 @@ def test_get_assessment(admin_client):
 
 
 def test_get_nonexistent_assessment(admin_client):
-    resp = admin_client.get("/api/assessments/00000000-0000-0000-0000-000000000000")
+    resp = admin_client.get(
+        "/api/assessments/00000000-0000-0000-0000-000000000000")
     assert resp.status_code == 404
 
 
@@ -85,9 +94,12 @@ def test_versions_are_independent_per_pitch(admin_client):
     pitch_a = _create_pitch(admin_client)
     pitch_b = _create_pitch(admin_client)
 
-    a1 = admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_a}).json()
-    b1 = admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_b}).json()
-    a2 = admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_a}).json()
+    a1 = admin_client.post(
+        "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_a}).json()
+    b1 = admin_client.post(
+        "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_b}).json()
+    a2 = admin_client.post(
+        "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_a}).json()
 
     assert a1["version"] == 1
     assert b1["version"] == 1
@@ -123,9 +135,12 @@ def test_score_below_1_rejected(admin_client, field):
 def test_get_pitch_assessments_returns_all_versions(admin_client):
     """GET /pitches/{id}/assessments returns ALL versions for that pitch."""
     pitch_id = _create_pitch(admin_client)
-    v1 = admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id}).json()
-    v2 = admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id}).json()
-    v3 = admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id}).json()
+    v1 = admin_client.post(
+        "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id}).json()
+    v2 = admin_client.post(
+        "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id}).json()
+    v3 = admin_client.post(
+        "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id}).json()
 
     resp = admin_client.get(f"/api/pitches/{pitch_id}/assessments")
     assert resp.status_code == 200
@@ -142,7 +157,8 @@ def test_get_pitch_assessments_returns_all_versions(admin_client):
 
 def test_viewer_cannot_create_assessment(viewer_client):
     fake_pitch_id = "00000000-0000-0000-0000-000000000099"
-    resp = viewer_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": fake_pitch_id})
+    resp = viewer_client.post(
+        "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": fake_pitch_id})
     assert resp.status_code == 403
 
 
@@ -153,8 +169,28 @@ def test_viewer_can_list_assessments(viewer_client):
 
 def test_assessor_can_create_assessment(assessor_client):
     pitch_id = _create_pitch(assessor_client)
-    resp = assessor_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id})
+    resp = assessor_client.post(
+        "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id})
     assert resp.status_code == 200
+
+
+def test_create_assessment_without_credentials_is_rejected(client):
+    """Unauthenticated request (no credentials) returns 403 (VAL-ASSESS-005)."""
+    resp = client.post(
+        "/api/assessments",
+        json={**SCORE_PAYLOAD, "pitch_id": "00000000-0000-0000-0000-000000000099"},
+    )
+    assert resp.status_code == 403
+
+
+def test_create_assessment_with_invalid_token_is_rejected(client):
+    """Request with invalid bearer token returns 401 (VAL-ASSESS-005)."""
+    resp = client.post(
+        "/api/assessments",
+        json={**SCORE_PAYLOAD, "pitch_id": "00000000-0000-0000-0000-000000000099"},
+        headers={"Authorization": "Bearer invalid_token"},
+    )
+    assert resp.status_code == 401
 
 
 # --- Latest-version-only list ---
@@ -195,14 +231,17 @@ def test_list_shows_only_latest_version_per_pitch_multiple_pitches(admin_client)
     pitch_b = _create_pitch(admin_client)
 
     # Create versions for pitch A
-    admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_a})
-    admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_a})
+    admin_client.post("/api/assessments",
+                      json={**SCORE_PAYLOAD, "pitch_id": pitch_a})
+    admin_client.post("/api/assessments",
+                      json={**SCORE_PAYLOAD, "pitch_id": pitch_a})
     a2_v3 = admin_client.post(
         "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_a}
     ).json()
 
     # Create versions for pitch B
-    admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_b})
+    admin_client.post("/api/assessments",
+                      json={**SCORE_PAYLOAD, "pitch_id": pitch_b})
     b_v2 = admin_client.post(
         "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_b}
     ).json()
@@ -227,6 +266,79 @@ def test_list_shows_only_latest_version_per_pitch_multiple_pitches(admin_client)
 
 
 # --- Amending (pitch cannot change) ---
+
+def test_amending_creates_new_version_without_mutating_prior(admin_client):
+    """A second create appends a new version; the prior row keeps its own scores
+    and recommendation on a subsequent GET (VAL-ASSESS-002)."""
+    pitch_id = _create_pitch(admin_client)
+
+    v1 = admin_client.post(
+        "/api/assessments",
+        json={**SCORE_PAYLOAD, "pitch_id": pitch_id,
+              "national_impact": 4, "recommendation": "proceed"},
+    ).json()
+    v2 = admin_client.post(
+        "/api/assessments",
+        json={**SCORE_PAYLOAD, "pitch_id": pitch_id,
+              "national_impact": 2, "recommendation": "decline"},
+    ).json()
+
+    assert v2["version"] == v1["version"] + 1
+    assert v1["id"] != v2["id"]
+
+    # The original version is untouched.
+    prior = admin_client.get(f"/api/assessments/{v1['id']}").json()
+    assert prior["national_impact"] == 4
+    assert prior["recommendation"] == "proceed"
+    assert prior["version"] == 1
+
+
+def test_new_version_records_supplied_date_and_acting_assessor(admin_client, assessor_client):
+    """Each version carries its own date and is attributed to the acting user,
+    independently of who authored the prior version (VAL-ASSESS-003)."""
+    pitch_id = _create_pitch(admin_client)
+
+    v1 = admin_client.post(
+        "/api/assessments",
+        json={**SCORE_PAYLOAD, "pitch_id": pitch_id,
+              "assessment_date": "2026-06-10"},
+    ).json()
+    v2 = assessor_client.post(
+        "/api/assessments",
+        json={**SCORE_PAYLOAD, "pitch_id": pitch_id,
+              "assessment_date": "2026-07-01"},
+    ).json()
+
+    # Date is taken from the request, per version.
+    assert v1["assessment_date"] == "2026-06-10"
+    assert v2["assessment_date"] == "2026-07-01"
+    # Attribution follows the acting user, not the prior author.
+    assert v2["assessor_id"] != v1["assessor_id"]
+
+
+def test_assessment_patch_not_allowed(admin_client):
+    """PATCH on an assessment is not routed (405)."""
+    url = _create_assessment(admin_client)
+    resp = admin_client.patch(url, json={"national_impact": 1})
+    assert resp.status_code == 405
+    assert admin_client.get(url).status_code == 200
+
+
+def test_assessment_put_not_allowed(admin_client):
+    """PUT on an assessment is not routed (405)."""
+    url = _create_assessment(admin_client)
+    resp = admin_client.put(url, json={"national_impact": 1})
+    assert resp.status_code == 405
+    assert admin_client.get(url).status_code == 200
+
+
+def test_assessment_delete_not_allowed(admin_client):
+    """DELETE on an assessment is not routed (405)."""
+    url = _create_assessment(admin_client)
+    resp = admin_client.delete(url)
+    assert resp.status_code == 405
+    assert admin_client.get(url).status_code == 200
+
 
 def test_amend_assessment_with_valid_from_id(admin_client):
     """When amending, amending_from_id query param is accepted."""

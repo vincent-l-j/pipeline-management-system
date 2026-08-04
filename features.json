@@ -155,5 +155,25 @@
     ],
     "fulfills": ["VAL-ORG-EDIT-001", "VAL-ORG-EDIT-003"],
     "status": "done"
+  },
+  {
+    "id": "user-management-ui",
+    "description": "Add a User Management page at /admin/users (admin only) where admins can view all users with their email, role, and status, and edit each user's role. The role can be changed via a dropdown select in an inline edit form (Save/Cancel buttons), and changes are persisted via PATCH /api/users/{id}. The page reflects role changes in the table in-place after successful save.",
+    "skillName": "frontend-worker",
+    "milestone": "user-management",
+    "expectedBehavior": [
+      "UsersPage displays a table with all users, their email, role, and status",
+      "Each user row has an Edit button that opens an inline form with a role dropdown",
+      "The role dropdown allows selecting admin, assessor, or viewer",
+      "Save button calls PATCH /api/users/{id} with the new role and updates the row on success",
+      "Cancel button closes the edit form without making any API call",
+      "API errors are displayed as an error message without losing the edit state",
+      "The page is admin-only (protected by AdminRoute component)"
+    ],
+    "verificationSteps": [
+      "cd frontend && npm test -- UsersPage.test"
+    ],
+    "fulfills": [],
+    "status": "done"
   }
 ]

@@ -9,9 +9,14 @@ const roleBadge = {
   viewer: 'bg-gray-100 text-gray-600',
 }
 
+const selectClass = 'border border-navy-200 rounded-lg px-3 py-1.5 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300'
+
 export default function UsersPage() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
+  const [editingId, setEditingId] = useState(null)
+  const [editRole, setEditRole] = useState(null)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     api.get('/users').then(({ data }) => {
@@ -20,12 +25,45 @@ export default function UsersPage() {
     }).catch(() => setLoading(false))
   }, [])
 
+  function startEdit(user) {
+    setError('')
+    setEditingId(user.id)
+    setEditRole(user.role)
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+    setEditRole(null)
+  }
+
+  async function saveEdit(user) {
+    if (editRole === user.role) {
+      setEditingId(null)
+      return
+    }
+
+    setError('')
+    try {
+      const { data } = await api.patch(`/users/${user.id}`, { role: editRole })
+      setUsers(prev => prev.map(u => u.id === user.id ? data : u))
+      setEditingId(null)
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to update user role')
+    }
+  }
+
   return (
     <Layout>
       <PageHeader
         title="User Management"
         description="Manage staff accounts and roles"
       />
+
+      {error && (
+        <div className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
+          {error}
+        </div>
+      )}
 
       {loading ? (
         <p className="text-navy-400">Loading...</p>
@@ -38,6 +76,7 @@ export default function UsersPage() {
                 <th className="text-left px-4 py-3 font-semibold text-navy-700">Email</th>
                 <th className="text-left px-4 py-3 font-semibold text-navy-700">Role</th>
                 <th className="text-left px-4 py-3 font-semibold text-navy-700">Status</th>
+                <th className="text-left px-4 py-3 font-semibold text-navy-700">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-navy-50">
@@ -46,14 +85,54 @@ export default function UsersPage() {
                   <td className="px-4 py-3 font-medium text-navy-900">{u.display_name}</td>
                   <td className="px-4 py-3 text-navy-500">{u.email}</td>
                   <td className="px-4 py-3">
-                    <span className={`inline-block text-xs font-medium px-2 py-1 rounded-full capitalize ${roleBadge[u.role] || 'bg-gray-100'}`}>
-                      {u.role}
-                    </span>
+                    {editingId === u.id ? (
+                      <div className="flex gap-2 items-center">
+                        <label className="text-xs font-medium text-navy-600">Change role:</label>
+                        <select
+                          value={editRole}
+                          onChange={(e) => setEditRole(e.target.value)}
+                          className={selectClass}
+                        >
+                          <option value="admin">admin</option>
+                          <option value="assessor">assessor</option>
+                          <option value="viewer">viewer</option>
+                        </select>
+                      </div>
+                    ) : (
+                      <span className={`inline-block text-xs font-medium px-2 py-1 rounded-full capitalize ${roleBadge[u.role] || 'bg-gray-100'}`}>
+                        {u.role}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`text-xs ${u.is_active ? 'text-green-600' : 'text-red-500'}`}>
                       {u.is_active ? 'Active' : 'Inactive'}
                     </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {editingId === u.id ? (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => saveEdit(u)}
+                          className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg hover:bg-navy-800 transition-colors"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          className="text-xs bg-gray-300 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-400 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => startEdit(u)}
+                        className="text-xs bg-navy-100 text-navy-900 px-3 py-1.5 rounded-lg hover:bg-navy-200 transition-colors"
+                      >
+                        Edit
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

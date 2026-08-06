@@ -43,6 +43,9 @@ boundaries, or if a feature's `expectedBehavior` conflicts with an assertion in
   test-only deps to `requirements-dev.txt`.
 - Frontend: Vitest + React Testing Library, co-located in `__tests__/` next to the
   component; mock `src/services/api`.
+- **Do not reference `VAL-*` assertions in test docstrings or source code comments.**
+  Assertions are declared in `features.json` and verified independently; test names
+  and docstrings should describe what they test, not which assertion they fulfill.
 - You iterate until you believe the work is correct, then hand off. Final
   correctness is decided by an independent validator against the contract — do not
   mark your own work validated.

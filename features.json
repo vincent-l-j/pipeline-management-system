@@ -1,0 +1,122 @@
+[
+  {
+    "id": "pitch-sources-enum-expansion",
+    "description": "Extend PitchSource enum to include RIAC, Foundry, Board, RIAC student sources",
+    "milestone": "source-funding-domains",
+    "expectedBehavior": [
+      "PitchSource enum contains RIAC, Foundry, Board, RIAC student as valid values",
+      "Pitches can be created with any of the new source values",
+      "Existing pitches with old sources still work"
+    ],
+    "verificationSteps": [
+      "cd backend && pytest tests/ -k 'pitch_source' -v",
+      "POST /api/pitches with source='riac' and verify it returns in response",
+      "POST /api/pitches with source='foundry' and verify it returns in response",
+      "POST /api/pitches with source='board' and verify it returns in response",
+      "POST /api/pitches with source='riac_student' and verify it returns in response"
+    ],
+    "fulfills": [
+      "VAL-SOURCE-001",
+      "VAL-SOURCE-002",
+      "VAL-SOURCE-003",
+      "VAL-SOURCE-004"
+    ],
+    "dependsOn": [],
+    "status": "pending"
+  },
+  {
+    "id": "pitch-funding-pathway-enum-expansion",
+    "description": "Extend FundingPathway enum to include no_funding_identified and internal_funding",
+    "milestone": "source-funding-domains",
+    "expectedBehavior": [
+      "FundingPathway enum contains no_funding_identified and internal_funding as valid values",
+      "Pitches can be created with any of the new funding pathway values",
+      "Existing pitches with old funding pathways still work"
+    ],
+    "verificationSteps": [
+      "cd backend && pytest tests/ -k 'funding_pathway' -v",
+      "POST /api/pitches with funding_pathway='no_funding_identified' and verify it returns in response",
+      "POST /api/pitches with funding_pathway='internal_funding' and verify it returns in response"
+    ],
+    "fulfills": [
+      "VAL-FUNDING-001",
+      "VAL-FUNDING-002"
+    ],
+    "dependsOn": [],
+    "status": "pending"
+  },
+  {
+    "id": "pitch-domain-tags-documentation",
+    "description": "Document domain_tags field support for AI Energy Transition, Health, Semiconductors",
+    "milestone": "source-funding-domains",
+    "expectedBehavior": [
+      "domain_tags field accepts AI Energy Transition, Health, Semiconductors values",
+      "Multiple domains can be stored as comma-separated values",
+      "Domains are returned as-is in API responses"
+    ],
+    "verificationSteps": [
+      "POST /api/pitches with domain_tags='AI Energy Transition' and verify it returns in response",
+      "POST /api/pitches with domain_tags='Health' and verify it returns in response",
+      "POST /api/pitches with domain_tags='Semiconductors' and verify it returns in response",
+      "POST /api/pitches with domain_tags='Health,Semiconductors' and verify comma-separated values work"
+    ],
+    "fulfills": [
+      "VAL-DOMAIN-001",
+      "VAL-DOMAIN-002",
+      "VAL-DOMAIN-003"
+    ],
+    "dependsOn": [],
+    "status": "pending"
+  },
+  {
+    "id": "pitch-domain-options-migration",
+    "description": "Update frontend domain selector to replace old domains (climate, digital, forestry, agri, education, other) with new domains (AI Energy Transition, Health, Semiconductors)",
+    "milestone": "domain-options-update",
+    "expectedBehavior": [
+      "DOMAIN_OPTIONS in PitchCreatePage.jsx contains AI Energy Transition, Health, Semiconductors",
+      "DOMAIN_OPTIONS in PitchEditPage.jsx contains AI Energy Transition, Health, Semiconductors",
+      "DOMAIN_OPTIONS in PipelineFilters.jsx contains AI Energy Transition, Health, Semiconductors",
+      "Old domain values are no longer available in any form UI"
+    ],
+    "verificationSteps": [
+      "Update DOMAIN_OPTIONS in frontend/src/pages/PitchCreatePage.jsx to ['AI Energy Transition', 'Health', 'Semiconductors']",
+      "Update DOMAIN_OPTIONS in frontend/src/pages/PitchEditPage.jsx to ['AI Energy Transition', 'Health', 'Semiconductors']",
+      "Update DOMAIN_OPTIONS in frontend/src/components/pipeline/PipelineFilters.jsx to ['AI Energy Transition', 'Health', 'Semiconductors']",
+      "Load pitch creation form and verify only three domain pills are shown",
+      "Load pitch edit form and verify only three domain pills are shown",
+      "Load pipeline list view and verify domain filter dropdown shows only three options"
+    ],
+    "fulfills": [
+      "VAL-DOMAIN-OPTS-001",
+      "VAL-DOMAIN-OPTS-002",
+      "VAL-DOMAIN-OPTS-003",
+      "VAL-DOMAIN-OPTS-004"
+    ],
+    "dependsOn": [],
+    "status": "pending"
+  },
+  {
+    "id": "pitch-submission-date-null-handling",
+    "description": "Verify submission_date field correctly handles null, past, and future dates",
+    "milestone": "source-funding-domains",
+    "expectedBehavior": [
+      "submission_date can be null ('not set yet')",
+      "submission_date can be set to any valid date in the past",
+      "submission_date can be set to any valid date in the future",
+      "submission_date is returned as-is in API responses"
+    ],
+    "verificationSteps": [
+      "POST /api/pitches without submission_date and verify it's null in response",
+      "POST /api/pitches with submission_date='2024-01-01' and verify it returns in response",
+      "POST /api/pitches with submission_date='2026-12-31' and verify it returns in response",
+      "GET /api/pitches/{id} and verify submission_date matches what was created"
+    ],
+    "fulfills": [
+      "VAL-SUBMISSION-001",
+      "VAL-SUBMISSION-002",
+      "VAL-SUBMISSION-003"
+    ],
+    "dependsOn": [],
+    "status": "pending"
+  }
+]

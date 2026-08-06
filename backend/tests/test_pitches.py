@@ -66,7 +66,7 @@ def test_assessor_can_patch_pitch(assessor_client):
 
 
 def test_viewer_cannot_patch_pitch(viewer_client):
-    # RBAC fires before the DB lookup — a fake UUID still yields 403 (VAL-CROSS-001).
+    # RBAC fires before the DB lookup — a fake UUID still yields 403.
     resp = viewer_client.patch(
         "/api/pitches/00000000-0000-0000-0000-000000000099",
         json={"title": "Nope"},
@@ -94,7 +94,7 @@ def test_unauthenticated_patch_is_rejected(client):
 
 def test_patch_stage_immutable_leaves_stage_and_writes_no_history(admin_client):
     """current_stage is absent from PitchUpdate, so a PATCH carrying it is ignored:
-    the stage is unchanged and no PitchStageHistory row is added (VAL-PITCH-003)."""
+    the stage is unchanged and no PitchStageHistory row is added."""
     create = admin_client.post("/api/pitches", json={"title": "Immutable Stage"}).json()
     pid = create["id"]
     history_before = admin_client.get(f"/api/pitches/{pid}/history").json()
@@ -170,7 +170,7 @@ def test_stage_transition_on_nonexistent_pitch(admin_client):
 
 def test_stage_change_records_from_to_and_actor(admin_client):
     """A stage change appends a history row capturing from_stage, to_stage, the
-    acting user (changed_by_id) and the note (VAL-STAGE-002)."""
+    acting user (changed_by_id) and the note."""
     create = admin_client.post("/api/pitches", json={"title": "Attributed Stage"}).json()
     pid = create["id"]
     initial = admin_client.get(f"/api/pitches/{pid}/history").json()

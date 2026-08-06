@@ -6,7 +6,7 @@ ORG_PAYLOAD = {"name": "Soil Tech Labs", "sector": "Agriculture"}
 
 def test_delete_organisation_orphans_children_not_deletes_them(admin_client):
     """Deleting an org nulls organisation_id on child contacts and pitches
-    but leaves those records in place (VAL-ORG-003)."""
+    but leaves those records in place."""
     org_id = admin_client.post("/api/organisations", json={"name": "Parent Org"}).json()["id"]
     contact_id = admin_client.post(
         "/api/contacts", json={"name": "Linked Contact", "organisation_id": org_id}
@@ -37,7 +37,7 @@ def test_delete_unknown_organisation_returns_404(admin_client):
 
 
 def test_assessor_cannot_delete_organisation_rbac(assessor_client):
-    """Delete is admin-only; assessor is rejected server-side (VAL-ORG-004, VAL-CROSS-001)."""
+    """Delete is admin-only; assessor is rejected server-side."""
     resp = assessor_client.delete("/api/organisations/00000000-0000-0000-0000-000000000099")
     assert resp.status_code == 403
 
@@ -120,11 +120,11 @@ def test_viewer_cannot_delete_organisation(viewer_client):
     assert resp.status_code == 403
 
 
-# --- PATCH /api/organisations/{id}: partial update, allowlist, RBAC (VAL-ORG-EDIT-002/003, VAL-CROSS-001) ---
+# --- PATCH /api/organisations/{id}: partial update, allowlist, RBAC ---
 
 
 def test_patch_organisation_is_partial_update_preserving_omitted_fields(admin_client):
-    """Changing one field leaves the others intact (VAL-ORG-EDIT-002)."""
+    """Changing one field leaves the others intact."""
     created = admin_client.post(
         "/api/organisations",
         json={"name": "Partial Org", "sector": "Energy", "abn": "12345678901", "notes": "keep me"},
@@ -149,7 +149,7 @@ def test_assessor_can_patch_organisation_rbac(assessor_client):
 
 
 def test_viewer_cannot_patch_organisation_rbac(admin_client, viewer_client):
-    """Edit is admin/assessor only; a viewer is rejected server-side (VAL-ORG-EDIT-003, VAL-CROSS-001)."""
+    """Edit is admin/assessor only; a viewer is rejected server-side."""
     org_id = admin_client.post("/api/organisations", json={"name": "Viewer No Edit Org"}).json()["id"]
     resp = viewer_client.patch(f"/api/organisations/{org_id}", json={"name": "Hacked Org"})
     assert resp.status_code == 403

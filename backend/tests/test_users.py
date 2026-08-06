@@ -76,7 +76,7 @@ def test_viewer_cannot_create_user(viewer_client):
 
 
 def test_viewer_cannot_list_users(viewer_client):
-    # Staff listing is admin-only — closes the info-disclosure hole (VAL-USERS-003).
+    # Staff listing is admin-only — closes the info-disclosure hole.
     resp = viewer_client.get("/api/users")
     assert resp.status_code == 403
 

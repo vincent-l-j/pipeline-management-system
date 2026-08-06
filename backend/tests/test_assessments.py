@@ -175,7 +175,7 @@ def test_assessor_can_create_assessment(assessor_client):
 
 
 def test_create_assessment_without_credentials_is_rejected(client):
-    """Unauthenticated request (no credentials) returns 403 (VAL-ASSESS-005)."""
+    """Unauthenticated request (no credentials) returns 403."""
     resp = client.post(
         "/api/assessments",
         json={**SCORE_PAYLOAD, "pitch_id": "00000000-0000-0000-0000-000000000099"},
@@ -184,7 +184,7 @@ def test_create_assessment_without_credentials_is_rejected(client):
 
 
 def test_create_assessment_with_invalid_token_is_rejected(client):
-    """Request with invalid bearer token returns 401 (VAL-ASSESS-005)."""
+    """Request with invalid bearer token returns 401."""
     resp = client.post(
         "/api/assessments",
         json={**SCORE_PAYLOAD, "pitch_id": "00000000-0000-0000-0000-000000000099"},
@@ -269,7 +269,7 @@ def test_list_shows_only_latest_version_per_pitch_multiple_pitches(admin_client)
 
 def test_amending_creates_new_version_without_mutating_prior(admin_client):
     """A second create appends a new version; the prior row keeps its own scores
-    and recommendation on a subsequent GET (VAL-ASSESS-002)."""
+    and recommendation on a subsequent GET."""
     pitch_id = _create_pitch(admin_client)
 
     v1 = admin_client.post(
@@ -295,7 +295,7 @@ def test_amending_creates_new_version_without_mutating_prior(admin_client):
 
 def test_new_version_records_supplied_date_and_acting_assessor(admin_client, assessor_client):
     """Each version carries its own date and is attributed to the acting user,
-    independently of who authored the prior version (VAL-ASSESS-003)."""
+    independently of who authored the prior version."""
     pitch_id = _create_pitch(admin_client)
 
     v1 = admin_client.post(

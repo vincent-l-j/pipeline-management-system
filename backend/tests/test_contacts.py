@@ -5,7 +5,7 @@ from uuid import UUID
 
 def test_delete_contact_cascade_removes_join_rows(admin_client, db_session):
     """Deleting a contact removes its PitchContact and MeetingAttendee join rows
-    in the same transaction; the parent pitch and meeting survive (VAL-CON-002)."""
+    in the same transaction; the parent pitch and meeting survive."""
     from app.models.pitch import PitchContact
     from app.models.meeting import MeetingAttendee
 
@@ -57,7 +57,7 @@ def test_delete_unknown_contact_returns_404(admin_client):
 
 
 def test_assessor_cannot_delete_contact_rbac(assessor_client):
-    """Delete is admin-only; assessor rejected server-side (VAL-CON-003, VAL-CROSS-001)."""
+    """Delete is admin-only; assessor rejected server-side."""
     resp = assessor_client.delete("/api/contacts/00000000-0000-0000-0000-000000000099")
     assert resp.status_code == 403
 
@@ -163,11 +163,11 @@ def test_viewer_cannot_delete_contact(viewer_client):
     assert resp.status_code == 403
 
 
-# --- PATCH /api/contacts/{id}: partial update, allowlist, RBAC (VAL-CON-EDIT-002/003, VAL-CROSS-001) ---
+# --- PATCH /api/contacts/{id}: partial update, allowlist, RBAC ---
 
 
 def test_patch_contact_is_partial_update_preserving_omitted_fields(admin_client):
-    """Changing one field leaves the others intact (VAL-CON-EDIT-002)."""
+    """Changing one field leaves the others intact."""
     created = admin_client.post(
         "/api/contacts",
         json={"name": "Partial", "email": "keep@example.com", "phone": "12345", "notes": "keep me"},
@@ -192,7 +192,7 @@ def test_assessor_can_patch_contact_rbac(assessor_client):
 
 
 def test_viewer_cannot_patch_contact_rbac(admin_client, viewer_client):
-    """Edit is admin/assessor only; a viewer is rejected server-side (VAL-CON-EDIT-003, VAL-CROSS-001)."""
+    """Edit is admin/assessor only; a viewer is rejected server-side."""
     contact_id = admin_client.post("/api/contacts", json={"name": "Viewer No Edit"}).json()["id"]
     resp = viewer_client.patch(f"/api/contacts/{contact_id}", json={"name": "Hacked"})
     assert resp.status_code == 403

@@ -1,11 +1,12 @@
 """JWT token creation and validation for session management."""
 
-from datetime import datetime, timedelta, timezone
-from jose import JWTError, jwt
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy.orm import Session
 import uuid
+from datetime import UTC, datetime, timedelta
+
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
+from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import get_db
@@ -17,7 +18,7 @@ ALGORITHM = "HS256"
 
 
 def create_access_token(user_id: str, email: str, role: str) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(UTC) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     payload = {
         "sub": user_id,
         "email": email,
@@ -38,8 +39,8 @@ def get_current_user(
         user_id = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid token")
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    except JWTError as e:
+        raise HTTPException(status_code=401, detail="Invalid token") from e
 
     user = db.query(User).filter(User.id == uuid.UUID(user_id)).first()
     if user is None or not user.is_active:

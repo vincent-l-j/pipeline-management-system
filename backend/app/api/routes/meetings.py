@@ -1,16 +1,22 @@
 """Meeting CRUD routes with attendee management."""
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from uuid import UUID
 
 from app.core.database import get_db
 from app.core.security import get_current_user, require_role
-from app.models.user import User, UserRole
 from app.models.meeting import Meeting, MeetingAttendee
+from app.models.user import User, UserRole
 from app.schemas.meeting import (
-    MeetingCreate, MeetingUpdate, MeetingOut, MeetingAttendeeAdd, MeetingAttendeeOut,
-    AINoteParseRequest, AINoteParseResponse,
+    AINoteParseRequest,
+    AINoteParseResponse,
+    MeetingAttendeeAdd,
+    MeetingAttendeeOut,
+    MeetingCreate,
+    MeetingOut,
+    MeetingUpdate,
 )
 from app.services.ai_notetaker import parse_meeting_notes
 
@@ -153,4 +159,4 @@ def parse_notes(
         result = parse_meeting_notes(data.raw_notes)
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to parse notes: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to parse notes: {str(e)}") from e

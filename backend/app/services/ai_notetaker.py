@@ -5,8 +5,8 @@ When the Claude API key is available, set ANTHROPIC_API_KEY in your .env file
 and this service will automatically switch from mock parsing to real AI parsing.
 """
 
-import os
 import json
+import os
 import re
 
 # Try to import the Anthropic SDK — it's optional until the API key is ready
@@ -75,12 +75,12 @@ def _parse_with_claude(raw_notes: str, api_key: str) -> dict:
         if json_match:
             parsed = json.loads(json_match.group())
         else:
-            raise ValueError("Could not parse Claude's response as JSON")
+            raise ValueError("Could not parse Claude's response as JSON") from None
 
     return _normalize_parsed(parsed)
 
 
-def _parse_mock(raw_notes: str) -> dict:
+def _parse_mock(raw_notes: str) -> dict:  # noqa: C901
     """
     Basic mock parser for development — extracts what it can from the text
     without AI. This runs when no Claude API key is configured.
@@ -89,7 +89,7 @@ def _parse_mock(raw_notes: str) -> dict:
     Claude parser will be significantly better at understanding context.
     """
     lines = raw_notes.strip().split('\n')
-    lines = [l.strip() for l in lines if l.strip()]
+    lines = [line.strip() for line in lines if line.strip()]
 
     summary_lines = []
     key_points = []

@@ -3,29 +3,33 @@
  * Contains a header with stage name + count, and a droppable area for pitch cards.
  */
 
-import { Droppable, Draggable } from '@hello-pangea/dnd'
-import PitchCard from './PitchCard'
-import { PipelineStage } from './PipelineConfig'
+import { Droppable, Draggable } from "@hello-pangea/dnd";
+import PitchCard from "./PitchCard";
+import { PipelineStage } from "./PipelineConfig";
 
 interface Pitch {
-  id: number
-  title: string
-  short_description?: string
-  source?: string
-  funding_pathway?: string
-  domain_tags?: string
-  is_confidential?: boolean
-  submission_date?: string
-  current_stage: string
+  id: number;
+  title: string;
+  short_description?: string;
+  source?: string;
+  funding_pathway?: string;
+  domain_tags?: string;
+  is_confidential?: boolean;
+  submission_date?: string;
+  current_stage: string;
 }
 
 interface KanbanColumnProps {
-  stage: PipelineStage
-  pitches: Pitch[]
-  onStageSelect?: (pitchId: number, fromStage: string, toStage: string) => void
+  stage: PipelineStage;
+  pitches: Pitch[];
+  onStageSelect?: (pitchId: number, fromStage: string, toStage: string) => void;
 }
 
-export default function KanbanColumn({ stage, pitches, onStageSelect }: KanbanColumnProps) {
+export default function KanbanColumn({
+  stage,
+  pitches,
+  onStageSelect,
+}: KanbanColumnProps) {
   return (
     <div className="flex flex-col bg-navy-50/50 rounded-xl min-w-[260px] w-[260px] max-h-full">
       {/* Column header */}
@@ -46,12 +50,16 @@ export default function KanbanColumn({ stage, pitches, onStageSelect }: KanbanCo
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={`flex-1 p-2 overflow-y-auto min-h-[100px] transition-colors ${
-              snapshot.isDraggingOver ? 'bg-navy-100/60' : ''
+              snapshot.isDraggingOver ? "bg-navy-100/60" : ""
             }`}
           >
             {pitches.map((pitch, index) => (
-              <Draggable key={pitch.id} draggableId={`${pitch.id}`} index={index}>
-                {(provided, snapshot) => (
+              <Draggable
+                key={pitch.id}
+                draggableId={`${pitch.id}`}
+                index={index}
+              >
+                {(provided, _snapshot) => (
                   <PitchCard
                     pitch={pitch}
                     innerRef={provided.innerRef}
@@ -65,11 +73,13 @@ export default function KanbanColumn({ stage, pitches, onStageSelect }: KanbanCo
             {provided.placeholder}
 
             {pitches.length === 0 && !snapshot.isDraggingOver && (
-              <p className="text-xs text-navy-300 text-center py-4">No pitches</p>
+              <p className="text-xs text-navy-300 text-center py-4">
+                No pitches
+              </p>
             )}
           </div>
         )}
       </Droppable>
     </div>
-  )
+  );
 }

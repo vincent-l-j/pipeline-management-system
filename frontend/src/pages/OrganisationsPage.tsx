@@ -72,7 +72,7 @@ export default function OrganisationsPage(): React.JSX.Element {
     setError('')
     setEditingId(org.id)
     setEditForm({
-      name: org.name ?? '',
+      name: org.name,
       org_type: org.org_type ?? '',
       sector: org.sector ?? '',
       state_territory: org.state_territory ?? '',

@@ -103,19 +103,19 @@ export default function PitchDetailPage(): React.JSX.Element {
             {canEdit && (
               <>
                 <Link
-                  to={`/pitches/${pitchId}/edit`}
+                  to={`/pitches/${String(pitchId)}/edit`}
                   className="border border-navy-200 text-navy-600 px-4 py-2 rounded-lg text-sm font-medium hover:border-navy-400 transition-colors"
                 >
                   Edit
                 </Link>
                 <Link
-                  to={`/meetings/new?pitch_id=${pitchId}`}
+                  to={`/meetings/new?pitch_id=${String(pitchId)}`}
                   className="border border-navy-200 text-navy-600 px-4 py-2 rounded-lg text-sm font-medium hover:border-navy-400 transition-colors"
                 >
                   Log Meeting
                 </Link>
                 <Link
-                  to={`/assessments/new?pitch_id=${pitchId}`}
+                  to={`/assessments/new?pitch_id=${String(pitchId)}`}
                   className="bg-navy-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-navy-800 transition-colors"
                 >
                   New Assessment
@@ -215,7 +215,7 @@ export default function PitchDetailPage(): React.JSX.Element {
               </h2>
               {canEdit && (
                 <Link
-                  to={`/meetings/new?pitch_id=${pitchId}`}
+                  to={`/meetings/new?pitch_id=${String(pitchId)}`}
                   className="text-xs text-navy-600 hover:text-navy-900 font-medium"
                 >
                   + Log
@@ -250,7 +250,7 @@ export default function PitchDetailPage(): React.JSX.Element {
               </h2>
               {canEdit && (
                 <Link
-                  to={`/assessments/new?pitch_id=${pitchId}`}
+                  to={`/assessments/new?pitch_id=${String(pitchId)}`}
                   className="text-xs text-navy-600 hover:text-navy-900 font-medium"
                 >
                   + New

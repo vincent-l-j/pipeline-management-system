@@ -91,15 +91,15 @@ export default function PitchEditPage(): React.JSX.Element {
     ]).then(([pitchRes, orgsRes, usersRes]) => {
       const p = pitchRes.data
       setForm({
-        title: p.title || '',
-        short_description: p.short_description || '',
-        source: p.source || '',
-        funding_pathway: p.funding_pathway || '',
+        title: p.title,
+        short_description: p.short_description ?? '',
+        source: p.source ?? '',
+        funding_pathway: p.funding_pathway ?? '',
         domain_tags: p.domain_tags ? p.domain_tags.split(',').map(t => t.trim()) : [],
-        masterplan_alignment: p.masterplan_alignment || '',
-        is_confidential: p.is_confidential || false,
-        organisation_id: p.organisation_id || '',
-        lead_id: p.lead_id || '',
+        masterplan_alignment: p.masterplan_alignment ?? '',
+        is_confidential: p.is_confidential ?? false,
+        organisation_id: p.organisation_id ?? '',
+        lead_id: p.lead_id ?? '',
       })
       setOrganisations(orgsRes.data)
       setUsers(usersRes.data)

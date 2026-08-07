@@ -81,7 +81,7 @@ export default function ContactsPage(): React.JSX.Element {
     setError("");
     setEditingId(contact.id);
     setEditForm({
-      name: contact.name ?? "",
+      name: contact.name,
       role: contact.role ?? "",
       email: contact.email ?? "",
     });
@@ -275,7 +275,7 @@ export default function ContactsPage(): React.JSX.Element {
                       />
                     </td>
                     <td className="px-4 py-3 text-navy-500">
-                      {c.last_contacted || "-"}
+                      {c.last_contacted ?? "-"}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <span className="inline-flex gap-2">
@@ -308,7 +308,7 @@ export default function ContactsPage(): React.JSX.Element {
                       {c.email ?? "-"}
                     </td>
                     <td className="px-4 py-3 text-navy-500">
-                      {c.last_contacted || "-"}
+                      {c.last_contacted ?? "-"}
                     </td>
                     {(canEdit || canRemove) && (
                       <td className="px-4 py-3 text-right">

@@ -52,7 +52,7 @@ export default function AssessmentDetailPage(): React.JSX.Element {
 
   useEffect(() => {
     if (!assessmentId) {
-      navigate("/assessments");
+      void navigate("/assessments");
       return;
     }
 

@@ -102,8 +102,8 @@ function MeetingDetailPage(): React.JSX.Element {
     try {
       const payload = {
         ...editForm,
-        follow_up_date: editForm.follow_up_date ?? null,
-        recording_link: editForm.recording_link ?? null,
+        follow_up_date: editForm.follow_up_date || null,
+        recording_link: editForm.recording_link || null,
       }
       const { data } = await api.patch<Meeting>(`/meetings/${meetingId}`, payload)
       setMeeting(data)
@@ -142,7 +142,7 @@ function MeetingDetailPage(): React.JSX.Element {
     <Layout>
       <PageHeader
         title={meeting.title}
-        description={`${meeting.meeting_date} · ${PLATFORM_LABELS[meeting.platform ?? ''] ?? meeting.platform ?? 'Unknown platform'}`}
+        description={`${meeting.meeting_date} · ${PLATFORM_LABELS[meeting.platform || ''] || meeting.platform || 'Unknown platform'}`}
         action={
           <div className="flex gap-2">
             {!editing && (

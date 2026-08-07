@@ -1,9 +1,10 @@
 """External contacts / people linked to pitches and meetings."""
 
-from sqlalchemy import String, Text, Date, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from datetime import date
 import uuid
+from datetime import date
+
+from sqlalchemy import Date, ForeignKey, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 

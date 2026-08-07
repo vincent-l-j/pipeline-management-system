@@ -1,6 +1,8 @@
-from pydantic import BaseModel, field_validator
-from uuid import UUID
 from datetime import date, datetime
+from uuid import UUID
+
+from pydantic import BaseModel, field_validator
+
 from app.models.assessment import Recommendation
 
 

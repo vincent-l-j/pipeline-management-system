@@ -2,22 +2,21 @@
 
 import csv
 import io
-from datetime import datetime, date
 from collections import defaultdict
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import func, extract
 
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.user import User
-from app.models.pitch import Pitch, PitchStageHistory, PipelineStage
-from app.models.organisation import Organisation
+from app.models.assessment import Assessment
 from app.models.contact import Contact
 from app.models.meeting import Meeting
-from app.models.assessment import Assessment
+from app.models.organisation import Organisation
+from app.models.pitch import PipelineStage, Pitch, PitchStageHistory
+from app.models.user import User
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 

@@ -53,7 +53,9 @@ describe('ScoreSelector', () => {
   it('disables all buttons when readOnly', () => {
     render(<ScoreSelector criterion={criterion} value={3} onChange={vi.fn()} readOnly />)
     const buttons = screen.getAllByRole('button')
-    buttons.forEach(btn => expect(btn).toBeDisabled())
+    buttons.forEach((btn) => {
+      expect(btn).toBeDisabled()
+    })
   })
 
   it('renders the score progress bar', () => {

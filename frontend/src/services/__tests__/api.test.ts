@@ -1,11 +1,15 @@
+import { AxiosHeaders, InternalAxiosRequestConfig } from "axios";
 import api from "../api";
 
 // The interceptors are registered on the shared axios instance at import time.
 // Pull the registered handlers straight off the instance and invoke them
 // directly — no network needed to exercise the token/401 logic.
-const requestFulfilled = api.interceptors.request.handlers[0].fulfilled;
-const responseFulfilled = api.interceptors.response.handlers[0].fulfilled;
-const responseRejected = api.interceptors.response.handlers[0].rejected;
+const requestFulfilled = api.interceptors.request.handlers[0]
+  ?.fulfilled as (config: InternalAxiosRequestConfig) => InternalAxiosRequestConfig | Promise<InternalAxiosRequestConfig>;
+const responseFulfilled = api.interceptors.response.handlers[0]
+  ?.fulfilled as (data: unknown) => unknown;
+const responseRejected = api.interceptors.response.handlers[0]
+  ?.rejected as (error: unknown) => Promise<unknown>;
 
 describe("api request interceptor", () => {
   beforeEach(() => {
@@ -14,16 +18,18 @@ describe("api request interceptor", () => {
 
   it("attaches a Bearer token when one is stored", () => {
     localStorage.setItem("token", "abc123");
-    const config = await onFulfilled({
+    const config = requestFulfilled({
       headers: new AxiosHeaders(),
     } as InternalAxiosRequestConfig);
 
-    expect(config.headers.Authorization).toBe("Bearer abc123");
+    expect((config.headers as Record<string, string>).Authorization).toBe(
+      "Bearer abc123",
+    );
   });
 
   it("leaves Authorization unset when no token is stored", () => {
-    const config = requestFulfilled({ headers: {} });
-    expect(config.headers.Authorization).toBeUndefined();
+    const config = requestFulfilled({ headers: {} } as InternalAxiosRequestConfig);
+    expect((config.headers as Record<string, unknown>).Authorization).toBeUndefined();
   });
 });
 

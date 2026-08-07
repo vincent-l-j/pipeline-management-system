@@ -1,6 +1,8 @@
-from pydantic import BaseModel
+from datetime import date, datetime, time
 from uuid import UUID
-from datetime import date, time, datetime
+
+from pydantic import BaseModel
+
 from app.models.meeting import MeetingPlatform
 
 

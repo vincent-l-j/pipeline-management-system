@@ -16,20 +16,21 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key")
 os.environ.setdefault("AZURE_CLIENT_SECRET", "test-azure-client-secret")
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.main import app
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.main import app
 from app.models import Base
 from app.models.user import User, UserRole
 
-_NOW = datetime(2026, 1, 1, tzinfo=timezone.utc)
+_NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
 # Fixed UUIDs so test users have non-None IDs without needing a DB insert
 _ADMIN_ID = uuid.UUID("aaaaaaaa-0000-0000-0000-000000000001")

@@ -1,10 +1,12 @@
 """Meetings linked to pitches, with internal and external attendees."""
 
-from sqlalchemy import String, Text, Date, Time, Boolean, ForeignKey, Enum as SAEnum
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from datetime import date, time
 import enum
 import uuid
+from datetime import date, time
+
+from sqlalchemy import Date, ForeignKey, String, Text, Time
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 

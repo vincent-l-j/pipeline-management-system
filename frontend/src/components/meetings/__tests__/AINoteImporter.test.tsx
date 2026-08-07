@@ -40,7 +40,7 @@ async function expand(user: ReturnType<typeof userEvent.setup>): Promise<void> {
 
 describe('AINoteImporter', () => {
   beforeEach(() => {
-    vi.mocked(api.post).mockClear()
+    vi.mocked(api.post).mockClear!()
     mockUser = { role: 'admin' }
   })
 
@@ -75,7 +75,7 @@ describe('AINoteImporter', () => {
 
   it('posts the raw notes and shows parsed results', async () => {
     const user = userEvent.setup()
-    vi.mocked(api.post).mockResolvedValue({ data: parsedResult })
+    vi.mocked(api.post).mockResolvedValue!({ data: parsedResult })
     render(<AINoteImporter onImport={vi.fn()} />)
     await expand(user)
     await user.type(screen.getByPlaceholderText(/Paste your meeting notes/), 'Meeting notes text')
@@ -94,7 +94,7 @@ describe('AINoteImporter', () => {
 
   it('labels results as the basic parser when ai_parsed is false', async () => {
     const user = userEvent.setup()
-    vi.mocked(api.post).mockResolvedValue({ data: { ...parsedResult, ai_parsed: false } })
+    vi.mocked(api.post).mockResolvedValue!({ data: { ...parsedResult, ai_parsed: false } })
     render(<AINoteImporter onImport={vi.fn()} />)
     await expand(user)
     await user.type(screen.getByPlaceholderText(/Paste your meeting notes/), 'notes')
@@ -106,7 +106,7 @@ describe('AINoteImporter', () => {
 
   it('shows an error message when parsing fails', async () => {
     const user = userEvent.setup()
-    vi.mocked(api.post).mockRejectedValue({ response: { data: { detail: 'Bad notes' } } })
+    vi.mocked(api.post).mockRejectedValue!({ response: { data: { detail: 'Bad notes' } } })
     render(<AINoteImporter onImport={vi.fn()} />)
     await expand(user)
     await user.type(screen.getByPlaceholderText(/Paste your meeting notes/), 'notes')
@@ -119,7 +119,7 @@ describe('AINoteImporter', () => {
   it('calls onImport with parsed data when Apply to Meeting is clicked', async () => {
     const user = userEvent.setup()
     const onImport = vi.fn()
-    vi.mocked(api.post).mockResolvedValue({ data: parsedResult })
+    vi.mocked(api.post).mockResolvedValue!({ data: parsedResult })
     render(<AINoteImporter onImport={onImport} />)
     await expand(user)
     await user.type(screen.getByPlaceholderText(/Paste your meeting notes/), 'notes')
@@ -132,7 +132,7 @@ describe('AINoteImporter', () => {
 
   it('returns to the paste step when Re-parse is clicked', async () => {
     const user = userEvent.setup()
-    vi.mocked(api.post).mockResolvedValue({ data: parsedResult })
+    vi.mocked(api.post).mockResolvedValue!({ data: parsedResult })
     render(<AINoteImporter onImport={vi.fn()} />)
     await expand(user)
     await user.type(screen.getByPlaceholderText(/Paste your meeting notes/), 'notes')
@@ -145,7 +145,7 @@ describe('AINoteImporter', () => {
 
   it('shows "None extracted" when key points and action items are empty', async () => {
     const user = userEvent.setup()
-    vi.mocked(api.post).mockResolvedValue({
+    vi.mocked(api.post).mockResolvedValue!({
       data: { ...parsedResult, key_points: [], action_items: [] },
     })
     render(<AINoteImporter onImport={vi.fn()} />)

@@ -1,11 +1,7 @@
 """Unit tests for the ai_notetaker service — mock parser and Claude path."""
-import os
 from unittest.mock import MagicMock, patch
 
-import pytest
-
-from app.services.ai_notetaker import parse_meeting_notes, _parse_mock, _normalize_parsed
-
+from app.services.ai_notetaker import _normalize_parsed, _parse_mock, parse_meeting_notes
 
 # --- Mock parser (no API key) ---
 

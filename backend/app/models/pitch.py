@@ -1,13 +1,12 @@
 """Pitches — the central entity of the pipeline."""
 
-from sqlalchemy import (
-    String, Text, Date, Boolean, ForeignKey, Enum as SAEnum, ARRAY, DateTime
-)
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import ARRAY as PG_ARRAY
-from datetime import date, datetime, timezone
 import enum
 import uuid
+from datetime import UTC, date, datetime
+
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, Text
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 
@@ -86,7 +85,7 @@ class PitchStageHistory(Base):
     from_stage: Mapped[PipelineStage | None] = mapped_column(SAEnum(PipelineStage))
     to_stage: Mapped[PipelineStage] = mapped_column(SAEnum(PipelineStage))
     changed_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
     changed_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     note: Mapped[str | None] = mapped_column(Text)

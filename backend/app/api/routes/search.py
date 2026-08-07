@@ -1,17 +1,17 @@
 """Full-text search across all record types."""
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
 from sqlalchemy import or_
+from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.user import User
-from app.models.pitch import Pitch
-from app.models.organisation import Organisation
+from app.models.assessment import Assessment
 from app.models.contact import Contact
 from app.models.meeting import Meeting
-from app.models.assessment import Assessment
+from app.models.organisation import Organisation
+from app.models.pitch import Pitch
+from app.models.user import User
 
 router = APIRouter(prefix="/search", tags=["search"])
 

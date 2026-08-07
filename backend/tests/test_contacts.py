@@ -6,8 +6,8 @@ from uuid import UUID
 def test_delete_contact_cascade_removes_join_rows(admin_client, db_session):
     """Deleting a contact removes its PitchContact and MeetingAttendee join rows
     in the same transaction; the parent pitch and meeting survive."""
-    from app.models.pitch import PitchContact
     from app.models.meeting import MeetingAttendee
+    from app.models.pitch import PitchContact
 
     contact_id = admin_client.post("/api/contacts", json={"name": "Joined Contact"}).json()["id"]
     pitch_id = admin_client.post("/api/pitches", json={"title": "Pitch With Contact"}).json()["id"]

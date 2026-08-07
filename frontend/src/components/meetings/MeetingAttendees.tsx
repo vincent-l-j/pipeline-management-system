@@ -46,12 +46,12 @@ export default function MeetingAttendees({ meetingId }: MeetingAttendeesProps): 
 
   useEffect(() => {
     loadAttendees()
-    api.get('/users/directory').then(({ data }) => setUsers(data))
-    api.get('/contacts').then(({ data }) => setContacts(data))
+    void api.get('/users/directory').then(({ data }: { data: User[] }) => { setUsers(data) })
+    void api.get('/contacts').then(({ data }: { data: Contact[] }) => { setContacts(data) })
   }, [meetingId])
 
   function loadAttendees(): void {
-    api.get(`/meetings/${meetingId}/attendees`).then(({ data }) => setAttendees(data))
+    void api.get(`/meetings/${meetingId}/attendees`).then(({ data }: { data: Attendee[] }) => { setAttendees(data) })
   }
 
   async function addAttendee(): Promise<void> {
@@ -90,7 +90,7 @@ export default function MeetingAttendees({ meetingId }: MeetingAttendeesProps): 
         <h2 className="text-sm font-semibold text-navy-500 uppercase tracking-wide">Attendees</h2>
         {canEdit && (
           <button
-            onClick={() => setShowAdd(!showAdd)}
+            onClick={() => { setShowAdd(!showAdd) }}
             className="text-xs text-navy-600 hover:text-navy-900 font-medium"
           >
             {showAdd ? 'Cancel' : '+ Add'}
@@ -103,13 +103,13 @@ export default function MeetingAttendees({ meetingId }: MeetingAttendeesProps): 
         <div className="mb-4 p-3 bg-navy-50 rounded-lg space-y-2">
           <div className="flex gap-2">
             <button
-              onClick={() => { setAddType('internal'); setSelectedId('') }}
+              onClick={() => { setAddType('internal'); setSelectedId(''); }}
               className={`text-xs px-2 py-1 rounded ${addType === 'internal' ? 'bg-navy-900 text-white' : 'bg-white text-navy-600 border border-navy-200'}`}
             >
               Rozetta Staff
             </button>
             <button
-              onClick={() => { setAddType('external'); setSelectedId('') }}
+              onClick={() => { setAddType('external'); setSelectedId(''); }}
               className={`text-xs px-2 py-1 rounded ${addType === 'external' ? 'bg-navy-900 text-white' : 'bg-white text-navy-600 border border-navy-200'}`}
             >
               External Contact
@@ -118,7 +118,7 @@ export default function MeetingAttendees({ meetingId }: MeetingAttendeesProps): 
           <div className="flex gap-2">
             <select
               value={selectedId}
-              onChange={e => setSelectedId(e.target.value)}
+              onChange={e => { setSelectedId(e.target.value) }}
               className="flex-1 text-sm border border-navy-200 rounded-lg px-2 py-1.5 bg-white"
             >
               <option value="">Select {addType === 'internal' ? 'staff member' : 'contact'}...</option>
@@ -128,7 +128,7 @@ export default function MeetingAttendees({ meetingId }: MeetingAttendeesProps): 
               }
             </select>
             <button
-              onClick={addAttendee}
+              onClick={() => { void addAttendee() }}
               disabled={!selectedId}
               className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
             >
@@ -152,7 +152,7 @@ export default function MeetingAttendees({ meetingId }: MeetingAttendeesProps): 
               </div>
               {canEdit && (
                 <button
-                  onClick={() => removeAttendee(a.id)}
+                  onClick={() => { void removeAttendee(a.id) }}
                   className="text-[10px] text-red-400 hover:text-red-600"
                 >
                   Remove

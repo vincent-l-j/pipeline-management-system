@@ -1,5 +1,4 @@
 """Tests for /api/pitches CRUD, stage transitions, file links, and RBAC."""
-import pytest
 
 
 PITCH_PAYLOAD = {"title": "Green Hydrogen Initiative"}

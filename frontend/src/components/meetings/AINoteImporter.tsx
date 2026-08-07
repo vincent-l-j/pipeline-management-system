@@ -51,8 +51,11 @@ export default function AINoteImporter({ onImport }: AINoteImporterProps) {
     try {
       const { data } = await api.post<ParsedNotes>('/meetings/parse-notes', { raw_notes: rawNotes })
       setParsed(data)
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to parse notes. Please try again.')
+    } catch (err: unknown) {
+      const errorMessage = err && typeof err === 'object' && 'response' in err
+        ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
+        : undefined
+      setError(errorMessage ?? 'Failed to parse notes. Please try again.')
     }
     setParsing(false)
   }
@@ -71,7 +74,7 @@ export default function AINoteImporter({ onImport }: AINoteImporterProps) {
     <div className="bg-white rounded-xl border border-navy-100 overflow-hidden">
       {/* Collapsible header */}
       <button
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => { setExpanded(!expanded) }}
         className="w-full px-6 py-4 flex items-center justify-between hover:bg-navy-50/50 transition-colors"
       >
         <div className="flex items-center gap-3">
@@ -102,7 +105,7 @@ export default function AINoteImporter({ onImport }: AINoteImporterProps) {
                 <textarea
                   rows={10}
                   value={rawNotes}
-                  onChange={e => setRawNotes(e.target.value)}
+                  onChange={e => { setRawNotes(e.target.value) }}
                   placeholder={"Paste your meeting notes here...\n\nExample:\n\nSummary: We discussed the CRC bid timeline...\n\nKey Points:\n- Agreed on Q3 submission\n- Need co-investigator from UQ\n\nAction Items:\n- Sarah to draft budget by Friday\n- James to contact UQ faculty\n\nNext meeting: 2026-04-20"}
                   className="w-full border border-navy-200 rounded-lg px-3 py-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300 font-mono"
                 />
@@ -115,7 +118,7 @@ export default function AINoteImporter({ onImport }: AINoteImporterProps) {
               )}
 
               <button
-                onClick={handleParse}
+                onClick={() => { void handleParse() }}
                 disabled={parsing || !rawNotes.trim()}
                 className="bg-amber-500 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors disabled:opacity-50"
               >
@@ -178,7 +181,7 @@ export default function AINoteImporter({ onImport }: AINoteImporterProps) {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-navy-50 rounded-lg p-4">
                   <h5 className="text-xs font-semibold text-navy-500 uppercase mb-1">Follow-up Date</h5>
-                  <p className="text-sm text-navy-800">{parsed.follow_up_date || 'Not detected'}</p>
+                  <p className="text-sm text-navy-800">{parsed.follow_up_date ?? 'Not detected'}</p>
                 </div>
                 <div className="bg-navy-50 rounded-lg p-4">
                   <h5 className="text-xs font-semibold text-navy-500 uppercase mb-1">Attendees Detected</h5>
@@ -199,13 +202,13 @@ export default function AINoteImporter({ onImport }: AINoteImporterProps) {
                   Apply to Meeting
                 </button>
                 <button
-                  onClick={() => setParsed(null)}
+                  onClick={() => { setParsed(null) }}
                   className="border border-navy-200 text-navy-600 px-5 py-2.5 rounded-lg text-sm font-medium hover:border-navy-400 transition-colors"
                 >
                   Re-parse
                 </button>
                 <button
-                  onClick={() => { setParsed(null); setRawNotes(''); setExpanded(false) }}
+                  onClick={() => { setParsed(null); setRawNotes(''); setExpanded(false); }}
                   className="text-sm text-navy-500 hover:text-navy-700 px-3 py-2.5"
                 >
                   Discard

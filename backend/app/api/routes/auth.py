@@ -8,10 +8,10 @@ Flow:
 5. Frontend stores the JWT and sends it with every request
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+import msal
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-import msal
 
 from app.core.config import settings
 from app.core.database import get_db

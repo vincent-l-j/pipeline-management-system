@@ -68,7 +68,7 @@ export default function ScoringCard({
             )}
           </div>
           <p className="text-xs text-navy-500 mt-0.5">
-            {assessorName || "Unknown assessor"} — {assessment.assessment_date}
+            {assessorName ?? "Unknown assessor"} — {assessment.assessment_date}
           </p>
         </div>
         <div className="text-right">

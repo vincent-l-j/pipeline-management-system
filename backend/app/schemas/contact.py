@@ -1,6 +1,7 @@
-from pydantic import BaseModel, EmailStr
-from uuid import UUID
 from datetime import date, datetime
+from uuid import UUID
+
+from pydantic import BaseModel, EmailStr
 
 
 class ContactCreate(BaseModel):

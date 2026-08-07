@@ -25,7 +25,7 @@ export default function ScoreSelector({
   value,
   onChange,
   readOnly = false,
-}: ScoreSelectorProps): JSX.Element {
+}: ScoreSelectorProps): React.JSX.Element {
   const scores: number[] = [1, 2, 3, 4, 5]
 
   return (
@@ -48,7 +48,7 @@ export default function ScoreSelector({
             key={score}
             type="button"
             disabled={readOnly}
-            onClick={() => !readOnly && onChange(score)}
+            onClick={() => { if (!readOnly) onChange(score) }}
             className={`
               w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold
               transition-all duration-150
@@ -60,7 +60,7 @@ export default function ScoreSelector({
               }
               ${readOnly ? '' : 'cursor-pointer'}
             `}
-            title={`${score} — ${SCORE_LABELS[score]}`}
+            title={`${String(score)} — ${SCORE_LABELS[score]}`}
           >
             {score}
           </button>
@@ -70,7 +70,7 @@ export default function ScoreSelector({
         <div className="flex-1 ml-2 h-2 bg-navy-100 rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-300 ${value ? getScoreColor(value) : ''}`}
-            style={{ width: value ? `${(value / 5) * 100}%` : '0%' }}
+            style={{ width: value ? `${String((value / 5) * 100)}%` : '0%' }}
           />
         </div>
       </div>

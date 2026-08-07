@@ -13,7 +13,6 @@ dedicated tests added alongside each data-migrating revision; a generic harness
 can only prove downgrades execute cleanly against populated tables.
 """
 import datetime as dt
-import uuid
 
 import pytest
 
@@ -71,10 +70,10 @@ def _seed_connected_graph(url: str) -> None:
     from app.models.meeting import Meeting, MeetingAttendee, MeetingPlatform
     from app.models.organisation import Organisation, OrgType
     from app.models.pitch import (
+        PipelineStage,
         Pitch,
         PitchContact,
         PitchStageHistory,
-        PipelineStage,
     )
     from app.models.user import User, UserRole
 

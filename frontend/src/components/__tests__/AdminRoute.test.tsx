@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import AdminRoute from '../AdminRoute'
 
 vi.mock('react-router-dom', async (importOriginal) => {
-  const mod = await importOriginal()
+  const mod = await (importOriginal as () => Promise<Record<string, unknown>>)()
   return {
     ...mod,
     Navigate: ({ to }: { to: string }) => <div data-testid="redirect">redirect:{to}</div>,

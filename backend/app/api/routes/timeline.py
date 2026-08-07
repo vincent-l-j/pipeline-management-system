@@ -1,15 +1,16 @@
 """Activity timeline for a pitch — aggregates all events chronologically."""
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from uuid import UUID
 
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.user import User
-from app.models.pitch import Pitch, PitchStageHistory
-from app.models.meeting import Meeting
 from app.models.assessment import Assessment
+from app.models.meeting import Meeting
+from app.models.pitch import Pitch, PitchStageHistory
+from app.models.user import User
 
 router = APIRouter(prefix="/pitches", tags=["timeline"])
 

@@ -1,14 +1,15 @@
 """Assessment CRUD routes — scoring cards linked to pitches."""
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from uuid import UUID
 
 from app.core.database import get_db
 from app.core.security import get_current_user, require_role
-from app.models.user import User, UserRole
 from app.models.assessment import Assessment
+from app.models.user import User, UserRole
 from app.schemas.assessment import AssessmentCreate, AssessmentOut
 
 router = APIRouter(prefix="/assessments", tags=["assessments"])

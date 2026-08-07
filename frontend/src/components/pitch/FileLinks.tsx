@@ -41,7 +41,7 @@ export default function FileLinks({ pitchId }: FileLinksProps) {
   }, [pitchId]);
 
   function loadFiles(): void {
-    api
+    void api
       .get<FileLink[]>(`/pitches/${pitchId}/files`)
       .then(({ data }) => setFiles(data));
   }
@@ -51,7 +51,7 @@ export default function FileLinks({ pitchId }: FileLinksProps) {
     await api.post(`/pitches/${pitchId}/files`, newFile);
     setNewFile({ file_path: "", label: "", description: "" });
     setShowAdd(false);
-    loadFiles();
+    void loadFiles();
   }
 
   const inputClass =
@@ -84,9 +84,9 @@ export default function FileLinks({ pitchId }: FileLinksProps) {
           <input
             type="text"
             value={newFile.file_path}
-            onChange={(e) =>
+            onChange={(e) => {
               setNewFile((prev) => ({ ...prev, file_path: e.target.value }))
-            }
+            }}
             placeholder="File path (e.g. S:\Pitches\AgriTech\proposal.pdf)"
             className={inputClass}
           />
@@ -94,24 +94,24 @@ export default function FileLinks({ pitchId }: FileLinksProps) {
             <input
               type="text"
               value={newFile.label}
-              onChange={(e) =>
+              onChange={(e) => {
                 setNewFile((prev) => ({ ...prev, label: e.target.value }))
-              }
+              }}
               placeholder="Label (e.g. Pitch Deck)"
               className={inputClass}
             />
             <input
               type="text"
               value={newFile.description}
-              onChange={(e) =>
+              onChange={(e) => {
                 setNewFile((prev) => ({ ...prev, description: e.target.value }))
-              }
+              }}
               placeholder="Description (optional)"
               className={inputClass}
             />
           </div>
           <button
-            onClick={addFile}
+            onClick={() => void addFile()}
             disabled={!newFile.file_path.trim()}
             className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
           >
@@ -135,7 +135,7 @@ export default function FileLinks({ pitchId }: FileLinksProps) {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-navy-900">
-                  {f.label || "Untitled"}
+                  {f.label ?? "Untitled"}
                 </p>
                 <p className="text-xs text-navy-500 font-mono truncate">
                   {f.file_path}

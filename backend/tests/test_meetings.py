@@ -1,5 +1,4 @@
 """Tests for /api/meetings CRUD, attendees, filters, and AI note parsing."""
-from unittest.mock import patch
 
 
 def _create_pitch(client):

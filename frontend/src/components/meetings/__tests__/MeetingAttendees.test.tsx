@@ -32,8 +32,15 @@ const mockUsers: User[] = [
 ]
 const mockContacts: Contact[] = [{ id: 'c1', name: 'External Contact' }]
 
-function setupApiMocks(attendees: any[] = []): void {
-  vi.mocked(api.get).mockImplementation((url: string) => {
+interface Attendee {
+  id: string
+  user_id?: string
+  contact_id?: string
+  is_internal: boolean
+}
+
+function setupApiMocks(attendees: Attendee[] = []): void {
+  vi.mocked(api.get).mockImplementation!((url: string) => {
     if (url.includes('/attendees')) return Promise.resolve({ data: attendees })
     if (url === '/users/directory') return Promise.resolve({ data: mockUsers })
     if (url === '/contacts') return Promise.resolve({ data: mockContacts })
@@ -43,9 +50,9 @@ function setupApiMocks(attendees: any[] = []): void {
 
 describe('MeetingAttendees', () => {
   beforeEach(() => {
-    vi.mocked(api.get).mockClear()
-    vi.mocked(api.post).mockClear()
-    vi.mocked(api.delete).mockClear()
+    vi.mocked(api.get).mockClear!()
+    vi.mocked(api.post).mockClear!()
+    vi.mocked(api.delete).mockClear!()
     mockUser = { role: 'admin' }
   })
 
@@ -139,7 +146,7 @@ describe('MeetingAttendees', () => {
 
   it('calls POST and reloads attendees when an attendee is added', async () => {
     const user = userEvent.setup()
-    vi.mocked(api.post).mockResolvedValue({})
+    vi.mocked(api.post).mockResolvedValue!({})
     setupApiMocks([])
     render(<MeetingAttendees meetingId="1" />)
     await waitFor(() => screen.getByRole('button', { name: '+ Add' }))
@@ -156,7 +163,7 @@ describe('MeetingAttendees', () => {
 
   it('calls DELETE when Remove is clicked for an attendee', async () => {
     const user = userEvent.setup()
-    vi.mocked(api.delete).mockResolvedValue({})
+    vi.mocked(api.delete).mockResolvedValue!({})
     setupApiMocks([{ id: 'a1', user_id: 'u1', is_internal: true }])
     render(<MeetingAttendees meetingId="1" />)
     await waitFor(() => screen.getByText('Alice Staff'))

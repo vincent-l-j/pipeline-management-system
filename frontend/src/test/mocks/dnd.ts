@@ -21,7 +21,9 @@ interface DroppableProps {
 export const Droppable = ({ children }: DroppableProps) =>
   children(
     {
-      innerRef: (_element: HTMLElement | null) => {},
+      innerRef: (element: HTMLElement | null) => {
+        void element;
+      },
       droppableProps: {},
       placeholder: null,
     },
@@ -50,7 +52,9 @@ interface DraggableProps {
 export const Draggable = ({ children, draggableId }: DraggableProps) =>
   children(
     {
-      innerRef: (_element: HTMLElement | null) => {},
+      innerRef: (element: HTMLElement | null) => {
+        void element;
+      },
       draggableProps: { "data-id": draggableId },
       dragHandleProps: {},
     },

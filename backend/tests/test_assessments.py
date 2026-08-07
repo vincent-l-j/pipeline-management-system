@@ -199,11 +199,11 @@ def test_list_shows_only_latest_version_per_pitch(admin_client):
     pitch_id = _create_pitch(admin_client)
 
     # Create three versions of the same assessment
-    v1 = admin_client.post(
+    admin_client.post(
         "/api/assessments",
         json={**SCORE_PAYLOAD, "pitch_id": pitch_id},
     ).json()
-    v2 = admin_client.post(
+    admin_client.post(
         "/api/assessments",
         json={**SCORE_PAYLOAD, "pitch_id": pitch_id},
     ).json()

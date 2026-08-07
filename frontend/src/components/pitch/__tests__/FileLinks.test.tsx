@@ -23,8 +23,8 @@ const sampleFiles = [
 
 describe('FileLinks', () => {
   beforeEach(() => {
-    vi.mocked(api.get).mockClear()
-    vi.mocked(api.post).mockClear()
+    vi.mocked(api.get).mockClear!()
+    vi.mocked(api.post).mockClear!()
     mockUser = { role: 'admin' }
   })
 
@@ -115,7 +115,7 @@ describe('FileLinks', () => {
   it('POSTs the new file and reloads the list when Add Reference is clicked', async () => {
     const user = userEvent.setup()
     setupGet([])
-    vi.mocked(api.post).mockResolvedValue({})
+    vi.mocked(api.post).mockResolvedValue!({})
     render(<FileLinks pitchId="7" />)
     await waitFor(() => screen.getByRole('button', { name: '+ Add File' }))
     await user.click(screen.getByRole('button', { name: '+ Add File' }))

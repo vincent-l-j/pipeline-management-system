@@ -7,6 +7,21 @@ vi.mock('../../../services/api', () => ({
   default: { post: vi.fn() },
 }))
 
+function createMockPostHelpers() {
+  return (() => {
+    const post = vi.mocked(api.post)
+    return {
+      mockResolvedValueOnce: (value: unknown) => post.mockResolvedValueOnce(value),
+      mockRejectedValueOnce: (error: Error) => post.mockRejectedValueOnce(error),
+      get mock() {
+        return post
+      },
+    }
+  })()
+}
+
+let mockPostHelpers = createMockPostHelpers()
+
 interface MockStage {
   key: string
   label: string
@@ -57,12 +72,9 @@ const pitches: Pitch[] = [
   { id: 'c', title: 'Gamma', current_stage: 'due_diligence' },
 ]
 
-function getMockPost(): ReturnType<typeof vi.mocked> {
-  return vi.mocked(api.post)
-}
-
 describe('KanbanBoard', () => {
   beforeEach(() => {
+    mockPostHelpers = createMockPostHelpers()
     vi.clearAllMocks()
   })
 
@@ -104,14 +116,14 @@ describe('KanbanBoard', () => {
 
   it('optimistically moves and POSTs the new stage when a stage is selected', async () => {
     const onPitchMoved = vi.fn()
-    void getMockPost().mockResolvedValueOnce({})
+    mockPostHelpers.mockResolvedValueOnce({})
     render(<KanbanBoard pitches={pitches} onPitchMoved={onPitchMoved} />)
 
     fireEvent.click(screen.getByTestId('select-due_diligence'))
 
     expect(onPitchMoved).toHaveBeenCalledWith('a', 'due_diligence')
     await waitFor(() => {
-      expect(getMockPost()).toHaveBeenCalledWith(
+      expect(mockPostHelpers.mock).toHaveBeenCalledWith(
         '/pitches/a/stage',
         expect.objectContaining({ new_stage: 'due_diligence' }),
       )
@@ -120,7 +132,7 @@ describe('KanbanBoard', () => {
 
   it('reverts the card to its original stage when the API call fails', async () => {
     const onPitchMoved = vi.fn()
-    void getMockPost().mockRejectedValueOnce(new Error('boom'))
+    mockPostHelpers.mockRejectedValueOnce(new Error('boom'))
     render(<KanbanBoard pitches={pitches} onPitchMoved={onPitchMoved} />)
 
     fireEvent.click(screen.getByTestId('select-due_diligence'))

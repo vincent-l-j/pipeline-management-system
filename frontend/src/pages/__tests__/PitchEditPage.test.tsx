@@ -23,7 +23,7 @@ interface MockUser {
   role: string
 }
 
-const mockNavigate = vi.fn<[string], void>()
+const mockNavigate = vi.fn()
 vi.mock('react-router-dom', async (importOriginal) => {
   const mod = await importOriginal()
   return {
@@ -62,8 +62,37 @@ const PITCH: Pitch = {
   current_stage: 'initial_screen',
 }
 
+function createMockGetHelpers() {
+  return (() => {
+    const get = vi.mocked(api.get)
+    return {
+      mockImplementation: (fn: (url: string) => Promise<unknown>) => get.mockImplementation(fn),
+      mockReset: () => get.mockReset(),
+      get mock() {
+        return get
+      },
+    }
+  })()
+}
+
+function createMockPatchHelpers() {
+  return (() => {
+    const patch = vi.mocked(api.patch)
+    return {
+      mockReset: () => patch.mockReset(),
+      mockResolvedValue: (value: unknown) => patch.mockResolvedValue(value),
+      get mock() {
+        return patch
+      },
+    }
+  })()
+}
+
+let mockGetHelpers = createMockGetHelpers()
+let mockPatchHelpers = createMockPatchHelpers()
+
 function setupGet() {
-  vi.mocked(api.get).mockImplementation((url) => {
+  mockGetHelpers.mockImplementation((url: string) => {
     if (url === '/pitches/42') return Promise.resolve({ data: PITCH })
     if (url === '/organisations') return Promise.resolve({ data: [] })
     if (url === '/users') return Promise.resolve({ data: [] })
@@ -73,8 +102,10 @@ function setupGet() {
 
 describe('PitchEditPage', () => {
   beforeEach(() => {
-    vi.mocked(api.get).mockReset()
-    vi.mocked(api.patch).mockReset()
+    mockGetHelpers = createMockGetHelpers()
+    mockPatchHelpers = createMockPatchHelpers()
+    mockGetHelpers.mockReset()
+    mockPatchHelpers.mockReset()
     mockNavigate.mockReset()
     mockUser = { role: 'admin' }
   })
@@ -83,7 +114,7 @@ describe('PitchEditPage', () => {
     setupGet()
     render(<PitchEditPage />)
     await waitFor(() =>
-      { expect(screen.getByDisplayValue('Original Title')).toBeInTheDocument(); },
+      { expect(screen.getByDisplayValue('Original Title')).toBeInTheDocument() },
     )
     expect(screen.getByDisplayValue('Original description')).toBeInTheDocument()
   })
@@ -98,7 +129,7 @@ describe('PitchEditPage', () => {
   it('saving PATCHes the pitch then navigates to the detail route', async () => {
     const user = userEvent.setup()
     setupGet()
-    vi.mocked(api.patch).mockResolvedValue({ data: { ...PITCH, title: 'New Title' } })
+    mockPatchHelpers.mockResolvedValue({ data: { ...PITCH, title: 'New Title' } })
     render(<PitchEditPage />)
     await waitFor(() => screen.getByDisplayValue('Original Title'))
 
@@ -112,8 +143,9 @@ describe('PitchEditPage', () => {
       expect.objectContaining({ title: 'New Title' }),
     )
     // Stage is never sent from the edit form.
-    expect(api.patch.mock.calls[0][1]).not.toHaveProperty('current_stage')
-    await waitFor(() => { expect(mockNavigate).toHaveBeenCalledWith('/pitches/42'); })
+    const patchCalls = mockPatchHelpers.mock.calls as unknown[][]
+    expect(patchCalls[0][1]).not.toHaveProperty('current_stage')
+    await waitFor(() => { expect(mockNavigate).toHaveBeenCalledWith('/pitches/42') })
   })
 
   it('Cancel returns to the detail route without calling the API', async () => {

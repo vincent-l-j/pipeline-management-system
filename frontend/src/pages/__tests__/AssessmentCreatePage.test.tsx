@@ -18,7 +18,7 @@ interface Assessment {
   masterplan_alignment: number
 }
 
-const mockNavigate = vi.fn<[string], void>()
+const mockNavigate = vi.fn()
 let mockSearch = 'pitch_id=p1&from=a2'
 vi.mock('react-router-dom', async (importOriginal) => {
   const mod = await importOriginal()
@@ -51,8 +51,37 @@ const LATEST: Assessment = {
   masterplan_alignment: 4,
 }
 
+function createMockGetHelpers() {
+  return (() => {
+    const get = vi.mocked(api.get)
+    return {
+      mockImplementation: (fn: (url: string) => Promise<unknown>) => get.mockImplementation(fn),
+      mockReset: () => get.mockReset(),
+      get mock() {
+        return get
+      },
+    }
+  })()
+}
+
+function createMockPostHelpers() {
+  return (() => {
+    const post = vi.mocked(api.post)
+    return {
+      mockReset: () => post.mockReset(),
+      mockResolvedValue: (value: unknown) => post.mockResolvedValue(value),
+      get mock() {
+        return post
+      },
+    }
+  })()
+}
+
+let mockGetHelpers = createMockGetHelpers()
+let mockPostHelpers = createMockPostHelpers()
+
 function setupGet() {
-  vi.mocked(api.get).mockImplementation((url) => {
+  mockGetHelpers.mockImplementation((url: string) => {
     if (url === '/pitches') return Promise.resolve({ data: [{ id: 'p1', title: 'Solar Pitch' }] })
     if (url === '/assessments/a2') return Promise.resolve({ data: LATEST })
     return Promise.resolve({ data: [] })
@@ -61,8 +90,10 @@ function setupGet() {
 
 describe('AssessmentCreatePage (amend)', () => {
   beforeEach(() => {
-    vi.mocked(api.get).mockReset()
-    vi.mocked(api.post).mockReset()
+    mockGetHelpers = createMockGetHelpers()
+    mockPostHelpers = createMockPostHelpers()
+    mockGetHelpers.mockReset()
+    mockPostHelpers.mockReset()
     mockNavigate.mockReset()
     mockSearch = 'pitch_id=p1&from=a2'
   })
@@ -72,7 +103,7 @@ describe('AssessmentCreatePage (amend)', () => {
     render(<AssessmentCreatePage />)
     // Rationale is copied from the latest version.
     await waitFor(() =>
-      { expect(screen.getByDisplayValue('Strong national impact')).toBeInTheDocument(); },
+      { expect(screen.getByDisplayValue('Strong national impact')).toBeInTheDocument() },
     )
     // All six criteria pre-filled at 4 -> average 4.0 is shown.
     expect(screen.getByText('4.0')).toBeInTheDocument()
@@ -81,7 +112,7 @@ describe('AssessmentCreatePage (amend)', () => {
   it('saving posts to /assessments and navigates to the new version', async () => {
     const user = userEvent.setup()
     setupGet()
-    vi.mocked(api.post).mockResolvedValue({ data: { id: 'a3', version: 3 } })
+    mockPostHelpers.mockResolvedValue({ data: { id: 'a3', version: 3 } })
     render(<AssessmentCreatePage />)
     await waitFor(() => screen.getByDisplayValue('Strong national impact'))
 
@@ -97,7 +128,7 @@ describe('AssessmentCreatePage (amend)', () => {
         masterplan_alignment: 4,
       }),
     )
-    await waitFor(() => { expect(mockNavigate).toHaveBeenCalledWith('/assessments/a3'); })
+    await waitFor(() => { expect(mockNavigate).toHaveBeenCalledWith('/assessments/a3') })
   })
 
   it('cancelling makes no api.post call', async () => {

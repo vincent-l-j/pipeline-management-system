@@ -22,7 +22,7 @@ interface MockUser {
   role: string
 }
 
-const mockNavigate = vi.fn<[string], void>()
+const mockNavigate = vi.fn()
 vi.mock('react-router-dom', async (importOriginal) => {
   const mod = await importOriginal()
   return {
@@ -63,8 +63,23 @@ const BASE_PITCH: Pitch = {
   organisation_id: null,
 }
 
+function createMockGetHelpers() {
+  return (() => {
+    const get = vi.mocked(api.get)
+    return {
+      mockImplementation: (fn: (url: string) => Promise<unknown>) => get.mockImplementation(fn),
+      mockReset: () => get.mockReset(),
+      get mock() {
+        return get
+      },
+    }
+  })()
+}
+
+let mockGetHelpers = createMockGetHelpers()
+
 function setupGet(pitch: Pitch = BASE_PITCH) {
-  vi.mocked(api.get).mockImplementation((url) => {
+  mockGetHelpers.mockImplementation((url: string) => {
     if (url === '/pitches/42') return Promise.resolve({ data: pitch })
     if (url === '/users') return Promise.resolve({ data: [] })
     if (url.startsWith('/meetings')) return Promise.resolve({ data: [] })
@@ -76,7 +91,8 @@ function setupGet(pitch: Pitch = BASE_PITCH) {
 
 describe('PitchDetailPage', () => {
   beforeEach(() => {
-    vi.mocked(api.get).mockReset()
+    mockGetHelpers = createMockGetHelpers()
+    mockGetHelpers.mockReset()
     mockNavigate.mockReset()
     mockUser = { role: 'admin' }
   })

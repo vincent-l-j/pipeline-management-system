@@ -17,7 +17,7 @@ interface MockUser {
   role: string
 }
 
-const mockNavigate = vi.fn<[string], void>()
+const mockNavigate = vi.fn()
 vi.mock('react-router-dom', async (importOriginal) => {
   const mod = await importOriginal()
   return {
@@ -48,8 +48,23 @@ vi.mock('../../components/assessments/ScoringCard', () => ({
 const V2: Assessment = { id: 'a2', pitch_id: 'p1', version: 2, assessment_date: '2026-02-01', assessor_id: 'u2', recommendation: 'proceed' }
 const V1: Assessment = { id: 'a1', pitch_id: 'p1', version: 1, assessment_date: '2026-01-01', assessor_id: 'u1', recommendation: 'park' }
 
+function createMockGetHelpers() {
+  return (() => {
+    const get = vi.mocked(api.get)
+    return {
+      mockImplementation: (fn: (url: string) => Promise<unknown>) => get.mockImplementation(fn),
+      mockReset: () => get.mockReset(),
+      get mock() {
+        return get
+      },
+    }
+  })()
+}
+
+let mockGetHelpers = createMockGetHelpers()
+
 function setupGet() {
-  vi.mocked(api.get).mockImplementation((url) => {
+  mockGetHelpers.mockImplementation((url: string) => {
     if (url === '/assessments/a2') return Promise.resolve({ data: V2 })
     if (url === '/users/directory') return Promise.resolve({ data: [
       { id: 'u1', display_name: 'Alice' }, { id: 'u2', display_name: 'Bob' },
@@ -62,7 +77,8 @@ function setupGet() {
 
 describe('AssessmentDetailPage', () => {
   beforeEach(() => {
-    vi.mocked(api.get).mockReset()
+    mockGetHelpers = createMockGetHelpers()
+    mockGetHelpers.mockReset()
     mockNavigate.mockReset()
     mockUser = { role: 'admin' }
   })

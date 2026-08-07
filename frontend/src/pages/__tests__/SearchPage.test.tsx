@@ -19,7 +19,7 @@ interface SearchResults {
   assessments: SearchResult[]
 }
 
-const mockNavigate = vi.fn<[string], void>()
+const mockNavigate = vi.fn()
 vi.mock('react-router-dom', async (importOriginal) => {
   const mod = await importOriginal()
   return { ...mod, useNavigate: () => mockNavigate }
@@ -52,8 +52,23 @@ const RESULT_ROUTES: [string, string][] = [
   ['Solar Pitch', '/pitches/p1'],
 ]
 
+function createMockGetHelpers() {
+  return (() => {
+    const get = vi.mocked(api.get)
+    return {
+      mockReset: () => get.mockReset(),
+      mockResolvedValue: (value: unknown) => get.mockResolvedValue(value),
+      get mock() {
+        return get
+      },
+    }
+  })()
+}
+
+let mockGetHelpers = createMockGetHelpers()
+
 function setup() {
-  vi.mocked(api.get).mockResolvedValue({ data: RESULTS })
+  mockGetHelpers.mockResolvedValue({ data: RESULTS })
 }
 
 async function search(user: ReturnType<typeof userEvent.setup>, term: string) {
@@ -68,7 +83,8 @@ function isValidDetailRoute(path: string): boolean {
 
 describe('SearchPage result navigation', () => {
   beforeEach(() => {
-    vi.mocked(api.get).mockReset()
+    mockGetHelpers = createMockGetHelpers()
+    mockGetHelpers.mockReset()
     mockNavigate.mockReset()
   })
 
@@ -102,7 +118,8 @@ describe('SearchPage result navigation', () => {
     await search(user, 'xy')
 
     await user.click(screen.getByText(title))
-    const navigatePath = mockNavigate.mock.calls[0][0]
-    expect(isValidDetailRoute(navigatePath)).toBe(true)
+    const navigateCalls = mockNavigate.mock.calls as unknown[][]
+    const navigatePath = navigateCalls[0][0]
+    expect(isValidDetailRoute(navigatePath as string)).toBe(true)
   })
 })

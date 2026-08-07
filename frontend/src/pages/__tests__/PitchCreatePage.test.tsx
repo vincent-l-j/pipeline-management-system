@@ -7,7 +7,7 @@ interface MockUser {
   role: string
 }
 
-const mockNavigate = vi.fn<[string], void>()
+const mockNavigate = vi.fn()
 vi.mock('react-router-dom', async (importOriginal) => {
   const mod = await importOriginal()
   return { ...mod, useNavigate: () => mockNavigate }
@@ -26,26 +26,56 @@ vi.mock('../../components/Layout', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
 
+function createMockGetHelpers() {
+  return (() => {
+    const get = vi.mocked(api.get)
+    return {
+      mockReset: () => get.mockReset(),
+      mockResolvedValue: (value: unknown) => get.mockResolvedValue(value),
+      get mock() {
+        return get
+      },
+    }
+  })()
+}
+
+function createMockPostHelpers() {
+  return (() => {
+    const post = vi.mocked(api.post)
+    return {
+      mockReset: () => post.mockReset(),
+      get mock() {
+        return post
+      },
+    }
+  })()
+}
+
+let mockGetHelpers = createMockGetHelpers()
+let mockPostHelpers = createMockPostHelpers()
+
 describe('PitchCreatePage', () => {
   beforeEach(() => {
-    vi.mocked(api.get).mockReset()
-    vi.mocked(api.post).mockReset()
+    mockGetHelpers = createMockGetHelpers()
+    mockPostHelpers = createMockPostHelpers()
+    mockGetHelpers.mockReset()
+    mockPostHelpers.mockReset()
     mockUser = { role: 'assessor' }
-    vi.mocked(api.get).mockResolvedValue({ data: [] })
+    mockGetHelpers.mockResolvedValue({ data: [] })
   })
 
   it('resolves lead names via /users/directory, not the admin /users listing', async () => {
     render(<PitchCreatePage />)
     await waitFor(() =>
-      { expect(vi.mocked(api.get).mock.calls.map(c => c[0])).toContain('/users/directory'); },
+      { expect(mockGetHelpers.mock.calls.map((c: unknown[]) => c[0])).toContain('/users/directory') },
     )
     // The sensitive admin listing is never called from the create form.
-    expect(vi.mocked(api.get).mock.calls.map(c => c[0])).not.toContain('/users')
+    expect(mockGetHelpers.mock.calls.map((c: unknown[]) => c[0])).not.toContain('/users')
   })
 
   it('renders the create form for an assessor', async () => {
     render(<PitchCreatePage />)
-    await waitFor(() => { expect(screen.getByText('New Pitch')).toBeInTheDocument(); })
+    await waitFor(() => { expect(screen.getByText('New Pitch')).toBeInTheDocument() })
     expect(screen.getByRole('button', { name: /Add Pitch/i })).toBeInTheDocument()
   })
 })

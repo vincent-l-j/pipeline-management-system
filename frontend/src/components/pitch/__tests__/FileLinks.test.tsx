@@ -12,8 +12,37 @@ vi.mock('../../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: mockUser }),
 }))
 
-function setupGet(files: any[] = []) {
-  vi.mocked(api.get).mockResolvedValue({ data: files })
+function createMockGetHelpers() {
+  return (() => {
+    const get = vi.mocked(api.get)
+    return {
+      mockClear: () => get.mockClear(),
+      mockResolvedValue: (value: unknown) => get.mockResolvedValue(value),
+      get mock() {
+        return get
+      },
+    }
+  })()
+}
+
+function createMockPostHelpers() {
+  return (() => {
+    const post = vi.mocked(api.post)
+    return {
+      mockClear: () => post.mockClear(),
+      mockResolvedValue: (value: unknown) => post.mockResolvedValue(value),
+      get mock() {
+        return post
+      },
+    }
+  })()
+}
+
+let mockGetHelpers = createMockGetHelpers()
+let mockPostHelpers = createMockPostHelpers()
+
+function setupGet(files: unknown[] = []) {
+  mockGetHelpers.mockResolvedValue({ data: files })
 }
 
 const sampleFiles = [
@@ -23,8 +52,8 @@ const sampleFiles = [
 
 describe('FileLinks', () => {
   beforeEach(() => {
-    vi.mocked(api.get).mockClear()
-    vi.mocked(api.post).mockClear()
+    mockGetHelpers = createMockGetHelpers()
+    mockPostHelpers = createMockPostHelpers()
     mockUser = { role: 'admin' }
   })
 
@@ -115,7 +144,7 @@ describe('FileLinks', () => {
   it('POSTs the new file and reloads the list when Add Reference is clicked', async () => {
     const user = userEvent.setup()
     setupGet([])
-    vi.mocked(api.post).mockResolvedValue({})
+    mockPostHelpers.mockResolvedValue({})
     render(<FileLinks pitchId="7" />)
     await waitFor(() => screen.getByRole('button', { name: '+ Add File' }))
     await user.click(screen.getByRole('button', { name: '+ Add File' }))

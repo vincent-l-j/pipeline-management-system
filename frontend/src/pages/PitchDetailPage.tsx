@@ -5,7 +5,7 @@
  * Right column: activity timeline, file links, linked meetings & assessments
  */
 
-import { ReactNode, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import type { AxiosResponse } from 'axios'
 import Layout from '../components/Layout'
@@ -36,7 +36,7 @@ interface ExtendedPitch extends Pitch {
   masterplan_alignment?: string
 }
 
-export default function PitchDetailPage(): ReactNode {
+export default function PitchDetailPage(): React.JSX.Element {
   const { pitchId } = useParams<{ pitchId: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -58,7 +58,7 @@ export default function PitchDetailPage(): ReactNode {
       setPitch(p)
       setUsers(usersRes.data)
 
-      const promises: Array<Promise<AxiosResponse<Meeting[] | Assessment[] | Organisation>>> = [
+      const promises: Promise<AxiosResponse<Meeting[] | Assessment[] | Organisation>>[] = [
         api.get<Meeting[]>(`/meetings?pitch_id=${pitchId}`),
         api.get<Assessment[]>(`/pitches/${pitchId}/assessments`),
       ]
@@ -144,13 +144,13 @@ export default function PitchDetailPage(): ReactNode {
               {pitch.source && (
                 <div>
                   <dt className="text-navy-400">Source</dt>
-                  <dd className="text-navy-900">{SOURCE_LABELS[pitch.source as keyof typeof SOURCE_LABELS] || pitch.source}</dd>
+                  <dd className="text-navy-900">{SOURCE_LABELS[pitch.source] || pitch.source}</dd>
                 </div>
               )}
               {pitch.funding_pathway && (
                 <div>
                   <dt className="text-navy-400">Funding Pathway</dt>
-                  <dd className="text-navy-900">{FUNDING_LABELS[pitch.funding_pathway as keyof typeof FUNDING_LABELS] || pitch.funding_pathway}</dd>
+                  <dd className="text-navy-900">{FUNDING_LABELS[pitch.funding_pathway] || pitch.funding_pathway}</dd>
                 </div>
               )}
               {leadName && (
@@ -175,7 +175,7 @@ export default function PitchDetailPage(): ReactNode {
                 <div className="col-span-2">
                   <dt className="text-navy-400 mb-1">Domains</dt>
                   <dd className="flex flex-wrap gap-1.5">
-                    {pitch.domain_tags.split(',').map((tag: string): ReactNode => (
+                    {pitch.domain_tags.split(',').map((tag: string) => (
                       <span key={tag} className="text-xs bg-teal-50 text-teal-700 px-2 py-0.5 rounded capitalize">
                         {tag.trim()}
                       </span>
@@ -222,11 +222,11 @@ export default function PitchDetailPage(): ReactNode {
               <p className="text-sm text-navy-400">No meetings recorded.</p>
             ) : (
               <ul className="space-y-2">
-                {meetings.map((m: Meeting): ReactNode => (
+                {meetings.map((m: Meeting) => (
                   <li key={m.id}>
                     <button
                       type="button"
-                      onClick={(): void => navigate(`/meetings/${m.id}`)}
+                      onClick={() => { navigate(`/meetings/${m.id}`) }}
                       className="w-full text-left p-2 rounded-lg hover:bg-navy-50/50 transition-colors"
                     >
                       <p className="text-sm font-medium text-navy-900">{m.title}</p>
@@ -257,7 +257,7 @@ export default function PitchDetailPage(): ReactNode {
               <p className="text-sm text-navy-400">No assessments yet.</p>
             ) : (
               <ul className="space-y-2">
-                {assessments.sort((a: Assessment, b: Assessment): number => b.version - a.version).map((a: Assessment): ReactNode => {
+                {assessments.sort((a: Assessment, b: Assessment) => b.version - a.version).map((a: Assessment) => {
                   const recColorMap: Record<string, string> = {
                     proceed: 'bg-green-100 text-green-700',
                     park: 'bg-amber-100 text-amber-700',
@@ -269,7 +269,7 @@ export default function PitchDetailPage(): ReactNode {
                     <li key={a.id}>
                       <button
                         type="button"
-                        onClick={(): void => navigate(`/assessments/${a.id}`)}
+                        onClick={() => { navigate(`/assessments/${a.id}`) }}
                         className="w-full text-left p-2 rounded-lg hover:bg-navy-50/50 transition-colors flex items-center justify-between"
                       >
                         <div>

@@ -37,7 +37,7 @@ describe('PitchCreatePage', () => {
   it('resolves lead names via /users/directory, not the admin /users listing', async () => {
     render(<PitchCreatePage />)
     await waitFor(() =>
-      expect(vi.mocked(api.get).mock.calls.map(c => c[0])).toContain('/users/directory'),
+      { expect(vi.mocked(api.get).mock.calls.map(c => c[0])).toContain('/users/directory'); },
     )
     // The sensitive admin listing is never called from the create form.
     expect(vi.mocked(api.get).mock.calls.map(c => c[0])).not.toContain('/users')
@@ -45,7 +45,7 @@ describe('PitchCreatePage', () => {
 
   it('renders the create form for an assessor', async () => {
     render(<PitchCreatePage />)
-    await waitFor(() => expect(screen.getByText('New Pitch')).toBeInTheDocument())
+    await waitFor(() => { expect(screen.getByText('New Pitch')).toBeInTheDocument(); })
     expect(screen.getByRole('button', { name: /Add Pitch/i })).toBeInTheDocument()
   })
 })

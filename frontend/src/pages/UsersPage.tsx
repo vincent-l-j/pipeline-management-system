@@ -12,7 +12,7 @@ const roleBadge: Record<string, string> = {
 
 const selectClass = 'border border-navy-200 rounded-lg px-3 py-1.5 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300'
 
-export default function UsersPage(): JSX.Element {
+export default function UsersPage(): React.JSX.Element {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -23,7 +23,7 @@ export default function UsersPage(): JSX.Element {
     api.get('/users').then(({ data }: { data: User[] }) => {
       setUsers(data)
       setLoading(false)
-    }).catch(() => setLoading(false))
+    }).catch(() => { setLoading(false); })
   }, [])
 
   function startEdit(user: User): void {
@@ -92,7 +92,7 @@ export default function UsersPage(): JSX.Element {
                         <label className="text-xs font-medium text-navy-600">Change role:</label>
                         <select
                           value={editRole || ''}
-                          onChange={(e: ChangeEvent<HTMLSelectElement>) => setEditRole(e.target.value)}
+                          onChange={(e: ChangeEvent<HTMLSelectElement>) => { setEditRole(e.target.value); }}
                           className={selectClass}
                         >
                           <option value="admin">admin</option>

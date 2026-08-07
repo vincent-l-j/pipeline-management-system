@@ -8,7 +8,7 @@
  * - Phase 7 financial reporting placeholder
  */
 
-import { useState, useEffect, ReactNode } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import PageHeader from '../components/PageHeader'
@@ -60,7 +60,7 @@ const STAGE_CONFIG: StageConfig[] = [
   { key: 'completed', label: 'Completed', color: 'bg-emerald-500' },
 ]
 
-export default function DashboardPage(): ReactNode {
+export default function DashboardPage(): React.JSX.Element {
   const [velocity, setVelocity] = useState<VelocityReport | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -70,7 +70,7 @@ export default function DashboardPage(): ReactNode {
         setVelocity(data)
         setLoading(false)
       })
-      .catch(() => setLoading(false))
+      .catch(() => { setLoading(false); })
   }, [])
 
   if (loading) {
@@ -166,7 +166,7 @@ export default function DashboardPage(): ReactNode {
                     <span className="text-xs font-semibold text-navy-900 mb-1">{m.count}</span>
                     <div
                       className="w-full bg-navy-800 rounded-t-md transition-all"
-                      style={{ height: `${height}%` }}
+                      style={{ height: `${String(height)}%` }}
                     />
                     <span className="text-[9px] text-navy-400 mt-1.5 -rotate-45 origin-top-left whitespace-nowrap">
                       {m.month}

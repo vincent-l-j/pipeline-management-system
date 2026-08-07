@@ -72,7 +72,7 @@ describe('AssessmentCreatePage (amend)', () => {
     render(<AssessmentCreatePage />)
     // Rationale is copied from the latest version.
     await waitFor(() =>
-      expect(screen.getByDisplayValue('Strong national impact')).toBeInTheDocument(),
+      { expect(screen.getByDisplayValue('Strong national impact')).toBeInTheDocument(); },
     )
     // All six criteria pre-filled at 4 -> average 4.0 is shown.
     expect(screen.getByText('4.0')).toBeInTheDocument()
@@ -97,7 +97,7 @@ describe('AssessmentCreatePage (amend)', () => {
         masterplan_alignment: 4,
       }),
     )
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/assessments/a3'))
+    await waitFor(() => { expect(mockNavigate).toHaveBeenCalledWith('/assessments/a3'); })
   })
 
   it('cancelling makes no api.post call', async () => {

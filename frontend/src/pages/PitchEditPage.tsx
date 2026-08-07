@@ -46,7 +46,7 @@ interface PitchForm {
   lead_id: string
 }
 
-export default function PitchEditPage(): JSX.Element {
+export default function PitchEditPage(): React.JSX.Element {
   const { pitchId } = useParams()
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -165,7 +165,7 @@ export default function PitchEditPage(): JSX.Element {
             type="text"
             required
             value={form.title}
-            onChange={e => update('title', e.target.value)}
+            onChange={e => { update('title', e.target.value); }}
             placeholder="e.g. AgriTech Soil Sensor Initiative"
             className={inputClass}
           />
@@ -177,7 +177,7 @@ export default function PitchEditPage(): JSX.Element {
           <textarea
             rows={3}
             value={form.short_description}
-            onChange={e => update('short_description', e.target.value)}
+            onChange={e => { update('short_description', e.target.value); }}
             placeholder="A brief summary of the initiative (one or two sentences)..."
             className={inputClass}
           />
@@ -189,7 +189,7 @@ export default function PitchEditPage(): JSX.Element {
             <label className={labelClass}>Source</label>
             <select
               value={form.source}
-              onChange={e => update('source', e.target.value)}
+              onChange={e => { update('source', e.target.value); }}
               className={inputClass}
             >
               <option value="">Select source...</option>
@@ -202,7 +202,7 @@ export default function PitchEditPage(): JSX.Element {
             <label className={labelClass}>Funding Pathway</label>
             <select
               value={form.funding_pathway}
-              onChange={e => update('funding_pathway', e.target.value)}
+              onChange={e => { update('funding_pathway', e.target.value); }}
               className={inputClass}
             >
               <option value="">Select funding pathway...</option>
@@ -219,7 +219,7 @@ export default function PitchEditPage(): JSX.Element {
             <label className={labelClass}>Organisation</label>
             <select
               value={form.organisation_id}
-              onChange={e => update('organisation_id', e.target.value)}
+              onChange={e => { update('organisation_id', e.target.value); }}
               className={inputClass}
             >
               <option value="">Select organisation...</option>
@@ -232,7 +232,7 @@ export default function PitchEditPage(): JSX.Element {
             <label className={labelClass}>Rozetta Lead</label>
             <select
               value={form.lead_id}
-              onChange={e => update('lead_id', e.target.value)}
+              onChange={e => { update('lead_id', e.target.value); }}
               className={inputClass}
             >
               <option value="">Select lead...</option>
@@ -252,7 +252,7 @@ export default function PitchEditPage(): JSX.Element {
               <button
                 key={domain}
                 type="button"
-                onClick={() => toggleDomain(domain)}
+                onClick={() => { toggleDomain(domain); }}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                   form.domain_tags.includes(domain)
                     ? 'bg-teal-100 text-teal-700 border-teal-300'
@@ -271,7 +271,7 @@ export default function PitchEditPage(): JSX.Element {
           <textarea
             rows={2}
             value={form.masterplan_alignment}
-            onChange={e => update('masterplan_alignment', e.target.value)}
+            onChange={e => { update('masterplan_alignment', e.target.value); }}
             placeholder="How does this align with Rozetta's strategic research agenda?"
             className={inputClass}
           />
@@ -283,7 +283,7 @@ export default function PitchEditPage(): JSX.Element {
             type="checkbox"
             id="is_confidential"
             checked={form.is_confidential}
-            onChange={e => update('is_confidential', e.target.checked)}
+            onChange={e => { update('is_confidential', e.target.checked); }}
             className="w-4 h-4 rounded border-navy-300 text-navy-900 focus:ring-navy-300"
           />
           <label htmlFor="is_confidential" className="text-sm text-navy-700">

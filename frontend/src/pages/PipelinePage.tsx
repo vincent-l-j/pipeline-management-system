@@ -4,7 +4,7 @@
  * Drag cards between columns to move pitches through the pipeline.
  */
 
-import { useState, useEffect, useCallback, ReactNode } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import PageHeader from '../components/PageHeader'
@@ -15,7 +15,7 @@ import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 import { Pitch, User } from '../types'
 
-export default function PipelinePage(): ReactNode {
+export default function PipelinePage(): React.JSX.Element {
   const { user } = useAuth()
   const canEdit = user?.role === 'admin' || user?.role === 'assessor'
   const [pitches, setPitches] = useState<Pitch[]>([])
@@ -32,7 +32,7 @@ export default function PipelinePage(): ReactNode {
       setPitches(pitchRes.data)
       setUsers(userRes.data)
       setLoading(false)
-    }).catch(() => setLoading(false))
+    }).catch(() => { setLoading(false); })
   }, [])
 
   const handlePitchMoved = useCallback((pitchId: number, newStage: string): void => {
@@ -52,7 +52,7 @@ export default function PipelinePage(): ReactNode {
     }
     if (filters.domain) {
       result = result.filter(p =>
-        p.domain_tags && p.domain_tags.toLowerCase().includes(filters.domain!.toLowerCase())
+        p.domain_tags?.toLowerCase().includes(filters.domain!.toLowerCase())
       )
     }
     if (filters.lead_id) {
@@ -97,7 +97,7 @@ export default function PipelinePage(): ReactNode {
             )}
             <div className="flex items-center bg-navy-100 rounded-lg p-0.5">
               <button
-                onClick={() => setView('kanban')}
+                onClick={() => { setView('kanban'); }}
                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   view === 'kanban'
                     ? 'bg-white text-navy-900 shadow-sm'
@@ -107,7 +107,7 @@ export default function PipelinePage(): ReactNode {
                 Board
               </button>
               <button
-                onClick={() => setView('list')}
+                onClick={() => { setView('list'); }}
                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   view === 'list'
                     ? 'bg-white text-navy-900 shadow-sm'

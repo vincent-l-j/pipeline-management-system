@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 import { User } from '../types'
 
-export default function AuthCallback() {
+export default function AuthCallback(): React.JSX.Element {
   const [searchParams] = useSearchParams()
   const { login } = useAuth()
   const navigate = useNavigate()
@@ -13,7 +13,7 @@ export default function AuthCallback() {
     async function handleCallback() {
       const token = searchParams.get('token')
       if (!token) {
-        navigate('/login')
+        void navigate('/login')
         return
       }
 
@@ -22,12 +22,12 @@ export default function AuthCallback() {
       try {
         const { data } = await api.get<User>('/users/me')
         login(token, data)
-        navigate('/')
+        void navigate('/')
       } catch {
-        navigate('/login')
+        void navigate('/login')
       }
     }
-    handleCallback()
+    void handleCallback()
   }, [searchParams, login, navigate])
 
   return (

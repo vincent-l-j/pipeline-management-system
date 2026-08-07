@@ -41,7 +41,7 @@ export default function KanbanBoard({ pitches, onPitchMoved }: KanbanBoardProps)
     onPitchMoved(pitchId, toStage)
 
     try {
-      await api.post(`/pitches/${pitchId}/stage`, {
+      await api.post(`/pitches/${String(pitchId)}/stage`, {
         new_stage: toStage,
         note: `Moved from ${fromStage.replace('_', ' ')} to ${toStage.replace('_', ' ')}`,
       })
@@ -59,7 +59,7 @@ export default function KanbanBoard({ pitches, onPitchMoved }: KanbanBoardProps)
     if (!destination) return
     if (source.droppableId === destination.droppableId && source.index === destination.index) return
 
-    moveStage(parseInt(draggableId), source.droppableId, destination.droppableId)
+    void moveStage(parseInt(draggableId), source.droppableId, destination.droppableId)
   }
 
   return (
@@ -70,7 +70,9 @@ export default function KanbanBoard({ pitches, onPitchMoved }: KanbanBoardProps)
             key={stage.key}
             stage={stage}
             pitches={pitchesByStage[stage.key]}
-            onStageSelect={moveStage}
+            onStageSelect={(pitchId, fromStage, toStage) => {
+              void moveStage(pitchId, fromStage, toStage)
+            }}
           />
         ))}
       </div>

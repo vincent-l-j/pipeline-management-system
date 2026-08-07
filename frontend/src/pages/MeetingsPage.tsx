@@ -1,4 +1,4 @@
-import { useState, useEffect, ReactElement } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { AxiosResponse } from 'axios'
 import Layout from '../components/Layout'
@@ -24,8 +24,8 @@ const PLATFORM_LABELS: Record<string, string> = {
   other: 'Other',
 }
 
-export default function MeetingsPage(): ReactElement {
-  const { user } = useAuth() as AuthContextType
+export default function MeetingsPage(): React.JSX.Element {
+  const { user } = useAuth()
   const navigate = useNavigate()
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [loading, setLoading] = useState<boolean>(true)

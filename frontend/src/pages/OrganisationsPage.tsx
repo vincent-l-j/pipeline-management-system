@@ -1,4 +1,4 @@
-import { useState, useEffect, ReactNode } from 'react'
+import { useState, useEffect } from 'react'
 import Layout from '../components/Layout'
 import PageHeader from '../components/PageHeader'
 import { useAuth } from '../contexts/AuthContext'
@@ -20,7 +20,7 @@ interface OrgForm {
   notes: string
 }
 
-export default function OrganisationsPage(): ReactNode {
+export default function OrganisationsPage(): React.JSX.Element {
   const { user } = useAuth()
   const [orgs, setOrgs] = useState<Organisation[]>([])
   const [loading, setLoading] = useState<boolean>(true)
@@ -43,7 +43,7 @@ export default function OrganisationsPage(): ReactNode {
     api.get<Organisation[]>('/organisations').then(({ data }) => {
       setOrgs(data)
       setLoading(false)
-    }).catch(() => setLoading(false))
+    }).catch(() => { setLoading(false); })
   }, [])
 
   async function addOrg(): Promise<void> {
@@ -146,13 +146,13 @@ export default function OrganisationsPage(): ReactNode {
           <input
             type="text"
             value={form.name}
-            onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+            onChange={(e) => { setForm((p) => ({ ...p, name: e.target.value })); }}
             placeholder="Organisation name (required)"
             className={inputClass}
           />
           <select
             value={form.org_type}
-            onChange={(e) => setForm((p) => ({ ...p, org_type: e.target.value }))}
+            onChange={(e) => { setForm((p) => ({ ...p, org_type: e.target.value })); }}
             className={inputClass}
           >
             <option value="">Type (optional)</option>
@@ -165,34 +165,34 @@ export default function OrganisationsPage(): ReactNode {
           <input
             type="text"
             value={form.sector}
-            onChange={(e) => setForm((p) => ({ ...p, sector: e.target.value }))}
+            onChange={(e) => { setForm((p) => ({ ...p, sector: e.target.value })); }}
             placeholder="Sector (optional)"
             className={inputClass}
           />
           <input
             type="text"
             value={form.state_territory}
-            onChange={(e) => setForm((p) => ({ ...p, state_territory: e.target.value }))}
+            onChange={(e) => { setForm((p) => ({ ...p, state_territory: e.target.value })); }}
             placeholder="State/Territory (optional)"
             className={inputClass}
           />
           <input
             type="text"
             value={form.website}
-            onChange={(e) => setForm((p) => ({ ...p, website: e.target.value }))}
+            onChange={(e) => { setForm((p) => ({ ...p, website: e.target.value })); }}
             placeholder="Website (optional)"
             className={inputClass}
           />
           <input
             type="text"
             value={form.abn}
-            onChange={(e) => setForm((p) => ({ ...p, abn: e.target.value }))}
+            onChange={(e) => { setForm((p) => ({ ...p, abn: e.target.value })); }}
             placeholder="ABN (optional)"
             className={inputClass}
           />
           <textarea
             value={form.notes}
-            onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+            onChange={(e) => { setForm((p) => ({ ...p, notes: e.target.value })); }}
             placeholder="Notes (optional)"
             className={`${inputClass} resize-none`}
             rows={3}
@@ -246,14 +246,14 @@ export default function OrganisationsPage(): ReactNode {
                       <input
                         type="text"
                         value={editForm.name}
-                        onChange={(e) => setEditForm((p) => ({ ...p, name: e.target.value }))}
+                        onChange={(e) => { setEditForm((p) => ({ ...p, name: e.target.value })); }}
                         placeholder="Organisation name (required)"
                         aria-label="Organisation name"
                         className={inputClass}
                       />
                       <select
                         value={editForm.org_type}
-                        onChange={(e) => setEditForm((p) => ({ ...p, org_type: e.target.value }))}
+                        onChange={(e) => { setEditForm((p) => ({ ...p, org_type: e.target.value })); }}
                         aria-label="Organisation type"
                         className={inputClass}
                       >
@@ -267,7 +267,7 @@ export default function OrganisationsPage(): ReactNode {
                       <input
                         type="text"
                         value={editForm.sector}
-                        onChange={(e) => setEditForm((p) => ({ ...p, sector: e.target.value }))}
+                        onChange={(e) => { setEditForm((p) => ({ ...p, sector: e.target.value })); }}
                         placeholder="Sector (optional)"
                         aria-label="Organisation sector"
                         className={inputClass}
@@ -275,7 +275,7 @@ export default function OrganisationsPage(): ReactNode {
                       <input
                         type="text"
                         value={editForm.state_territory}
-                        onChange={(e) => setEditForm((p) => ({ ...p, state_territory: e.target.value }))}
+                        onChange={(e) => { setEditForm((p) => ({ ...p, state_territory: e.target.value })); }}
                         placeholder="State/Territory (optional)"
                         aria-label="Organisation state/territory"
                         className={inputClass}
@@ -283,7 +283,7 @@ export default function OrganisationsPage(): ReactNode {
                       <input
                         type="text"
                         value={editForm.website}
-                        onChange={(e) => setEditForm((p) => ({ ...p, website: e.target.value }))}
+                        onChange={(e) => { setEditForm((p) => ({ ...p, website: e.target.value })); }}
                         placeholder="Website (optional)"
                         aria-label="Organisation website"
                         className={inputClass}
@@ -291,14 +291,14 @@ export default function OrganisationsPage(): ReactNode {
                       <input
                         type="text"
                         value={editForm.abn}
-                        onChange={(e) => setEditForm((p) => ({ ...p, abn: e.target.value }))}
+                        onChange={(e) => { setEditForm((p) => ({ ...p, abn: e.target.value })); }}
                         placeholder="ABN (optional)"
                         aria-label="Organisation ABN"
                         className={inputClass}
                       />
                       <textarea
                         value={editForm.notes}
-                        onChange={(e) => setEditForm((p) => ({ ...p, notes: e.target.value }))}
+                        onChange={(e) => { setEditForm((p) => ({ ...p, notes: e.target.value })); }}
                         placeholder="Notes (optional)"
                         aria-label="Organisation notes"
                         className={`${inputClass} resize-none`}
@@ -339,7 +339,7 @@ export default function OrganisationsPage(): ReactNode {
                             Confirm
                           </button>
                           <button
-                            onClick={() => setConfirmingId(null)}
+                            onClick={() => { setConfirmingId(null); }}
                             className="text-xs text-navy-500 hover:text-navy-700"
                           >
                             Cancel
@@ -349,7 +349,7 @@ export default function OrganisationsPage(): ReactNode {
                         <span className="inline-flex gap-3">
                           {canEdit && (
                             <button
-                              onClick={() => startEdit(org)}
+                              onClick={() => { startEdit(org); }}
                               className="text-xs text-navy-600 hover:text-navy-900"
                             >
                               Edit

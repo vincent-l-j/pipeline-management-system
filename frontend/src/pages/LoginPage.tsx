@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import api from '../services/api'
 import { User } from '../types'
 
-const LoginPage = (): React.ReactElement => {
+export default function LoginPage(): React.JSX.Element {
   const { login } = useAuth()
   const navigate = useNavigate()
 
@@ -17,7 +17,7 @@ const LoginPage = (): React.ReactElement => {
     // Development only — get a test token without Microsoft
     const { data } = await api.get<{ access_token: string; user: User }>('/auth/dev-token')
     login(data.access_token, data.user)
-    navigate('/')
+    void navigate('/')
   }
 
   return (
@@ -34,7 +34,7 @@ const LoginPage = (): React.ReactElement => {
           Sign in with Microsoft
         </button>
 
-        {import.meta.env.VITE_ENABLE_DEV_LOGIN === 'true' && (
+        {(import.meta.env as Record<string, string>).VITE_ENABLE_DEV_LOGIN === 'true' && (
           <>
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
@@ -61,5 +61,3 @@ const LoginPage = (): React.ReactElement => {
     </div>
   )
 }
-
-export default LoginPage

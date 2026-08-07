@@ -4,8 +4,8 @@
  * domain tags, organisation, lead, and confidentiality flag.
  */
 
-import { useState, useEffect, FC, FormEvent } from 'react'
-import { useNavigate, NavigateFunction } from 'react-router-dom'
+import { useState, useEffect, FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AxiosError } from 'axios'
 import Layout from '../components/Layout'
 import PageHeader from '../components/PageHeader'
@@ -51,8 +51,8 @@ interface PitchForm {
   lead_id: string
 }
 
-const PitchCreatePage: FC = () => {
-  const navigate: NavigateFunction = useNavigate()
+export default function PitchCreatePage(): React.JSX.Element {
+  const navigate = useNavigate()
   const [organisations, setOrganisations] = useState<Organisation[]>([])
   const [users, setUsers] = useState<User[]>([])
   const [saving, setSaving] = useState<boolean>(false)
@@ -73,10 +73,10 @@ const PitchCreatePage: FC = () => {
 
   useEffect((): void => {
     api.get<Organisation[]>('/organisations')
-      .then(({ data }) => setOrganisations(data))
+      .then(({ data }) => { setOrganisations(data); })
       .catch((): void => {})
     api.get<User[]>('/users/directory')
-      .then(({ data }) => setUsers(data))
+      .then(({ data }) => { setUsers(data); })
       .catch((): void => {})
   }, [])
 
@@ -116,14 +116,14 @@ const PitchCreatePage: FC = () => {
       const { data } = await api.post('/pitches', payload)
       navigate(`/pitches/${data.id}`)
     } catch (err) {
-      const axiosError = err as AxiosError<ApiError['response']['data']>
+      const axiosError = err as AxiosError<{ detail?: string }>
       setError(axiosError.response?.data?.detail || 'Failed to create pitch')
       setSaving(false)
     }
   }
 
-  const inputClass: string = "w-full border border-navy-200 rounded-lg px-3 py-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300"
-  const labelClass: string = "block text-sm font-medium text-navy-700 mb-1"
+  const inputClass = "w-full border border-navy-200 rounded-lg px-3 py-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300"
+  const labelClass = "block text-sm font-medium text-navy-700 mb-1"
 
   return (
     <Layout>
@@ -143,7 +143,7 @@ const PitchCreatePage: FC = () => {
             type="text"
             required
             value={form.title}
-            onChange={e => update('title', e.target.value)}
+            onChange={e => { update('title', e.target.value); }}
             placeholder="e.g. AgriTech Soil Sensor Initiative"
             className={inputClass}
           />
@@ -155,7 +155,7 @@ const PitchCreatePage: FC = () => {
           <textarea
             rows={3}
             value={form.short_description}
-            onChange={e => update('short_description', e.target.value)}
+            onChange={e => { update('short_description', e.target.value); }}
             placeholder="A brief summary of the initiative (one or two sentences)..."
             className={inputClass}
           />
@@ -168,7 +168,7 @@ const PitchCreatePage: FC = () => {
             <input
               type="date"
               value={form.submission_date}
-              onChange={e => update('submission_date', e.target.value)}
+              onChange={e => { update('submission_date', e.target.value); }}
               className={inputClass}
             />
           </div>
@@ -176,7 +176,7 @@ const PitchCreatePage: FC = () => {
             <label className={labelClass}>Source</label>
             <select
               value={form.source}
-              onChange={e => update('source', e.target.value)}
+              onChange={e => { update('source', e.target.value); }}
               className={inputClass}
             >
               <option value="">Select source...</option>
@@ -193,7 +193,7 @@ const PitchCreatePage: FC = () => {
             <label className={labelClass}>Funding Pathway</label>
             <select
               value={form.funding_pathway}
-              onChange={e => update('funding_pathway', e.target.value)}
+              onChange={e => { update('funding_pathway', e.target.value); }}
               className={inputClass}
             >
               <option value="">Select funding pathway...</option>
@@ -206,7 +206,7 @@ const PitchCreatePage: FC = () => {
             <label className={labelClass}>Organisation</label>
             <select
               value={form.organisation_id}
-              onChange={e => update('organisation_id', e.target.value)}
+              onChange={e => { update('organisation_id', e.target.value); }}
               className={inputClass}
             >
               <option value="">Select organisation...</option>
@@ -222,7 +222,7 @@ const PitchCreatePage: FC = () => {
           <label className={labelClass}>Rozetta Lead</label>
           <select
             value={form.lead_id}
-            onChange={e => update('lead_id', e.target.value)}
+            onChange={e => { update('lead_id', e.target.value); }}
             className={inputClass}
           >
             <option value="">Select lead...</option>
@@ -241,7 +241,7 @@ const PitchCreatePage: FC = () => {
               <button
                 key={domain}
                 type="button"
-                onClick={() => toggleDomain(domain)}
+                onClick={() => { toggleDomain(domain); }}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                   form.domain_tags.includes(domain)
                     ? 'bg-teal-100 text-teal-700 border-teal-300'
@@ -260,7 +260,7 @@ const PitchCreatePage: FC = () => {
           <textarea
             rows={2}
             value={form.masterplan_alignment}
-            onChange={e => update('masterplan_alignment', e.target.value)}
+            onChange={e => { update('masterplan_alignment', e.target.value); }}
             placeholder="How does this align with Rozetta's strategic research agenda?"
             className={inputClass}
           />
@@ -272,7 +272,7 @@ const PitchCreatePage: FC = () => {
             type="checkbox"
             id="is_confidential"
             checked={form.is_confidential}
-            onChange={e => update('is_confidential', e.target.checked)}
+            onChange={e => { update('is_confidential', e.target.checked); }}
             className="w-4 h-4 rounded border-navy-300 text-navy-900 focus:ring-navy-300"
           />
           <label htmlFor="is_confidential" className="text-sm text-navy-700">
@@ -301,5 +301,3 @@ const PitchCreatePage: FC = () => {
     </Layout>
   )
 }
-
-export default PitchCreatePage

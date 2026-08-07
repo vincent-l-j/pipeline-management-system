@@ -24,7 +24,7 @@ interface FileLinksProps {
   pitchId: string | number;
 }
 
-export default function FileLinks({ pitchId }: FileLinksProps) {
+export default function FileLinks({ pitchId }: FileLinksProps): React.JSX.Element {
   const { user } = useAuth();
   const [files, setFiles] = useState<FileLink[]>([]);
   const [showAdd, setShowAdd] = useState(false);
@@ -42,16 +42,16 @@ export default function FileLinks({ pitchId }: FileLinksProps) {
 
   function loadFiles(): void {
     void api
-      .get<FileLink[]>(`/pitches/${pitchId}/files`)
-      .then(({ data }) => setFiles(data));
+      .get<FileLink[]>(`/pitches/${String(pitchId)}/files`)
+      .then(({ data }) => { setFiles(data); });
   }
 
   async function addFile(): Promise<void> {
     if (!newFile.file_path.trim()) return;
-    await api.post(`/pitches/${pitchId}/files`, newFile);
+    await api.post(`/pitches/${String(pitchId)}/files`, newFile);
     setNewFile({ file_path: "", label: "", description: "" });
     setShowAdd(false);
-    void loadFiles();
+    loadFiles();
   }
 
   const inputClass =
@@ -65,7 +65,7 @@ export default function FileLinks({ pitchId }: FileLinksProps) {
         </h2>
         {canEdit && (
           <button
-            onClick={() => setShowAdd(!showAdd)}
+            onClick={() => { setShowAdd(!showAdd); }}
             className="text-xs text-navy-600 hover:text-navy-900 font-medium"
           >
             {showAdd ? "Cancel" : "+ Add File"}

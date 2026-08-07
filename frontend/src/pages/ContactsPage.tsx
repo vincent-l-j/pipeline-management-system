@@ -1,4 +1,4 @@
-import { useState, useEffect, ChangeEvent, ReactElement } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import { AxiosError } from "axios";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
@@ -26,7 +26,7 @@ interface ErrorResponse {
   detail?: string;
 }
 
-export default function ContactsPage(): ReactElement {
+export default function ContactsPage(): React.JSX.Element {
   const { user } = useAuth();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +56,7 @@ export default function ContactsPage(): ReactElement {
         setContacts(data);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => { setLoading(false); });
   }, []);
 
   const addContact = async (): Promise<void> => {
@@ -161,7 +161,7 @@ export default function ContactsPage(): ReactElement {
             type="text"
             value={form.name}
             onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              setForm((p) => ({ ...p, name: e.target.value }))
+              { setForm((p) => ({ ...p, name: e.target.value })); }
             }
             placeholder="Contact name"
             className={inputClass}
@@ -171,7 +171,7 @@ export default function ContactsPage(): ReactElement {
               type="text"
               value={form.role}
               onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                setForm((p) => ({ ...p, role: e.target.value }))
+                { setForm((p) => ({ ...p, role: e.target.value })); }
               }
               placeholder="Role (optional)"
               className={inputClass}
@@ -180,7 +180,7 @@ export default function ContactsPage(): ReactElement {
               type="email"
               value={form.email}
               onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                setForm((p) => ({ ...p, email: e.target.value }))
+                { setForm((p) => ({ ...p, email: e.target.value })); }
               }
               placeholder="Email (optional)"
               className={inputClass}
@@ -246,7 +246,7 @@ export default function ContactsPage(): ReactElement {
                         type="text"
                         value={editForm.name}
                         onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                          setEditForm((p) => ({ ...p, name: e.target.value }))
+                          { setEditForm((p) => ({ ...p, name: e.target.value })); }
                         }
                         aria-label="Contact name"
                         className={inputClass}
@@ -257,7 +257,7 @@ export default function ContactsPage(): ReactElement {
                         type="text"
                         value={editForm.role}
                         onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                          setEditForm((p) => ({ ...p, role: e.target.value }))
+                          { setEditForm((p) => ({ ...p, role: e.target.value })); }
                         }
                         aria-label="Contact role"
                         className={inputClass}
@@ -268,7 +268,7 @@ export default function ContactsPage(): ReactElement {
                         type="email"
                         value={editForm.email}
                         onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                          setEditForm((p) => ({ ...p, email: e.target.value }))
+                          { setEditForm((p) => ({ ...p, email: e.target.value })); }
                         }
                         aria-label="Contact email"
                         className={inputClass}
@@ -321,7 +321,7 @@ export default function ContactsPage(): ReactElement {
                               Confirm
                             </button>
                             <button
-                              onClick={() => setConfirmingId(null)}
+                              onClick={() => { setConfirmingId(null); }}
                               className="text-xs text-navy-500 hover:text-navy-700"
                             >
                               Cancel
@@ -331,7 +331,7 @@ export default function ContactsPage(): ReactElement {
                           <span className="inline-flex gap-3">
                             {canEdit && (
                               <button
-                                onClick={() => startEdit(c)}
+                                onClick={() => { startEdit(c); }}
                                 className="text-xs text-navy-600 hover:text-navy-900"
                               >
                                 Edit

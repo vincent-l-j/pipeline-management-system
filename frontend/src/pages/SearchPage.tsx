@@ -4,7 +4,7 @@
  * contacts, meetings, assessments). Clickable results link to detail pages.
  */
 
-import { useState, useCallback, useRef, ReactNode } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
@@ -61,7 +61,7 @@ const BADGE_COLORS: Record<string, string> = {
   assessment: "bg-green-100 text-green-700",
 };
 
-export default function SearchPage(): ReactNode {
+export default function SearchPage(): React.JSX.Element {
   const navigate = useNavigate();
   const [query, setQuery] = useState<string>("");
   const [results, setResults] = useState<SearchResults | null>(null);
@@ -118,7 +118,7 @@ export default function SearchPage(): ReactNode {
           <input
             type="text"
             value={query}
-            onChange={(e) => handleInput(e.target.value)}
+            onChange={(e) => { handleInput(e.target.value); }}
             placeholder="Search pitches, organisations, contacts, meetings, assessments..."
             autoFocus
             className="w-full border border-navy-200 rounded-xl px-4 py-3 pl-10 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300 shadow-sm"
@@ -168,7 +168,7 @@ export default function SearchPage(): ReactNode {
                       ).map((item: SearchResult) => (
                         <button
                           key={item.id}
-                          onClick={() => handleResultClick(item)}
+                          onClick={() => { handleResultClick(item); }}
                           className="w-full text-left px-4 py-3 hover:bg-navy-50/50 transition-colors flex items-center justify-between"
                         >
                           <div className="min-w-0">

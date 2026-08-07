@@ -38,7 +38,7 @@ interface PipelineFiltersProps {
   users: User[]
 }
 
-export default function PipelineFilters({ filters, onChange, users }: PipelineFiltersProps): JSX.Element {
+export default function PipelineFilters({ filters, onChange, users }: PipelineFiltersProps): React.JSX.Element {
   const handleSelectChange = (field: keyof PipelineFiltersState) => (e: ChangeEvent<HTMLSelectElement>): void => {
     onChange({ ...filters, [field]: e.target.value })
   }
@@ -47,7 +47,7 @@ export default function PipelineFilters({ filters, onChange, users }: PipelineFi
     <div className="flex flex-wrap items-center gap-3 mb-5">
       {/* Stage filter */}
       <select
-        value={filters.stage || ''}
+        value={filters.stage ?? ''}
         onChange={handleSelectChange('stage')}
         className="text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-300"
       >
@@ -59,7 +59,7 @@ export default function PipelineFilters({ filters, onChange, users }: PipelineFi
 
       {/* Source filter */}
       <select
-        value={filters.source || ''}
+        value={filters.source ?? ''}
         onChange={handleSelectChange('source')}
         className="text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-300"
       >
@@ -71,7 +71,7 @@ export default function PipelineFilters({ filters, onChange, users }: PipelineFi
 
       {/* Domain filter */}
       <select
-        value={filters.domain || ''}
+        value={filters.domain ?? ''}
         onChange={handleSelectChange('domain')}
         className="text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-300"
       >
@@ -83,7 +83,7 @@ export default function PipelineFilters({ filters, onChange, users }: PipelineFi
 
       {/* Lead filter */}
       <select
-        value={filters.lead_id || ''}
+        value={filters.lead_id ?? ''}
         onChange={handleSelectChange('lead_id')}
         className="text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-300"
       >
@@ -95,7 +95,7 @@ export default function PipelineFilters({ filters, onChange, users }: PipelineFi
 
       {/* Sort */}
       <select
-        value={filters.sort || 'newest'}
+        value={filters.sort ?? 'newest'}
         onChange={handleSelectChange('sort')}
         className="text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-300"
       >
@@ -105,9 +105,11 @@ export default function PipelineFilters({ filters, onChange, users }: PipelineFi
       </select>
 
       {/* Clear filters */}
-      {(filters.stage || filters.source || filters.domain || filters.lead_id) && (
+      {(filters.stage ?? filters.source ?? filters.domain ?? filters.lead_id) && (
         <button
-          onClick={() => onChange({ sort: filters.sort })}
+          onClick={() => {
+            onChange({ sort: filters.sort })
+          }}
           className="text-xs text-navy-500 hover:text-navy-700 underline"
         >
           Clear filters

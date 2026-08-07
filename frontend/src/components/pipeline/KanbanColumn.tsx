@@ -56,10 +56,10 @@ export default function KanbanColumn({
             {pitches.map((pitch, index) => (
               <Draggable
                 key={pitch.id}
-                draggableId={`${pitch.id}`}
+                draggableId={pitch.id.toString()}
                 index={index}
               >
-                {(provided, _snapshot) => (
+                {(provided) => (
                   <PitchCard
                     pitch={pitch}
                     innerRef={provided.innerRef}

@@ -40,7 +40,7 @@ async function expand(user: ReturnType<typeof userEvent.setup>): Promise<void> {
 
 describe('AINoteImporter', () => {
   beforeEach(() => {
-    vi.mocked(api.post).mockClear!()
+    vi.clearAllMocks()
     mockUser = { role: 'admin' }
   })
 
@@ -75,7 +75,8 @@ describe('AINoteImporter', () => {
 
   it('posts the raw notes and shows parsed results', async () => {
     const user = userEvent.setup()
-    vi.mocked(api.post).mockResolvedValue!({ data: parsedResult })
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    vi.mocked(api.post).mockResolvedValue({ data: parsedResult })
     render(<AINoteImporter onImport={vi.fn()} />)
     await expand(user)
     await user.type(screen.getByPlaceholderText(/Paste your meeting notes/), 'Meeting notes text')
@@ -84,7 +85,8 @@ describe('AINoteImporter', () => {
     await waitFor(() => {
       expect(screen.getByText('AI-Parsed Results')).toBeInTheDocument()
     })
-    expect(api.post).toHaveBeenCalledWith('/meetings/parse-notes', { raw_notes: 'Meeting notes text' })
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(vi.mocked(api.post)).toHaveBeenCalledWith('/meetings/parse-notes', { raw_notes: 'Meeting notes text' })
     expect(screen.getByText('Discussed the CRC bid timeline.')).toBeInTheDocument()
     expect(screen.getByText('Agreed on Q3 submission')).toBeInTheDocument()
     expect(screen.getByText('Sarah to draft budget')).toBeInTheDocument()
@@ -94,7 +96,8 @@ describe('AINoteImporter', () => {
 
   it('labels results as the basic parser when ai_parsed is false', async () => {
     const user = userEvent.setup()
-    vi.mocked(api.post).mockResolvedValue!({ data: { ...parsedResult, ai_parsed: false } })
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    vi.mocked(api.post).mockResolvedValue({ data: { ...parsedResult, ai_parsed: false } })
     render(<AINoteImporter onImport={vi.fn()} />)
     await expand(user)
     await user.type(screen.getByPlaceholderText(/Paste your meeting notes/), 'notes')
@@ -106,7 +109,8 @@ describe('AINoteImporter', () => {
 
   it('shows an error message when parsing fails', async () => {
     const user = userEvent.setup()
-    vi.mocked(api.post).mockRejectedValue!({ response: { data: { detail: 'Bad notes' } } })
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    vi.mocked(api.post).mockRejectedValue({ response: { data: { detail: 'Bad notes' } } })
     render(<AINoteImporter onImport={vi.fn()} />)
     await expand(user)
     await user.type(screen.getByPlaceholderText(/Paste your meeting notes/), 'notes')
@@ -119,7 +123,8 @@ describe('AINoteImporter', () => {
   it('calls onImport with parsed data when Apply to Meeting is clicked', async () => {
     const user = userEvent.setup()
     const onImport = vi.fn()
-    vi.mocked(api.post).mockResolvedValue!({ data: parsedResult })
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    vi.mocked(api.post).mockResolvedValue({ data: parsedResult })
     render(<AINoteImporter onImport={onImport} />)
     await expand(user)
     await user.type(screen.getByPlaceholderText(/Paste your meeting notes/), 'notes')
@@ -132,7 +137,8 @@ describe('AINoteImporter', () => {
 
   it('returns to the paste step when Re-parse is clicked', async () => {
     const user = userEvent.setup()
-    vi.mocked(api.post).mockResolvedValue!({ data: parsedResult })
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    vi.mocked(api.post).mockResolvedValue({ data: parsedResult })
     render(<AINoteImporter onImport={vi.fn()} />)
     await expand(user)
     await user.type(screen.getByPlaceholderText(/Paste your meeting notes/), 'notes')
@@ -145,7 +151,8 @@ describe('AINoteImporter', () => {
 
   it('shows "None extracted" when key points and action items are empty', async () => {
     const user = userEvent.setup()
-    vi.mocked(api.post).mockResolvedValue!({
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    vi.mocked(api.post).mockResolvedValue({
       data: { ...parsedResult, key_points: [], action_items: [] },
     })
     render(<AINoteImporter onImport={vi.fn()} />)

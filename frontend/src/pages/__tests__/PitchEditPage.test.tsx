@@ -83,7 +83,7 @@ describe('PitchEditPage', () => {
     setupGet()
     render(<PitchEditPage />)
     await waitFor(() =>
-      expect(screen.getByDisplayValue('Original Title')).toBeInTheDocument(),
+      { expect(screen.getByDisplayValue('Original Title')).toBeInTheDocument(); },
     )
     expect(screen.getByDisplayValue('Original description')).toBeInTheDocument()
   })
@@ -113,7 +113,7 @@ describe('PitchEditPage', () => {
     )
     // Stage is never sent from the edit form.
     expect(api.patch.mock.calls[0][1]).not.toHaveProperty('current_stage')
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/pitches/42'))
+    await waitFor(() => { expect(mockNavigate).toHaveBeenCalledWith('/pitches/42'); })
   })
 
   it('Cancel returns to the detail route without calling the API', async () => {

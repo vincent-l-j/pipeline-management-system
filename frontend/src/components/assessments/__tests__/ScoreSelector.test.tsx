@@ -19,7 +19,7 @@ describe('ScoreSelector', () => {
   it('renders 5 numbered score buttons', () => {
     render(<ScoreSelector criterion={criterion} value={undefined} onChange={vi.fn()} />)
     for (let i = 1; i <= 5; i++) {
-      expect(screen.getByRole('button', { name: new RegExp(`${i}`) })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: new RegExp(i.toString()) })).toBeInTheDocument()
     }
   })
 

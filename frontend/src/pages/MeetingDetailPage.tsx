@@ -3,7 +3,7 @@
  * Shows meeting info, attendees, and provides the AI notetaker import.
  */
 
-import { useState, useEffect, ReactNode } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import Layout from '../components/Layout'
 import PageHeader from '../components/PageHeader'
@@ -59,7 +59,7 @@ interface RouteParams {
   meetingId?: string
 }
 
-function MeetingDetailPage(): ReactNode {
+function MeetingDetailPage(): React.JSX.Element {
   const { meetingId } = useParams<RouteParams>()
   const navigate = useNavigate()
   const [meeting, setMeeting] = useState<Meeting | null>(null)
@@ -171,7 +171,7 @@ function MeetingDetailPage(): ReactNode {
                 <input
                   type="text"
                   value={editForm.title}
-                  onChange={e => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={e => { setEditForm(prev => ({ ...prev, title: e.target.value })); }}
                   className={inputClass}
                 />
               </div>
@@ -181,7 +181,7 @@ function MeetingDetailPage(): ReactNode {
                 <textarea
                   rows={4}
                   value={editForm.summary}
-                  onChange={e => setEditForm(prev => ({ ...prev, summary: e.target.value }))}
+                  onChange={e => { setEditForm(prev => ({ ...prev, summary: e.target.value })); }}
                   className={inputClass}
                 />
               </div>
@@ -191,7 +191,7 @@ function MeetingDetailPage(): ReactNode {
                 <textarea
                   rows={4}
                   value={editForm.key_points}
-                  onChange={e => setEditForm(prev => ({ ...prev, key_points: e.target.value }))}
+                  onChange={e => { setEditForm(prev => ({ ...prev, key_points: e.target.value })); }}
                   placeholder="One point per line..."
                   className={inputClass}
                 />
@@ -202,7 +202,7 @@ function MeetingDetailPage(): ReactNode {
                 <textarea
                   rows={4}
                   value={editForm.action_items}
-                  onChange={e => setEditForm(prev => ({ ...prev, action_items: e.target.value }))}
+                  onChange={e => { setEditForm(prev => ({ ...prev, action_items: e.target.value })); }}
                   placeholder="One item per line..."
                   className={inputClass}
                 />
@@ -214,7 +214,7 @@ function MeetingDetailPage(): ReactNode {
                   <input
                     type="date"
                     value={editForm.follow_up_date}
-                    onChange={e => setEditForm(prev => ({ ...prev, follow_up_date: e.target.value }))}
+                    onChange={e => { setEditForm(prev => ({ ...prev, follow_up_date: e.target.value })); }}
                     className={inputClass}
                   />
                 </div>
@@ -223,7 +223,7 @@ function MeetingDetailPage(): ReactNode {
                   <input
                     type="text"
                     value={editForm.recording_link}
-                    onChange={e => setEditForm(prev => ({ ...prev, recording_link: e.target.value }))}
+                    onChange={e => { setEditForm(prev => ({ ...prev, recording_link: e.target.value })); }}
                     className={inputClass}
                   />
                 </div>
@@ -238,7 +238,7 @@ function MeetingDetailPage(): ReactNode {
                   {saving ? 'Saving...' : 'Save Changes'}
                 </button>
                 <button
-                  onClick={() => setEditing(false)}
+                  onClick={() => { setEditing(false); }}
                   className="border border-navy-200 text-navy-600 px-5 py-2 rounded-lg text-sm font-medium hover:border-navy-400 transition-colors"
                 >
                   Cancel

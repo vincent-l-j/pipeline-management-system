@@ -33,18 +33,20 @@ interface ActivityTimelineProps {
   pitchId: string | number
 }
 
-export default function ActivityTimeline({ pitchId }: ActivityTimelineProps) {
+export default function ActivityTimeline({ pitchId }: ActivityTimelineProps): React.JSX.Element {
   const navigate = useNavigate()
   const [events, setEvents] = useState<TimelineEvent[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.get<TimelineResponse>(`/pitches/${pitchId}/timeline`)
+    api.get<TimelineResponse>(`/pitches/${String(pitchId)}/timeline`)
       .then(({ data }) => {
         setEvents(data.events)
         setLoading(false)
       })
-      .catch(() => setLoading(false))
+      .catch(() => {
+        setLoading(false)
+      })
   }, [pitchId])
 
   function formatDate(isoDate: string): string {
@@ -57,9 +59,9 @@ export default function ActivityTimeline({ pitchId }: ActivityTimelineProps) {
 
   function handleClick(event: TimelineEvent): void {
     if (event.type === 'meeting' && event.meeting_id) {
-      navigate(`/meetings/${event.meeting_id}`)
+      void navigate(`/meetings/${String(event.meeting_id)}`)
     } else if (event.type === 'assessment' && event.assessment_id) {
-      navigate(`/assessments/${event.assessment_id}`)
+      void navigate(`/assessments/${String(event.assessment_id)}`)
     }
   }
 
@@ -78,13 +80,15 @@ export default function ActivityTimeline({ pitchId }: ActivityTimelineProps) {
 
       <div className="space-y-0">
         {events.map((event, i) => {
-          const config = EVENT_CONFIG[event.type] || EVENT_CONFIG.created
+          const config = EVENT_CONFIG[event.type]
           const clickable = event.type === 'meeting' || event.type === 'assessment'
 
           return (
             <div
               key={i}
-              onClick={() => clickable && handleClick(event)}
+              onClick={() => {
+                if (clickable) handleClick(event)
+              }}
               className={`relative flex gap-4 py-3 pl-1 ${clickable ? 'cursor-pointer hover:bg-navy-50/50 rounded-lg' : ''}`}
             >
               {/* Icon dot */}

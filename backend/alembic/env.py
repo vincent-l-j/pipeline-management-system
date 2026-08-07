@@ -2,10 +2,12 @@ import os
 import sys
 from logging.config import fileConfig
 
-# Registers the hook that makes autogenerate emit enum type CREATE/DROP and value
-# syncs; without the import, enum changes and downgrade drops are silently missed.
 from alembic import context
 from sqlalchemy import create_engine, pool
+
+# Registers the hook that makes autogenerate emit enum type CREATE/DROP and value
+# syncs; without the import, enum changes and downgrade drops are silently missed.
+import alembic_postgresql_enum  # noqa: F401
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 

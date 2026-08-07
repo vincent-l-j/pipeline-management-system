@@ -91,7 +91,7 @@ describe('OrganisationsPage', () => {
       '/organisations',
       expect.objectContaining({ name: 'New Org' }),
     )
-    await waitFor(() => expect(screen.getByText('New Org')).toBeInTheDocument())
+    await waitFor(() => { expect(screen.getByText('New Org')).toBeInTheDocument(); })
   })
 
   it('Add form includes all optional fields', async () => {
@@ -143,7 +143,7 @@ describe('OrganisationsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Remove' }))
     await user.click(await screen.findByRole('button', { name: 'Confirm' }))
     expect(api.delete).toHaveBeenCalledWith('/organisations/o1')
-    await waitFor(() => expect(screen.queryByText('Soil Tech Labs')).not.toBeInTheDocument())
+    await waitFor(() => { expect(screen.queryByText('Soil Tech Labs')).not.toBeInTheDocument(); })
   })
 
   it('cancelling the Remove confirmation does not call the API', async () => {
@@ -165,7 +165,7 @@ describe('OrganisationsPage', () => {
     await waitFor(() => screen.getByText('Soil Tech Labs'))
     await user.click(screen.getByRole('button', { name: 'Remove' }))
     await user.click(await screen.findByRole('button', { name: 'Confirm' }))
-    await waitFor(() => expect(screen.getByText(/Delete failed/)).toBeInTheDocument())
+    await waitFor(() => { expect(screen.getByText(/Delete failed/)).toBeInTheDocument(); })
     expect(screen.getByText('Soil Tech Labs')).toBeInTheDocument()
   })
 
@@ -216,7 +216,7 @@ describe('OrganisationsPage', () => {
     await user.type(sectorInput, 'Energy')
     await user.click(screen.getByRole('button', { name: 'Save' }))
     expect(api.patch).toHaveBeenCalledWith('/organisations/o1', { sector: 'Energy' })
-    await waitFor(() => expect(screen.getByText('Energy')).toBeInTheDocument())
+    await waitFor(() => { expect(screen.getByText('Energy')).toBeInTheDocument(); })
     expect(screen.queryByText('Agriculture')).not.toBeInTheDocument()
   })
 
@@ -265,7 +265,7 @@ describe('OrganisationsPage', () => {
     await user.clear(sectorInput)
     await user.type(sectorInput, 'Energy')
     await user.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() => expect(screen.getByText(/Update failed/)).toBeInTheDocument())
+    await waitFor(() => { expect(screen.getByText(/Update failed/)).toBeInTheDocument(); })
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(screen.getByText('Agriculture')).toBeInTheDocument()
     expect(screen.queryByText('Energy')).not.toBeInTheDocument()

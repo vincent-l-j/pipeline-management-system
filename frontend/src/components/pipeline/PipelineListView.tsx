@@ -24,7 +24,6 @@ interface PipelineListViewProps {
 
 export default function PipelineListView({
   pitches,
-  onStageClick: _onStageClick,
 }: PipelineListViewProps) {
   return (
     <div className="bg-white rounded-xl border border-navy-100 overflow-hidden">
@@ -83,18 +82,16 @@ export default function PipelineListView({
                   </td>
                   <td className="px-4 py-3">
                     <span
-                      className={`inline-block text-xs font-medium px-2 py-1 rounded-full ${stage?.lightColor || "bg-gray-100"}`}
+                      className={`inline-block text-xs font-medium px-2 py-1 rounded-full ${stage.lightColor}`}
                     >
-                      {stage?.label || pitch.current_stage}
+                      {stage.label}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-navy-500">
-                    {SOURCE_LABELS[pitch.source!] || pitch.source || "-"}
+                    {pitch.source ? SOURCE_LABELS[pitch.source] ?? pitch.source : "-"}
                   </td>
                   <td className="px-4 py-3 text-navy-500">
-                    {FUNDING_LABELS[pitch.funding_pathway!] ||
-                      pitch.funding_pathway ||
-                      "-"}
+                    {pitch.funding_pathway ? FUNDING_LABELS[pitch.funding_pathway] ?? pitch.funding_pathway : "-"}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
@@ -113,7 +110,7 @@ export default function PipelineListView({
                     </div>
                   </td>
                   <td className="px-4 py-3 text-navy-500">
-                    {pitch.submission_date || "-"}
+                    {pitch.submission_date ?? "-"}
                   </td>
                 </tr>
               );

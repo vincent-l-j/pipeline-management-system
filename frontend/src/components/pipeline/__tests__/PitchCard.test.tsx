@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { DraggableProvidedDraggableProps } from '@hello-pangea/dnd'
 import PitchCard from '../PitchCard'
 
 const mockNavigate = vi.fn()
@@ -36,7 +37,10 @@ describe('PitchCard', () => {
       <PitchCard
         pitch={pitch}
         innerRef={null}
-        draggableProps={{} as any}
+        draggableProps={{
+          'data-rbd-draggable-context-id': '1',
+          'data-rbd-draggable-id': 'test',
+        } as unknown as DraggableProvidedDraggableProps}
         dragHandleProps={null}
       />
     )
@@ -49,7 +53,10 @@ describe('PitchCard', () => {
       <PitchCard
         pitch={pitch}
         innerRef={null}
-        draggableProps={{} as any}
+        draggableProps={{
+          'data-rbd-draggable-context-id': '1',
+          'data-rbd-draggable-id': 'test',
+        } as unknown as DraggableProvidedDraggableProps}
         dragHandleProps={null}
       />
     )

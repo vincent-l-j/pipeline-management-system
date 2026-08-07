@@ -87,7 +87,7 @@ describe('ContactsPage', () => {
       '/contacts',
       expect.objectContaining({ name: 'New Person' }),
     )
-    await waitFor(() => expect(screen.getByText('New Person')).toBeInTheDocument())
+    await waitFor(() => { expect(screen.getByText('New Person')).toBeInTheDocument(); })
   })
 
   it('Remove asks for confirmation; confirming deletes and removes the row', async () => {
@@ -99,7 +99,7 @@ describe('ContactsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Remove' }))
     await user.click(await screen.findByRole('button', { name: 'Confirm' }))
     expect(api.delete).toHaveBeenCalledWith('/contacts/c1')
-    await waitFor(() => expect(screen.queryByText('Jane Doe')).not.toBeInTheDocument())
+    await waitFor(() => { expect(screen.queryByText('Jane Doe')).not.toBeInTheDocument(); })
   })
 
   it('cancelling the Remove confirmation does not call the API', async () => {
@@ -121,7 +121,7 @@ describe('ContactsPage', () => {
     await waitFor(() => screen.getByText('Jane Doe'))
     await user.click(screen.getByRole('button', { name: 'Remove' }))
     await user.click(await screen.findByRole('button', { name: 'Confirm' }))
-    await waitFor(() => expect(screen.getByText(/Delete failed/)).toBeInTheDocument())
+    await waitFor(() => { expect(screen.getByText(/Delete failed/)).toBeInTheDocument(); })
     expect(screen.getByText('Jane Doe')).toBeInTheDocument()
   })
 
@@ -173,7 +173,7 @@ describe('ContactsPage', () => {
     await user.type(nameInput, 'Jane Smith')
     await user.click(screen.getByRole('button', { name: 'Save' }))
     expect(api.patch).toHaveBeenCalledWith('/contacts/c1', { name: 'Jane Smith' })
-    await waitFor(() => expect(screen.getByText('Jane Smith')).toBeInTheDocument())
+    await waitFor(() => { expect(screen.getByText('Jane Smith')).toBeInTheDocument(); })
     expect(screen.queryByText('Jane Doe')).not.toBeInTheDocument()
   })
 
@@ -202,7 +202,7 @@ describe('ContactsPage', () => {
     await user.clear(nameInput)
     await user.type(nameInput, 'Jane Smith')
     await user.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() => expect(screen.getByText(/Update failed/)).toBeInTheDocument())
+    await waitFor(() => { expect(screen.getByText(/Update failed/)).toBeInTheDocument(); })
     // The underlying row was never mutated: cancelling restores the original value.
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(screen.getByText('Jane Doe')).toBeInTheDocument()

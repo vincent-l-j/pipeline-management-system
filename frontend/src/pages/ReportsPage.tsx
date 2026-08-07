@@ -7,7 +7,7 @@
  * - Print button for print-friendly output
  */
 
-import { useState, useEffect, ReactNode } from "react";
+import { useState, useEffect } from "react";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import api from "../services/api";
@@ -79,7 +79,7 @@ const CSV_EXPORTS: CSVExport[] = [
   },
 ];
 
-export default function ReportsPage(): ReactNode {
+export default function ReportsPage(): React.JSX.Element {
   const [summary, setSummary] = useState<PipelineSummary | null>(null);
   const [velocity, setVelocity] = useState<VelocityData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -95,7 +95,7 @@ export default function ReportsPage(): ReactNode {
         setVelocity(velRes.data);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => { setLoading(false); });
   }, []);
 
   async function handleExport(endpoint: string): Promise<void> {
@@ -123,7 +123,7 @@ export default function ReportsPage(): ReactNode {
     window.print();
   }
 
-  if (loading) {
+  if (loading || !summary) {
     return (
       <Layout>
         <PageHeader
@@ -136,10 +136,10 @@ export default function ReportsPage(): ReactNode {
   }
 
   const filteredPitches = stageFilter
-    ? summary!.pitches.filter(
+    ? summary.pitches.filter(
         (p: PitchSummary) => p.current_stage === stageFilter,
       )
-    : summary!.pitches;
+    : summary.pitches;
 
   return (
     <Layout>
@@ -228,12 +228,12 @@ export default function ReportsPage(): ReactNode {
           </h2>
           <select
             value={stageFilter}
-            onChange={(e) => setStageFilter(e.target.value)}
+            onChange={(e) => { setStageFilter(e.target.value); }}
             className="text-sm border border-navy-200 rounded-lg px-3 py-1.5 bg-white text-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-300 print:hidden"
           >
             <option value="">All stages ({summary.total})</option>
             {Object.entries(STAGE_BADGE).map(([key]) => {
-              const count = summary!.pitches.filter(
+              const count = summary.pitches.filter(
                 (p: PitchSummary) => p.current_stage === key,
               ).length;
               if (count === 0) return null;

@@ -32,7 +32,7 @@ const stageBadgeColors: Record<string, string> = {
   completed: 'bg-emerald-100 text-emerald-700',
 }
 
-export default function PitchesPage(): JSX.Element {
+export default function PitchesPage(): React.JSX.Element {
   const navigate = useNavigate()
   const { user } = useAuth()
   const canEdit = user?.role === 'admin' || user?.role === 'assessor'
@@ -43,7 +43,7 @@ export default function PitchesPage(): JSX.Element {
     api.get('/pitches').then(({ data }) => {
       setPitches(data)
       setLoading(false)
-    }).catch(() => setLoading(false))
+    }).catch(() => { setLoading(false); })
   }, [])
 
   return (

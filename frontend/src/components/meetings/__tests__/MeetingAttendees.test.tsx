@@ -40,7 +40,8 @@ interface Attendee {
 }
 
 function setupApiMocks(attendees: Attendee[] = []): void {
-  vi.mocked(api.get).mockImplementation!((url: string) => {
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  vi.mocked(api.get).mockImplementation((url: string) => {
     if (url.includes('/attendees')) return Promise.resolve({ data: attendees })
     if (url === '/users/directory') return Promise.resolve({ data: mockUsers })
     if (url === '/contacts') return Promise.resolve({ data: mockContacts })
@@ -50,9 +51,15 @@ function setupApiMocks(attendees: Attendee[] = []): void {
 
 describe('MeetingAttendees', () => {
   beforeEach(() => {
-    vi.mocked(api.get).mockClear!()
-    vi.mocked(api.post).mockClear!()
-    vi.mocked(api.delete).mockClear!()
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const mockGet = vi.mocked(api.get)
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const mockPost = vi.mocked(api.post)
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    const mockDelete = vi.mocked(api.delete)
+    mockGet.mockClear()
+    mockPost.mockClear()
+    mockDelete.mockClear()
     mockUser = { role: 'admin' }
   })
 
@@ -146,7 +153,8 @@ describe('MeetingAttendees', () => {
 
   it('calls POST and reloads attendees when an attendee is added', async () => {
     const user = userEvent.setup()
-    vi.mocked(api.post).mockResolvedValue!({})
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    vi.mocked(api.post).mockResolvedValue({})
     setupApiMocks([])
     render(<MeetingAttendees meetingId="1" />)
     await waitFor(() => screen.getByRole('button', { name: '+ Add' }))
@@ -155,7 +163,8 @@ describe('MeetingAttendees', () => {
     await user.selectOptions(screen.getByRole('combobox'), 'u1')
     await user.click(screen.getByRole('button', { name: 'Add' }))
 
-    expect(api.post).toHaveBeenCalledWith('/meetings/1/attendees', {
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(vi.mocked(api.post)).toHaveBeenCalledWith('/meetings/1/attendees', {
       user_id: 'u1',
       is_internal: true,
     })
@@ -163,12 +172,14 @@ describe('MeetingAttendees', () => {
 
   it('calls DELETE when Remove is clicked for an attendee', async () => {
     const user = userEvent.setup()
-    vi.mocked(api.delete).mockResolvedValue!({})
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    vi.mocked(api.delete).mockResolvedValue({})
     setupApiMocks([{ id: 'a1', user_id: 'u1', is_internal: true }])
     render(<MeetingAttendees meetingId="1" />)
     await waitFor(() => screen.getByText('Alice Staff'))
 
     await user.click(screen.getByRole('button', { name: 'Remove' }))
-    expect(api.delete).toHaveBeenCalledWith('/meetings/1/attendees/a1')
+    // eslint-disable-next-line @typescript-eslint/unbound-method
+    expect(vi.mocked(api.delete)).toHaveBeenCalledWith('/meetings/1/attendees/a1')
   })
 })

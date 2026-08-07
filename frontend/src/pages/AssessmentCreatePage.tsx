@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { AxiosError } from 'axios'
 import Layout from '../components/Layout'
 import PageHeader from '../components/PageHeader'
 import ScoreSelector from '../components/assessments/ScoreSelector'
@@ -42,7 +43,7 @@ interface FormState {
   masterplan_alignment: number
 }
 
-export default function AssessmentCreatePage(): React.ReactNode {
+export default function AssessmentCreatePage(): React.JSX.Element {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const amendFromId = searchParams.get('from')
@@ -51,7 +52,7 @@ export default function AssessmentCreatePage(): React.ReactNode {
   const [error, setError] = useState<string | null>(null)
 
   const [form, setForm] = useState<FormState>({
-    pitch_id: searchParams.get('pitch_id') || '',
+    pitch_id: searchParams.get('pitch_id') ?? '',
     assessment_date: new Date().toISOString().split('T')[0],
     recommendation: '',
     rationale: '',
@@ -64,17 +65,19 @@ export default function AssessmentCreatePage(): React.ReactNode {
   })
 
   useEffect(() => {
-    api.get<Pitch[]>('/pitches').then(({ data }) => setPitches(data))
+    void api.get<Pitch[]>('/pitches').then(({ data }) => {
+      setPitches(data)
+    })
   }, [])
 
   useEffect(() => {
     if (!amendFromId) return
-    api.get<Assessment>(`/assessments/${amendFromId}`).then(({ data }) => {
+    void api.get<Assessment>(`/assessments/${amendFromId}`).then(({ data }) => {
       setForm(prev => ({
         ...prev,
         pitch_id: String(data.pitch_id),
-        recommendation: data.recommendation || '',
-        rationale: data.rationale || '',
+        recommendation: data.recommendation,
+        rationale: data.rationale,
         national_impact: data.national_impact,
         translation_readiness: data.translation_readiness,
         team_capability: data.team_capability,
@@ -90,7 +93,7 @@ export default function AssessmentCreatePage(): React.ReactNode {
   }
 
   const allScored = CRITERIA.every((c: Criterion) => form[c.key as keyof FormState] >= 1)
-  const totalScore = CRITERIA.reduce((sum: number, c: Criterion) => sum + (form[c.key as keyof FormState] || 0), 0)
+  const totalScore = CRITERIA.reduce((sum: number, c: Criterion) => sum + (form[c.key as keyof FormState] as number), 0)
   const avgScore = allScored ? (totalScore / CRITERIA.length).toFixed(1) : '-'
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>): Promise<void> {
@@ -109,10 +112,10 @@ export default function AssessmentCreatePage(): React.ReactNode {
     try {
       const url = amendFromId ? `/assessments?amending_from_id=${amendFromId}` : '/assessments'
       const { data } = await api.post<CreateAssessmentResponse>(url, form)
-      navigate(`/assessments/${data.id}`)
+      void navigate(`/assessments/${String(data.id)}`)
     } catch (err: unknown) {
-      const error = err as any
-      setError(error.response?.data?.detail || 'Failed to create assessment')
+      const axiosError = err as AxiosError<{ detail?: string }>
+      setError(axiosError.response?.data.detail ?? 'Failed to create assessment')
       setSaving(false)
     }
   }
@@ -126,7 +129,7 @@ export default function AssessmentCreatePage(): React.ReactNode {
           : "Score a pitch against Rozetta's six assessment criteria"}
       />
 
-      <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
+      <form onSubmit={(e) => { void handleSubmit(e) }} className="max-w-3xl space-y-6">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
             {error}
@@ -141,7 +144,7 @@ export default function AssessmentCreatePage(): React.ReactNode {
                 required
                 disabled={!!amendFromId}
                 value={form.pitch_id}
-                onChange={e => setForm(prev => ({ ...prev, pitch_id: e.target.value }))}
+                onChange={e => { setForm(prev => ({ ...prev, pitch_id: e.target.value })); }}
                 className={`w-full border border-navy-200 rounded-lg px-3 py-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300 ${
                   amendFromId ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''
                 }`}
@@ -158,7 +161,7 @@ export default function AssessmentCreatePage(): React.ReactNode {
                 type="date"
                 required
                 value={form.assessment_date}
-                onChange={e => setForm(prev => ({ ...prev, assessment_date: e.target.value }))}
+                onChange={e => { setForm(prev => ({ ...prev, assessment_date: e.target.value })); }}
                 className="w-full border border-navy-200 rounded-lg px-3 py-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300"
               />
             </div>
@@ -183,7 +186,7 @@ export default function AssessmentCreatePage(): React.ReactNode {
                 key={criterion.key}
                 criterion={criterion}
                 value={form[criterion.key as keyof FormState] as number}
-                onChange={(score: number) => updateScore(criterion.key, score)}
+                onChange={(score: number) => { updateScore(criterion.key, score); }}
               />
             ))}
           </div>
@@ -196,7 +199,7 @@ export default function AssessmentCreatePage(): React.ReactNode {
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => setForm(prev => ({ ...prev, recommendation: opt.value }))}
+                onClick={() => { setForm(prev => ({ ...prev, recommendation: opt.value })); }}
                 className={`
                   flex-1 py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all
                   ${form.recommendation === opt.value
@@ -215,7 +218,7 @@ export default function AssessmentCreatePage(): React.ReactNode {
             <textarea
               rows={4}
               value={form.rationale}
-              onChange={e => setForm(prev => ({ ...prev, rationale: e.target.value }))}
+              onChange={e => { setForm(prev => ({ ...prev, rationale: e.target.value })); }}
               placeholder="Explain the reasoning behind your recommendation..."
               className="w-full border border-navy-200 rounded-lg px-3 py-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300"
             />
@@ -232,7 +235,9 @@ export default function AssessmentCreatePage(): React.ReactNode {
           </button>
           <button
             type="button"
-            onClick={() => navigate('/assessments')}
+            onClick={() => {
+              void navigate('/assessments')
+            }}
             className="border border-navy-200 text-navy-600 px-6 py-2.5 rounded-lg text-sm font-medium hover:border-navy-400 transition-colors"
           >
             Cancel

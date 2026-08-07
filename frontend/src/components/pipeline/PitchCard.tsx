@@ -48,7 +48,7 @@ export default function PitchCard({ pitch, innerRef, draggableProps, dragHandleP
 
   function handleTitleClick(e: React.MouseEvent): void {
     e.stopPropagation()
-    navigate(`/pitches/${pitch.id}`)
+    void navigate(`/pitches/${String(pitch.id)}`)
   }
 
   function handleContextMenu(e: React.MouseEvent): void {
@@ -122,7 +122,7 @@ export default function PitchCard({ pitch, innerRef, draggableProps, dragHandleP
             {FUNDING_LABELS[pitch.funding_pathway] || pitch.funding_pathway}
           </span>
         )}
-        {pitch.domain_tags && pitch.domain_tags.split(',').map((tag) => (
+        {pitch.domain_tags?.split(',').map((tag) => (
           <span key={tag} className="text-[10px] bg-teal-50 text-teal-700 px-1.5 py-0.5 rounded capitalize">
             {tag.trim()}
           </span>
@@ -142,7 +142,9 @@ export default function PitchCard({ pitch, innerRef, draggableProps, dragHandleP
           role="menu"
           style={{ top: menuPos.y, left: menuPos.x }}
           className="fixed z-50 min-w-[180px] bg-white rounded-lg border border-navy-200 shadow-lg py-1"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation()
+          }}
         >
           <p className="px-3 py-1 text-[10px] font-semibold text-navy-400 uppercase tracking-wide">
             Move to stage
@@ -163,7 +165,9 @@ export default function PitchCard({ pitch, innerRef, draggableProps, dragHandleP
               <button
                 key={stage.key}
                 type="button"
-                onClick={() => selectStage(stage.key)}
+                onClick={() => {
+                  selectStage(stage.key)
+                }}
                 className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-navy-700 hover:bg-navy-50 text-left"
               >
                 <span className={`w-2 h-2 rounded-full ${stage.color}`} />

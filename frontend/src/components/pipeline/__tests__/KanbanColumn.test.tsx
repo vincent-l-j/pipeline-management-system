@@ -2,24 +2,44 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import KanbanColumn from "../KanbanColumn";
 
+interface DroppableProvided {
+  innerRef: () => void
+  droppableProps: Record<string, unknown>
+  placeholder: null
+}
+
+interface DroppableSnapshot {
+  isDraggingOver: boolean
+}
+
+interface DraggableProvided {
+  innerRef: () => void
+  draggableProps: Record<string, unknown>
+  dragHandleProps: Record<string, unknown>
+}
+
+interface DraggableSnapshot {
+  isDragging: boolean
+}
+
 // Mock the drag-and-drop library
 vi.mock("@hello-pangea/dnd", () => ({
   Droppable: ({
     children,
   }: {
-    children: (provided: any, snapshot: any) => any;
+    children: (provided: DroppableProvided, snapshot: DroppableSnapshot) => React.ReactNode
   }) =>
     children(
-      { innerRef: () => {}, droppableProps: {}, placeholder: null },
+      { innerRef: () => { /* ref not needed in test */ }, droppableProps: {}, placeholder: null },
       { isDraggingOver: false },
     ),
   Draggable: ({
     children,
   }: {
-    children: (provided: any, snapshot: any) => any;
+    children: (provided: DraggableProvided, snapshot: DraggableSnapshot) => React.ReactNode
   }) =>
     children(
-      { innerRef: () => {}, draggableProps: {}, dragHandleProps: {} },
+      { innerRef: () => { /* ref not needed in test */ }, draggableProps: {}, dragHandleProps: {} },
       { isDragging: false },
     ),
 }));

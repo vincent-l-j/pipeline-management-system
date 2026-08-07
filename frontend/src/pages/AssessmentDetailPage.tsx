@@ -6,7 +6,7 @@
  * in chronological order so the full assessment trail is visible.
  */
 
-import { useState, useEffect, FC } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
@@ -23,7 +23,12 @@ interface Assessment {
   version: number;
   recommendation: string;
   rationale?: string;
-  [key: string]: any;
+  national_impact?: number;
+  translation_readiness?: number;
+  team_capability?: number;
+  ecosystem_fit?: number;
+  funding_pathway_clarity?: number;
+  masterplan_alignment?: number;
 }
 
 interface Pitch {
@@ -33,12 +38,12 @@ interface Pitch {
   short_description?: string;
 }
 
-const AssessmentDetailPage: FC = () => {
+export default function AssessmentDetailPage(): React.JSX.Element {
   const { assessmentId } = useParams<{ assessmentId?: string }>();
   const navigate = useNavigate();
   const authContext = useAuth();
-  const user = authContext?.user;
-  const canAmend = user?.role === "admin" || user?.role === "assessor";
+  const user = authContext.user;
+  const canAmend = user.role === "admin" || user.role === "assessor";
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [allVersions, setAllVersions] = useState<Assessment[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -46,9 +51,14 @@ const AssessmentDetailPage: FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    if (!assessmentId) {
+      navigate("/assessments");
+      return;
+    }
+
     Promise.all([
-      api.get(`/assessments/${assessmentId}`),
-      api.get("/users/directory"),
+      api.get<Assessment>(`/assessments/${assessmentId}`),
+      api.get<User[]>("/users/directory"),
     ])
       .then(([assessRes, usersRes]) => {
         const a = assessRes.data;
@@ -57,8 +67,8 @@ const AssessmentDetailPage: FC = () => {
 
         // Load the pitch and all assessments for this pitch
         return Promise.all([
-          api.get(`/pitches/${a.pitch_id}`),
-          api.get(`/pitches/${a.pitch_id}/assessments`),
+          api.get<Pitch>(`/pitches/${a.pitch_id}`),
+          api.get<Assessment[]>(`/pitches/${a.pitch_id}/assessments`),
         ]);
       })
       .then(([pitchRes, versionsRes]) => {
@@ -72,7 +82,7 @@ const AssessmentDetailPage: FC = () => {
         setLoading(false);
       })
       .catch(() => {
-        navigate("/assessments");
+        void navigate("/assessments");
       });
   }, [assessmentId, navigate]);
 
@@ -103,8 +113,8 @@ const AssessmentDetailPage: FC = () => {
   return (
     <Layout>
       <PageHeader
-        title={`Assessment for: ${pitch?.title || "Unknown Pitch"}`}
-        description={`Version ${assessment.version} — ${assessment.assessment_date}`}
+        title={`Assessment for: ${pitch.title || "Unknown Pitch"}`}
+        description={`Version ${String(assessment.version)} — ${assessment.assessment_date}`}
         action={
           <div className="flex gap-2">
             {canAmend && (
@@ -159,7 +169,7 @@ const AssessmentDetailPage: FC = () => {
                 return (
                   <button
                     key={v.id}
-                    onClick={() => navigate(`/assessments/${v.id}`)}
+                    onClick={() => { void navigate(`/assessments/${v.id}`) }}
                     className={`
                       w-full text-left p-3 rounded-lg border transition-colors
                       ${
@@ -199,8 +209,7 @@ const AssessmentDetailPage: FC = () => {
           </div>
 
           {/* Pitch info card */}
-          {pitch && (
-            <div className="bg-white rounded-xl border border-navy-100 p-6">
+          <div className="bg-white rounded-xl border border-navy-100 p-6">
               <h2 className="text-sm font-semibold text-navy-500 uppercase tracking-wide mb-3">
                 Linked Pitch
               </h2>
@@ -213,14 +222,11 @@ const AssessmentDetailPage: FC = () => {
                 </p>
               )}
               <p className="text-xs text-navy-400 mt-2 capitalize">
-                Stage: {pitch.current_stage?.replace("_", " ")}
+                Stage: {pitch.current_stage.replace("_", " ")}
               </p>
             </div>
-          )}
         </div>
       </div>
     </Layout>
   );
-};
-
-export default AssessmentDetailPage;
+}

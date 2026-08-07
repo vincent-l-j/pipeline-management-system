@@ -1,4 +1,4 @@
-import { useState, useEffect, ReactNode } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Layout from '../components/Layout'
 import PageHeader from '../components/PageHeader'
@@ -33,7 +33,7 @@ const recommendationBadge: Record<string, string> = {
   decline: 'bg-red-100 text-red-700',
 }
 
-export default function AssessmentsPage(): ReactNode {
+export default function AssessmentsPage(): React.JSX.Element {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [assessments, setAssessments] = useState<Assessment[]>([])
@@ -45,15 +45,15 @@ export default function AssessmentsPage(): ReactNode {
 
   useEffect((): void => {
     Promise.all([
-      api.get('/assessments'),
-      api.get('/pitches'),
-      api.get('/users/directory'),
+      api.get<Assessment[]>('/assessments'),
+      api.get<Pitch[]>('/pitches'),
+      api.get<User[]>('/users/directory'),
     ]).then(([aRes, pRes, uRes]): void => {
       setAssessments(aRes.data)
       setPitches(pRes.data)
       setUsers(uRes.data)
       setLoading(false)
-    }).catch((): void => setLoading(false))
+    }).catch((): void => { setLoading(false); })
   }, [])
 
   function getPitchTitle(pitchId: number): string {
@@ -75,7 +75,7 @@ export default function AssessmentsPage(): ReactNode {
     <Layout>
       <PageHeader
         title="Assessments"
-        description={`${assessments.length} assessment${assessments.length !== 1 ? 's' : ''} recorded`}
+        description={`${String(assessments.length)} assessment${assessments.length !== 1 ? 's' : ''} recorded`}
         action={canCreate && (
           <Link
             to="/assessments/new"
@@ -117,7 +117,7 @@ export default function AssessmentsPage(): ReactNode {
               {assessments.map((assessment: Assessment) => (
                 <tr
                   key={assessment.id}
-                  onClick={(): void => navigate(`/assessments/${assessment.id}`)}
+                  onClick={() => { void navigate(`/assessments/${String(assessment.id)}`) }}
                   className="hover:bg-navy-50/50 transition-colors cursor-pointer"
                 >
                   <td className="px-4 py-3 font-medium text-navy-900">{getPitchTitle(assessment.pitch_id)}</td>

@@ -1,0 +1,58 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import PitchCard from '../PitchCard'
+
+const mockNavigate = vi.fn()
+vi.mock('react-router-dom', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('react-router-dom')>()
+  return {
+    ...mod,
+    useNavigate: () => mockNavigate,
+  }
+})
+
+vi.mock('../../../contexts/AuthContext', () => ({
+  useAuth: () => ({ user: { role: 'admin' } }),
+}))
+
+vi.mock('../PipelineConfig', () => ({
+  STAGE_MAP: {
+    received: { label: 'Received', lightColor: 'bg-blue-50 text-blue-700' },
+    submitted: { label: 'Submitted', lightColor: 'bg-green-50 text-green-700' },
+  },
+  SOURCE_LABELS: {},
+  FUNDING_LABELS: {},
+  PIPELINE_STAGES: [],
+}))
+
+describe('PitchCard', () => {
+  beforeEach(() => {
+    mockNavigate.mockClear()
+  })
+
+  it('renders pitch title', () => {
+    const pitch = { id: 1, title: 'Test Pitch', current_stage: 'received', is_confidential: false }
+    render(
+      <PitchCard
+        pitch={pitch}
+        innerRef={null}
+        draggableProps={{} as any}
+        dragHandleProps={null}
+      />
+    )
+    expect(screen.getByText('Test Pitch')).toBeInTheDocument()
+  })
+
+  it('shows confidential badge when marked', () => {
+    const pitch = { id: 1, title: 'Test Pitch', current_stage: 'received', is_confidential: true }
+    render(
+      <PitchCard
+        pitch={pitch}
+        innerRef={null}
+        draggableProps={{} as any}
+        dragHandleProps={null}
+      />
+    )
+    expect(screen.getByText(/Confidential/i)).toBeInTheDocument()
+  })
+})

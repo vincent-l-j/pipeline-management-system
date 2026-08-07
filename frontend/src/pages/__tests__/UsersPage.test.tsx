@@ -76,7 +76,7 @@ describe("UsersPage", () => {
     mockUser = { role: "admin" };
   });
 
-  it("renders the page header", async () => {
+  it("renders the page header", () => {
     render(<UsersPage />);
     expect(screen.getByText("User Management")).toBeInTheDocument();
   });

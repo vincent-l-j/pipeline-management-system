@@ -1,12 +1,19 @@
 {
+  "type": "module",
   "devDependencies": {
+    "@eslint/js": "^9.9.0",
+    "eslint": "^9.9.0",
+    "eslint-plugin-react": "^7.37.0",
+    "eslint-plugin-react-hooks": "^5.1.0-rc-e48b4d45-20241217",
     "prettier": "3.9.6",
     "prettier-plugin-yaml": "1.2.0"
   },
   "scripts": {
-    "format": "npm run format:do && npm run format:workflows",
-    "format:do": "prettier --write .do/",
-    "format:workflows": "prettier --write .github/workflows",
-    "format:workflows:check": "prettier --check .github/workflows"
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint:frontend": "eslint frontend/src/",
+    "lint:backend": "ruff check backend/",
+    "lint": "npm run lint:frontend && npm run lint:backend",
+    "lint:fix": "eslint --fix frontend/src/ && ruff check --fix backend/"
   }
 }

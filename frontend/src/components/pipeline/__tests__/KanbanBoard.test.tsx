@@ -7,17 +7,14 @@ vi.mock('../../../services/api', () => ({
   default: { post: vi.fn() },
 }))
 
-function createMockPostHelpers() {
-  return (() => {
-    const post = vi.mocked(api.post)
-    return {
-      mockResolvedValueOnce: (value: unknown) => post.mockResolvedValueOnce(value),
-      mockRejectedValueOnce: (error: Error) => post.mockRejectedValueOnce(error),
-      get mock() {
-        return post
-      },
-    }
-  })()
+const createMockPostHelpers = () => {
+  const post = vi.mocked(api.post)
+  const helpers = {
+    mockResolvedValueOnce: (value: unknown) => { post.mockResolvedValueOnce(value) },
+    mockRejectedValueOnce: (error: Error) => { post.mockRejectedValueOnce(error) },
+    get mock() { return post },
+  }
+  return helpers
 }
 
 let mockPostHelpers = createMockPostHelpers()

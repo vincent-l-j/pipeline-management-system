@@ -31,7 +31,7 @@ vi.mock('react-router-dom', async (importOriginal) => {
     useParams: () => ({ pitchId: '42' }),
     useNavigate: () => mockNavigate,
     Navigate: ({ to }: { to: string }) => <div data-testid="redirect">redirect:{to}</div>,
-  }
+  } as unknown
 })
 
 vi.mock('../../services/api', () => ({

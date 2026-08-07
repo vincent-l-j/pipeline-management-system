@@ -30,7 +30,7 @@ vi.mock('react-router-dom', async (importOriginal) => {
     useParams: () => ({ pitchId: '42' }),
     useNavigate: () => mockNavigate,
     Link: ({ to, children, ...rest }: { to: string; children: React.ReactNode; [key: string]: unknown }) => <a href={to} {...rest}>{children}</a>,
-  }
+  } as unknown
 })
 
 vi.mock('../../services/api', () => ({

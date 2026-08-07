@@ -26,7 +26,7 @@ vi.mock('react-router-dom', async (importOriginal) => {
     ...mod,
     useNavigate: () => mockNavigate,
     useSearchParams: () => [new URLSearchParams(mockSearch)],
-  }
+  } as unknown
 })
 
 vi.mock('../../services/api', () => ({

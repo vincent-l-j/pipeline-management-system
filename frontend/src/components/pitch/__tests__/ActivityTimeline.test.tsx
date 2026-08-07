@@ -28,7 +28,7 @@ let mockGetHelpers = createMockGetHelpers()
 const mockNavigate = vi.fn()
 vi.mock('react-router-dom', async (importOriginal) => {
   const mod = await importOriginal()
-  return { ...mod, useNavigate: () => mockNavigate }
+  return { ...mod, useNavigate: () => mockNavigate } as unknown
 })
 
 function renderTimeline(pitchId = '1') {
@@ -45,7 +45,9 @@ describe('ActivityTimeline', () => {
   })
 
   it('shows loading text initially', () => {
-    mockGetHelpers.mockReturnValue(new Promise(/* never resolves */ () => {}))
+    mockGetHelpers.mockReturnValue(new Promise(/* never resolves */ () => {
+      // Intentionally empty - promise never resolves
+    }))
     renderTimeline()
     expect(screen.getByText('Loading timeline...')).toBeInTheDocument()
   })

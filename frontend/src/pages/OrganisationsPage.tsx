@@ -64,7 +64,7 @@ export default function OrganisationsPage(): React.JSX.Element {
       setShowAdd(false)
     } catch (err) {
       const apiError = err as ApiError
-      setError(apiError.response?.data?.detail || 'Failed to add organisation')
+      setError(apiError.response?.data.detail ?? 'Failed to add organisation')
     }
   }
 
@@ -72,13 +72,13 @@ export default function OrganisationsPage(): React.JSX.Element {
     setError('')
     setEditingId(org.id)
     setEditForm({
-      name: org.name || '',
-      org_type: org.org_type || '',
-      sector: org.sector || '',
-      state_territory: org.state_territory || '',
-      website: org.website || '',
-      abn: org.abn || '',
-      notes: org.notes || '',
+      name: org.name ?? '',
+      org_type: org.org_type ?? '',
+      sector: org.sector ?? '',
+      state_territory: org.state_territory ?? '',
+      website: org.website ?? '',
+      abn: org.abn ?? '',
+      notes: org.notes ?? '',
     })
   }
 
@@ -103,7 +103,7 @@ export default function OrganisationsPage(): React.JSX.Element {
       setEditingId(null)
     } catch (err) {
       const apiError = err as ApiError
-      setError(apiError.response?.data?.detail || 'Failed to update organisation')
+      setError(apiError.response?.data.detail ?? 'Failed to update organisation')
     }
   }
 
@@ -114,7 +114,7 @@ export default function OrganisationsPage(): React.JSX.Element {
       setOrgs((prev) => prev.filter((o) => o.id !== id))
     } catch (err) {
       const apiError = err as ApiError
-      setError(apiError.response?.data?.detail || 'Failed to remove organisation')
+      setError(apiError.response?.data.detail ?? 'Failed to remove organisation')
     } finally {
       setConfirmingId(null)
     }
@@ -199,7 +199,7 @@ export default function OrganisationsPage(): React.JSX.Element {
           />
           <div className="flex gap-2">
             <button
-              onClick={addOrg}
+              onClick={() => { void addOrg() }}
               disabled={!form.name.trim()}
               className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
             >
@@ -306,7 +306,7 @@ export default function OrganisationsPage(): React.JSX.Element {
                       />
                       <div className="flex gap-2">
                         <button
-                          onClick={() => saveEdit(org)}
+                          onClick={() => { void saveEdit(org) }}
                           disabled={!editForm.name.trim()}
                           className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
                         >
@@ -325,15 +325,15 @@ export default function OrganisationsPage(): React.JSX.Element {
               ) : (
                 <tr key={org.id} className="hover:bg-navy-50/50 transition-colors">
                   <td className="px-4 py-3 font-medium text-navy-900">{org.name}</td>
-                  <td className="px-4 py-3 text-navy-500 capitalize">{org.org_type?.replace('_', ' ') || '-'}</td>
-                  <td className="px-4 py-3 text-navy-500">{org.sector || '-'}</td>
-                  <td className="px-4 py-3 text-navy-500">{org.state_territory || '-'}</td>
+                  <td className="px-4 py-3 text-navy-500 capitalize">{org.org_type?.replace('_', ' ') ?? '-'}</td>
+                  <td className="px-4 py-3 text-navy-500">{org.sector ?? '-'}</td>
+                  <td className="px-4 py-3 text-navy-500">{org.state_territory ?? '-'}</td>
                   {(canEdit || canRemove) && (
                     <td className="px-4 py-3 text-right">
                       {confirmingId === org.id ? (
                         <span className="inline-flex gap-2">
                           <button
-                            onClick={() => removeOrg(org.id)}
+                            onClick={() => { void removeOrg(org.id) }}
                             className="text-xs text-red-600 hover:text-red-800 font-medium"
                           >
                             Confirm

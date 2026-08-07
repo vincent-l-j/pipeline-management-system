@@ -87,8 +87,8 @@ export default function ReportsPage(): React.JSX.Element {
 
   useEffect(() => {
     Promise.all([
-      api.get("/reports/pipeline-summary"),
-      api.get("/reports/velocity"),
+      api.get<PipelineSummary>("/reports/pipeline-summary"),
+      api.get<VelocityData>("/reports/velocity"),
     ])
       .then(([sumRes, velRes]) => {
         setSummary(sumRes.data);
@@ -145,7 +145,7 @@ export default function ReportsPage(): React.JSX.Element {
     <Layout>
       <PageHeader
         title="Reports"
-        description={`${summary.total} initiatives in the pipeline`}
+        description={`${String(summary.total)} initiatives in the pipeline`}
         action={
           <button
             onClick={handlePrint}
@@ -169,7 +169,7 @@ export default function ReportsPage(): React.JSX.Element {
           {CSV_EXPORTS.map((exp) => (
             <button
               key={exp.key}
-              onClick={() => handleExport(exp.endpoint)}
+              onClick={() => { void handleExport(exp.endpoint); }}
               className="bg-navy-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-navy-800 transition-colors"
             >
               Export {exp.label}
@@ -309,18 +309,18 @@ export default function ReportsPage(): React.JSX.Element {
                         {p.stage_label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-navy-500">{p.lead || "-"}</td>
+                    <td className="px-4 py-3 text-navy-500">{p.lead ?? "-"}</td>
                     <td className="px-4 py-3 text-navy-500">
-                      {p.organisation || "-"}
+                      {p.organisation ?? "-"}
                     </td>
                     <td className="px-4 py-3 text-navy-500 capitalize">
-                      {p.source?.replace("_", " ") || "-"}
+                      {p.source?.replace("_", " ") ?? "-"}
                     </td>
                     <td className="px-4 py-3 text-navy-500 capitalize">
-                      {p.funding_pathway?.replace("_", " ") || "-"}
+                      {p.funding_pathway?.replace("_", " ") ?? "-"}
                     </td>
                     <td className="px-4 py-3 text-navy-500">
-                      {p.submission_date || "-"}
+                      {p.submission_date ?? "-"}
                     </td>
                   </tr>
                 ))

@@ -5,7 +5,6 @@ import Layout from '../components/Layout'
 import PageHeader from '../components/PageHeader'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
-import type { AuthContextType } from '../types'
 
 interface Meeting {
   id: number
@@ -30,7 +29,7 @@ export default function MeetingsPage(): React.JSX.Element {
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [loading, setLoading] = useState<boolean>(true)
 
-  const canCreate = (user?.role === 'admin' || user?.role === 'assessor') ?? false
+  const canCreate = user?.role === 'admin' || user?.role === 'assessor'
 
   useEffect((): void => {
     api
@@ -48,7 +47,7 @@ export default function MeetingsPage(): React.JSX.Element {
     <Layout>
       <PageHeader
         title="Meetings"
-        description={`${meetings.length} meeting${meetings.length !== 1 ? 's' : ''} recorded`}
+        description={`${String(meetings.length)} meeting${meetings.length !== 1 ? 's' : ''} recorded`}
         action={canCreate && (
           <Link
             to="/meetings/new"
@@ -89,13 +88,13 @@ export default function MeetingsPage(): React.JSX.Element {
               {meetings.map((m) => (
                 <tr
                   key={m.id}
-                  onClick={() => navigate(`/meetings/${m.id}`)}
+                  onClick={() => { void navigate(`/meetings/${String(m.id)}`); }}
                   className="hover:bg-navy-50/50 transition-colors cursor-pointer"
                 >
                   <td className="px-4 py-3 font-medium text-navy-900">{m.title}</td>
                   <td className="px-4 py-3 text-navy-500">{m.meeting_date}</td>
-                  <td className="px-4 py-3 text-navy-500">{PLATFORM_LABELS[m.platform] || m.platform || '-'}</td>
-                  <td className="px-4 py-3 text-navy-500">{m.follow_up_date || '-'}</td>
+                  <td className="px-4 py-3 text-navy-500">{PLATFORM_LABELS[m.platform] ?? m.platform ?? '-'}</td>
+                  <td className="px-4 py-3 text-navy-500">{m.follow_up_date ?? '-'}</td>
                   <td className="px-4 py-3">
                     {m.ai_import_status ? (
                       <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded capitalize">

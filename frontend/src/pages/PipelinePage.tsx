@@ -26,8 +26,8 @@ export default function PipelinePage(): React.JSX.Element {
 
   useEffect(() => {
     Promise.all([
-      api.get('/pitches'),
-      api.get('/users/directory'),
+      api.get<Pitch[]>('/pitches'),
+      api.get<User[]>('/users/directory'),
     ]).then(([pitchRes, userRes]) => {
       setPitches(pitchRes.data)
       setUsers(userRes.data)
@@ -52,7 +52,7 @@ export default function PipelinePage(): React.JSX.Element {
     }
     if (filters.domain) {
       result = result.filter(p =>
-        p.domain_tags?.toLowerCase().includes(filters.domain!.toLowerCase())
+        p.domain_tags?.toLowerCase().includes(filters.domain?.toLowerCase() ?? '')
       )
     }
     if (filters.lead_id) {
@@ -61,7 +61,7 @@ export default function PipelinePage(): React.JSX.Element {
 
     switch (filters.sort) {
       case 'oldest':
-        result.sort((a, b) => (a.submission_date || '').localeCompare(b.submission_date || ''))
+        result.sort((a, b) => (a.submission_date ?? '').localeCompare(b.submission_date ?? ''))
         break
       case 'title_asc':
         result.sort((a, b) => a.title.localeCompare(b.title))
@@ -71,7 +71,7 @@ export default function PipelinePage(): React.JSX.Element {
         break
       case 'newest':
       default:
-        result.sort((a, b) => (b.submission_date || '').localeCompare(a.submission_date || ''))
+        result.sort((a, b) => (b.submission_date ?? '').localeCompare(a.submission_date ?? ''))
         break
     }
 
@@ -84,7 +84,7 @@ export default function PipelinePage(): React.JSX.Element {
     <Layout>
       <PageHeader
         title="Pipeline"
-        description={`${pitches.length} initiatives in the pipeline`}
+        description={`${String(pitches.length)} initiatives in the pipeline`}
         action={
           <div className="flex items-center gap-3">
             {canEdit && (

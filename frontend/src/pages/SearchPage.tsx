@@ -96,12 +96,12 @@ export default function SearchPage(): React.JSX.Element {
   const handleResultClick = (item: SearchResult): void => {
     const basePath = TYPE_BASE_PATH[item.type];
     if (!basePath) return;
-    navigate(`${basePath}/${item.id}`);
+    void navigate(`${basePath}/${String(item.id)}`);
   };
 
   const categories = results
     ? Object.entries(CATEGORY_CONFIG).filter(
-        ([key]) => results[key]?.length > 0,
+        ([key]) => ((results[key as keyof SearchResults] as SearchResult[] | undefined)?.length ?? 0) > 0,
       )
     : [];
 

@@ -20,7 +20,7 @@ export default function UsersPage(): React.JSX.Element {
   const [error, setError] = useState<string>('')
 
   useEffect(() => {
-    api.get('/users').then(({ data }: { data: User[] }) => {
+    api.get<User[]>('/users').then(({ data }: { data: User[] }) => {
       setUsers(data)
       setLoading(false)
     }).catch(() => { setLoading(false); })
@@ -45,12 +45,12 @@ export default function UsersPage(): React.JSX.Element {
 
     setError('')
     try {
-      const { data } = await api.patch(`/users/${user.id}`, { role: editRole })
+      const { data } = await api.patch<User>(`/users/${String(user.id)}`, { role: editRole })
       setUsers(prev => prev.map(u => u.id === user.id ? data : u))
       setEditingId(null)
     } catch (err: unknown) {
       const apiError = err as ApiError
-      setError(apiError.response?.data?.detail || 'Failed to update user role')
+      setError(apiError.response?.data?.detail ?? 'Failed to update user role')
     }
   }
 
@@ -91,7 +91,7 @@ export default function UsersPage(): React.JSX.Element {
                       <div className="flex gap-2 items-center">
                         <label className="text-xs font-medium text-navy-600">Change role:</label>
                         <select
-                          value={editRole || ''}
+                          value={editRole ?? ''}
                           onChange={(e: ChangeEvent<HTMLSelectElement>) => { setEditRole(e.target.value); }}
                           className={selectClass}
                         >
@@ -117,7 +117,7 @@ export default function UsersPage(): React.JSX.Element {
                         <button
                           onClick={(e: MouseEvent<HTMLButtonElement>) => {
                             e.preventDefault()
-                            saveEdit(u)
+                            void saveEdit(u)
                           }}
                           className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg hover:bg-navy-800 transition-colors"
                         >

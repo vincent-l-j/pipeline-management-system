@@ -10,7 +10,7 @@ import { AxiosError } from 'axios'
 import Layout from '../components/Layout'
 import PageHeader from '../components/PageHeader'
 import api from '../services/api'
-import { User, Organisation, ApiError } from '../types'
+import { User, Organisation } from '../types'
 
 interface SelectOption {
   value: string
@@ -51,6 +51,10 @@ interface PitchForm {
   lead_id: string
 }
 
+interface PitchResponse {
+  id: string
+}
+
 export default function PitchCreatePage(): React.JSX.Element {
   const navigate = useNavigate()
   const [organisations, setOrganisations] = useState<Organisation[]>([])
@@ -74,10 +78,10 @@ export default function PitchCreatePage(): React.JSX.Element {
   useEffect((): void => {
     api.get<Organisation[]>('/organisations')
       .then(({ data }) => { setOrganisations(data); })
-      .catch((): void => {})
+      .catch((): void => { /* silently handle error */ })
     api.get<User[]>('/users/directory')
       .then(({ data }) => { setUsers(data); })
-      .catch((): void => {})
+      .catch((): void => { /* silently handle error */ })
   }, [])
 
   const update = (field: keyof PitchForm, value: string | boolean): void => {
@@ -113,11 +117,11 @@ export default function PitchCreatePage(): React.JSX.Element {
     }
 
     try {
-      const { data } = await api.post('/pitches', payload)
-      navigate(`/pitches/${data.id}`)
+      const { data } = await api.post<PitchResponse>('/pitches', payload)
+      void navigate(`/pitches/${data.id}`)
     } catch (err) {
       const axiosError = err as AxiosError<{ detail?: string }>
-      setError(axiosError.response?.data?.detail || 'Failed to create pitch')
+      setError(axiosError.response?.data.detail ?? 'Failed to create pitch')
       setSaving(false)
     }
   }
@@ -129,7 +133,7 @@ export default function PitchCreatePage(): React.JSX.Element {
     <Layout>
       <PageHeader title="New Pitch" description="Add a new initiative to the pipeline" />
 
-      <form onSubmit={handleSubmit} className="max-w-2xl space-y-5">
+      <form onSubmit={(e) => { void handleSubmit(e) }} className="max-w-2xl space-y-5">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
             {error}
@@ -291,7 +295,7 @@ export default function PitchCreatePage(): React.JSX.Element {
           </button>
           <button
             type="button"
-            onClick={() => navigate('/pitches')}
+            onClick={() => { void navigate('/pitches') }}
             className="border border-navy-200 text-navy-600 px-6 py-2.5 rounded-lg text-sm font-medium hover:border-navy-400 transition-colors"
           >
             Cancel

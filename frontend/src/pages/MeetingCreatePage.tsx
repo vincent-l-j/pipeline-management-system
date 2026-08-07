@@ -63,7 +63,7 @@ export default function MeetingCreatePage(): React.JSX.Element {
     meeting_date: new Date().toISOString().split('T')[0],
     meeting_time: '',
     platform: 'teams',
-    pitch_id: searchParams.get('pitch_id') || '',
+    pitch_id: searchParams.get('pitch_id') ?? '',
     summary: '',
     key_points: '',
     action_items: '',
@@ -99,10 +99,10 @@ export default function MeetingCreatePage(): React.JSX.Element {
 
     try {
       const { data } = await api.post<MeetingResponse>('/meetings', payload)
-      navigate(`/meetings/${data.id}`)
+      void navigate(`/meetings/${data.id}`)
     } catch (err) {
       const axiosError = err as AxiosError<ApiErrorResponse>
-      setError(axiosError.response?.data?.detail || 'Failed to create meeting')
+      setError(axiosError.response?.data.detail ?? 'Failed to create meeting')
       setSaving(false)
     }
   }
@@ -114,7 +114,7 @@ export default function MeetingCreatePage(): React.JSX.Element {
     <Layout>
       <PageHeader title="Log New Meeting" description="Record a meeting linked to a pitch" />
 
-      <form onSubmit={handleSubmit} className="max-w-2xl space-y-5">
+      <form onSubmit={(e) => { void handleSubmit(e) }} className="max-w-2xl space-y-5">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
             {error}
@@ -255,7 +255,7 @@ export default function MeetingCreatePage(): React.JSX.Element {
           </button>
           <button
             type="button"
-            onClick={() => navigate('/meetings')}
+            onClick={() => { void navigate('/meetings') }}
             className="border border-navy-200 text-navy-600 px-6 py-2.5 rounded-lg text-sm font-medium hover:border-navy-400 transition-colors"
           >
             Cancel

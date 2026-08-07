@@ -73,7 +73,7 @@ export default function ContactsPage(): React.JSX.Element {
       setShowAdd(false);
     } catch (err) {
       const apiError = err as AxiosError<ErrorResponse>;
-      setError(apiError.response?.data?.detail || "Failed to add contact");
+      setError(apiError.response?.data.detail ?? "Failed to add contact");
     }
   };
 
@@ -81,9 +81,9 @@ export default function ContactsPage(): React.JSX.Element {
     setError("");
     setEditingId(contact.id);
     setEditForm({
-      name: contact.name || "",
-      role: contact.role || "",
-      email: contact.email || "",
+      name: contact.name ?? "",
+      role: contact.role ?? "",
+      email: contact.email ?? "",
     });
   };
 
@@ -105,25 +105,25 @@ export default function ContactsPage(): React.JSX.Element {
     setError("");
     try {
       const { data } = await api.patch<Contact>(
-        `/contacts/${contact.id}`,
+        `/contacts/${String(contact.id)}`,
         changes,
       );
       setContacts((prev) => prev.map((c) => (c.id === contact.id ? data : c)));
       setEditingId(null);
     } catch (err) {
       const apiError = err as AxiosError<ErrorResponse>;
-      setError(apiError.response?.data?.detail || "Failed to update contact");
+      setError(apiError.response?.data.detail ?? "Failed to update contact");
     }
   };
 
   const removeContact = async (id: number): Promise<void> => {
     setError("");
     try {
-      await api.delete(`/contacts/${id}`);
+      await api.delete(`/contacts/${String(id)}`);
       setContacts((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
       const apiError = err as AxiosError<ErrorResponse>;
-      setError(apiError.response?.data?.detail || "Failed to remove contact");
+      setError(apiError.response?.data.detail ?? "Failed to remove contact");
     } finally {
       setConfirmingId(null);
     }
@@ -188,7 +188,7 @@ export default function ContactsPage(): React.JSX.Element {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={addContact}
+              onClick={() => { void addContact() }}
               disabled={!form.name.trim()}
               className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
             >
@@ -280,7 +280,7 @@ export default function ContactsPage(): React.JSX.Element {
                     <td className="px-4 py-3 text-right">
                       <span className="inline-flex gap-2">
                         <button
-                          onClick={() => saveEdit(c)}
+                          onClick={() => { void saveEdit(c) }}
                           disabled={!editForm.name.trim()}
                           className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
                         >
@@ -303,9 +303,9 @@ export default function ContactsPage(): React.JSX.Element {
                     <td className="px-4 py-3 font-medium text-navy-900">
                       {c.name}
                     </td>
-                    <td className="px-4 py-3 text-navy-500">{c.role || "-"}</td>
+                    <td className="px-4 py-3 text-navy-500">{c.role ?? "-"}</td>
                     <td className="px-4 py-3 text-navy-500">
-                      {c.email || "-"}
+                      {c.email ?? "-"}
                     </td>
                     <td className="px-4 py-3 text-navy-500">
                       {c.last_contacted || "-"}
@@ -315,7 +315,7 @@ export default function ContactsPage(): React.JSX.Element {
                         {confirmingId === c.id ? (
                           <span className="inline-flex gap-2">
                             <button
-                              onClick={() => removeContact(c.id)}
+                              onClick={() => { void removeContact(c.id) }}
                               className="text-xs text-red-600 hover:text-red-800 font-medium"
                             >
                               Confirm

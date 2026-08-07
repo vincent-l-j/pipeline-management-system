@@ -69,13 +69,17 @@ function MeetingDetailPage(): React.JSX.Element {
   const [saving, setSaving] = useState<boolean>(false)
 
   useEffect((): void => {
+    if (!meetingId) {
+      void navigate('/meetings')
+      return
+    }
     api.get<Meeting>(`/meetings/${meetingId}`)
       .then(({ data }) => {
         setMeeting(data)
         setLoading(false)
       })
       .catch(() => {
-        navigate('/meetings')
+        void navigate('/meetings')
       })
   }, [meetingId, navigate])
 
@@ -83,22 +87,23 @@ function MeetingDetailPage(): React.JSX.Element {
     if (!meeting) return
     setEditForm({
       title: meeting.title,
-      summary: meeting.summary || '',
-      key_points: meeting.key_points || '',
-      action_items: meeting.action_items || '',
-      follow_up_date: meeting.follow_up_date || '',
-      recording_link: meeting.recording_link || '',
+      summary: meeting.summary ?? '',
+      key_points: meeting.key_points ?? '',
+      action_items: meeting.action_items ?? '',
+      follow_up_date: meeting.follow_up_date ?? '',
+      recording_link: meeting.recording_link ?? '',
     })
     setEditing(true)
   }
 
   async function saveEdits(): Promise<void> {
+    if (!meetingId) return
     setSaving(true)
     try {
       const payload = {
         ...editForm,
-        follow_up_date: editForm.follow_up_date || null,
-        recording_link: editForm.recording_link || null,
+        follow_up_date: editForm.follow_up_date ?? null,
+        recording_link: editForm.recording_link ?? null,
       }
       const { data } = await api.patch<Meeting>(`/meetings/${meetingId}`, payload)
       setMeeting(data)
@@ -113,11 +118,11 @@ function MeetingDetailPage(): React.JSX.Element {
     if (!meeting) return
     setEditForm({
       title: meeting.title,
-      summary: parsed.summary || '',
-      key_points: Array.isArray(parsed.key_points) ? parsed.key_points.join('\n') : parsed.key_points || '',
-      action_items: Array.isArray(parsed.action_items) ? parsed.action_items.join('\n') : parsed.action_items || '',
-      follow_up_date: parsed.follow_up_date || '',
-      recording_link: meeting.recording_link || '',
+      summary: parsed.summary ?? '',
+      key_points: Array.isArray(parsed.key_points) ? parsed.key_points.join('\n') : parsed.key_points ?? '',
+      action_items: Array.isArray(parsed.action_items) ? parsed.action_items.join('\n') : parsed.action_items ?? '',
+      follow_up_date: parsed.follow_up_date ?? '',
+      recording_link: meeting.recording_link ?? '',
     })
     setEditing(true)
   }
@@ -137,7 +142,7 @@ function MeetingDetailPage(): React.JSX.Element {
     <Layout>
       <PageHeader
         title={meeting.title}
-        description={`${meeting.meeting_date} · ${PLATFORM_LABELS[meeting.platform || ''] || meeting.platform || 'Unknown platform'}`}
+        description={`${meeting.meeting_date} · ${PLATFORM_LABELS[meeting.platform ?? ''] ?? meeting.platform ?? 'Unknown platform'}`}
         action={
           <div className="flex gap-2">
             {!editing && (
@@ -231,7 +236,7 @@ function MeetingDetailPage(): React.JSX.Element {
 
               <div className="flex gap-3 pt-2">
                 <button
-                  onClick={saveEdits}
+                  onClick={() => { void saveEdits() }}
                   disabled={saving}
                   className="bg-navy-900 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-navy-800 transition-colors disabled:opacity-50"
                 >
@@ -252,7 +257,7 @@ function MeetingDetailPage(): React.JSX.Element {
               <div className="bg-white rounded-xl border border-navy-100 p-6">
                 <h2 className="text-sm font-semibold text-navy-500 uppercase tracking-wide mb-3">Summary</h2>
                 <p className="text-sm text-navy-800 whitespace-pre-wrap">
-                  {meeting.summary || 'No summary recorded.'}
+                  {meeting.summary ?? 'No summary recorded.'}
                 </p>
               </div>
 
@@ -300,7 +305,7 @@ function MeetingDetailPage(): React.JSX.Element {
               )}
               <div>
                 <dt className="text-navy-400">Platform</dt>
-                <dd className="text-navy-900">{PLATFORM_LABELS[meeting.platform] || '-'}</dd>
+                <dd className="text-navy-900">{PLATFORM_LABELS[meeting.platform] ?? '-'}</dd>
               </div>
               {meeting.follow_up_date && (
                 <div>
@@ -329,7 +334,7 @@ function MeetingDetailPage(): React.JSX.Element {
           </div>
 
           {/* Attendees */}
-          <MeetingAttendees meetingId={meetingId || ''} />
+          <MeetingAttendees meetingId={meetingId ?? ''} />
         </div>
       </div>
     </Layout>

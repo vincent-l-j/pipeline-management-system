@@ -40,7 +40,7 @@ export default function PitchesPage(): React.JSX.Element {
   const [loading, setLoading] = useState<boolean>(true)
 
   useEffect(() => {
-    api.get('/pitches').then(({ data }) => {
+    api.get<Pitch[]>('/pitches').then(({ data }) => {
       setPitches(data)
       setLoading(false)
     }).catch(() => { setLoading(false); })
@@ -82,7 +82,7 @@ export default function PitchesPage(): React.JSX.Element {
             </thead>
             <tbody className="divide-y divide-navy-50">
               {pitches.map((pitch) => (
-                <tr key={pitch.id} onClick={() => navigate(`/pitches/${pitch.id}`)} className="hover:bg-navy-50/50 transition-colors cursor-pointer">
+                <tr key={pitch.id} onClick={() => { void navigate(`/pitches/${String(pitch.id)}`); }} className="hover:bg-navy-50/50 transition-colors cursor-pointer">
                   <td className="px-4 py-3">
                     <span className="font-medium text-navy-900">{pitch.title}</span>
                     {pitch.is_confidential && (
@@ -97,10 +97,10 @@ export default function PitchesPage(): React.JSX.Element {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-navy-500 capitalize">
-                    {pitch.source?.replace('_', ' ') || '-'}
+                    {pitch.source?.replace('_', ' ') ?? '-'}
                   </td>
                   <td className="px-4 py-3 text-navy-500">
-                    {pitch.submission_date || '-'}
+                    {pitch.submission_date ?? '-'}
                   </td>
                 </tr>
               ))}

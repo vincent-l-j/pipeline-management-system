@@ -34,6 +34,18 @@ const DOMAIN_OPTIONS = [
   'climate', 'health', 'digital', 'forestry', 'agri', 'education', 'other',
 ]
 
+interface Pitch {
+  title: string
+  short_description?: string
+  source?: string
+  funding_pathway?: string
+  domain_tags?: string
+  masterplan_alignment?: string
+  is_confidential?: boolean
+  organisation_id?: string
+  lead_id?: string
+}
+
 interface PitchForm {
   title: string
   short_description: string
@@ -71,11 +83,11 @@ export default function PitchEditPage(): React.JSX.Element {
   })
 
   useEffect(() => {
-    if (!canEdit) return
+    if (!canEdit || !pitchId) return
     Promise.all([
-      api.get(`/pitches/${pitchId}`),
-      api.get('/organisations'),
-      api.get('/users'),
+      api.get<Pitch>(`/pitches/${pitchId}`),
+      api.get<Organisation[]>('/organisations'),
+      api.get<User[]>('/users'),
     ]).then(([pitchRes, orgsRes, usersRes]) => {
       const p = pitchRes.data
       setForm({
@@ -93,7 +105,7 @@ export default function PitchEditPage(): React.JSX.Element {
       setUsers(usersRes.data)
       setLoading(false)
     }).catch(() => {
-      navigate(`/pitches/${pitchId}`)
+      void navigate(`/pitches/${pitchId}`)
     })
   }, [pitchId, canEdit, navigate])
 
@@ -113,6 +125,7 @@ export default function PitchEditPage(): React.JSX.Element {
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault()
+    if (!pitchId) return
     setSaving(true)
     setError(null)
 
@@ -130,15 +143,15 @@ export default function PitchEditPage(): React.JSX.Element {
 
     try {
       await api.patch(`/pitches/${pitchId}`, payload)
-      navigate(`/pitches/${pitchId}`)
+      void navigate(`/pitches/${pitchId}`)
     } catch (err) {
       const apiError = err as ApiError
-      setError(apiError.response?.data?.detail || 'Failed to save pitch')
+      setError(apiError.response?.data.detail ?? 'Failed to save pitch')
       setSaving(false)
     }
   }
 
-  if (!canEdit) return <Navigate to={`/pitches/${pitchId}`} replace />
+  if (!canEdit || !pitchId) return <Navigate to="/pitches" replace />
 
   if (loading) {
     return <Layout><p className="text-navy-400">Loading pitch...</p></Layout>
@@ -151,7 +164,7 @@ export default function PitchEditPage(): React.JSX.Element {
     <Layout>
       <PageHeader title="Edit Pitch" description="Update the initiative's details" />
 
-      <form onSubmit={handleSubmit} className="max-w-2xl space-y-5">
+      <form onSubmit={(e) => { void handleSubmit(e) }} className="max-w-2xl space-y-5">
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
             {error}
@@ -302,7 +315,7 @@ export default function PitchEditPage(): React.JSX.Element {
           </button>
           <button
             type="button"
-            onClick={() => navigate(`/pitches/${pitchId}`)}
+            onClick={() => { if (pitchId) void navigate(`/pitches/${pitchId}`) }}
             className="border border-navy-200 text-navy-600 px-6 py-2.5 rounded-lg text-sm font-medium hover:border-navy-400 transition-colors"
           >
             Cancel

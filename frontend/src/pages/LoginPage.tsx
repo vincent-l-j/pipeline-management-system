@@ -46,7 +46,7 @@ export default function LoginPage(): React.JSX.Element {
             </div>
 
             <button
-              onClick={handleDevLogin}
+              onClick={() => { void handleDevLogin() }}
               className="w-full border-2 border-navy-200 text-navy-600 py-3 px-6 rounded-lg font-medium hover:border-navy-400 transition-colors"
               type="button"
             >

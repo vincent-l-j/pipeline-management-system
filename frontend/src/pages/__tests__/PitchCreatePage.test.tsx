@@ -35,6 +35,9 @@ function createMockGetHelpers() {
       get mock() {
         return get
       },
+      get calls() {
+        return get.mock.calls
+      },
     }
   })()
 }
@@ -67,10 +70,10 @@ describe('PitchCreatePage', () => {
   it('resolves lead names via /users/directory, not the admin /users listing', async () => {
     render(<PitchCreatePage />)
     await waitFor(() =>
-      { expect(mockGetHelpers.mock.calls.map((c: unknown[]) => c[0])).toContain('/users/directory') },
+      { expect(mockGetHelpers.calls.map((c: unknown[]) => c[0])).toContain('/users/directory') },
     )
     // The sensitive admin listing is never called from the create form.
-    expect(mockGetHelpers.mock.calls.map((c: unknown[]) => c[0])).not.toContain('/users')
+    expect(mockGetHelpers.calls.map((c: unknown[]) => c[0])).not.toContain('/users')
   })
 
   it('renders the create form for an assessor', async () => {

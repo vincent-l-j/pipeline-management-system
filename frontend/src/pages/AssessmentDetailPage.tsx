@@ -209,6 +209,7 @@ export default function AssessmentDetailPage(): React.JSX.Element {
           </div>
 
           {/* Pitch info card */}
+          {pitch && (
           <div className="bg-white rounded-xl border border-navy-100 p-6">
               <h2 className="text-sm font-semibold text-navy-500 uppercase tracking-wide mb-3">
                 Linked Pitch
@@ -222,9 +223,10 @@ export default function AssessmentDetailPage(): React.JSX.Element {
                 </p>
               )}
               <p className="text-xs text-navy-400 mt-2 capitalize">
-                Stage: {pitch.current_stage.replace("_", " ")}
+                Stage: {pitch.current_stage?.replace("_", " ")}
               </p>
             </div>
+          )}
         </div>
       </div>
     </Layout>

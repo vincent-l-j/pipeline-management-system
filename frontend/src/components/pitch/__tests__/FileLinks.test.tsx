@@ -54,6 +54,8 @@ describe('FileLinks', () => {
   beforeEach(() => {
     mockGetHelpers = createMockGetHelpers()
     mockPostHelpers = createMockPostHelpers()
+    mockGetHelpers.mockClear()
+    mockPostHelpers.mockClear()
     mockUser = { role: 'admin' }
   })
 

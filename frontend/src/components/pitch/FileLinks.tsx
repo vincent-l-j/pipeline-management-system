@@ -135,7 +135,7 @@ export default function FileLinks({ pitchId }: FileLinksProps): React.JSX.Elemen
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-navy-900">
-                  {f.label ?? "Untitled"}
+                  {f.label || "Untitled"}
                 </p>
                 <p className="text-xs text-navy-500 font-mono truncate">
                   {f.file_path}

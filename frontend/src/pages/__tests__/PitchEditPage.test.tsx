@@ -71,6 +71,9 @@ function createMockGetHelpers() {
       get mock() {
         return get
       },
+      get calls() {
+        return get.mock.calls
+      },
     }
   })()
 }
@@ -83,6 +86,9 @@ function createMockPatchHelpers() {
       mockResolvedValue: (value: unknown) => patch.mockResolvedValue(value),
       get mock() {
         return patch
+      },
+      get calls() {
+        return patch.mock.calls
       },
     }
   })()
@@ -143,7 +149,7 @@ describe('PitchEditPage', () => {
       expect.objectContaining({ title: 'New Title' }),
     )
     // Stage is never sent from the edit form.
-    const patchCalls = mockPatchHelpers.mock.calls as unknown[][]
+    const patchCalls = mockPatchHelpers.calls as unknown[][]
     expect(patchCalls[0][1]).not.toHaveProperty('current_stage')
     await waitFor(() => { expect(mockNavigate).toHaveBeenCalledWith('/pitches/42') })
   })

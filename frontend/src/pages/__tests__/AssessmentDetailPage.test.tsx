@@ -116,10 +116,8 @@ describe('AssessmentDetailPage', () => {
     setupGet()
     render(<AssessmentDetailPage />)
     await waitFor(() => screen.getByText(/Assessment for/))
-    const priorButton = screen.getAllByRole('button').find((b) => (b.textContent || '').startsWith('v1'))
-    if (priorButton) {
-      await user.click(priorButton)
-    }
+    const priorButton = screen.getByRole('button', { name: /^v1/ })
+    await user.click(priorButton)
     expect(mockNavigate).toHaveBeenCalledWith('/assessments/a1')
   })
 })

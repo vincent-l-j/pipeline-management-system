@@ -222,7 +222,7 @@ export default function AssessmentDetailPage(): React.JSX.Element {
               </p>
             )}
             <p className="text-xs text-navy-400 mt-2 capitalize">
-              Stage: {pitch.current_stage?.replace("_", " ")}
+              Stage: {pitch.current_stage.replace("_", " ")}
             </p>
           </div>
         </div>

@@ -1,23 +1,13 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import KanbanBoard from '../KanbanBoard'
 import { PIPELINE_STAGES } from '../PipelineConfig'
-import api from '../../../services/api'
+import { createApiMocks } from '../../../test/mocks/api'
 
 vi.mock('../../../services/api', () => ({
   default: { post: vi.fn() },
 }))
 
-const createMockPostHelpers = () => {
-  const post = vi.mocked(api.post)
-  const helpers = {
-    mockResolvedValueOnce: (value: unknown) => { post.mockResolvedValueOnce(value) },
-    mockRejectedValueOnce: (error: Error) => { post.mockRejectedValueOnce(error) },
-    get mock() { return post },
-  }
-  return helpers
-}
-
-let mockPostHelpers = createMockPostHelpers()
+const apiMocks = createApiMocks()
 
 interface MockStage {
   key: string
@@ -70,11 +60,6 @@ const pitches: Pitch[] = [
 ]
 
 describe('KanbanBoard', () => {
-  beforeEach(() => {
-    mockPostHelpers = createMockPostHelpers()
-    vi.clearAllMocks()
-  })
-
   it('renders one column per pipeline stage', () => {
     render(<KanbanBoard pitches={[]} onPitchMoved={vi.fn()} />)
     expect(screen.getAllByTestId('column')).toHaveLength(PIPELINE_STAGES.length)
@@ -113,14 +98,14 @@ describe('KanbanBoard', () => {
 
   it('optimistically moves and POSTs the new stage when a stage is selected', async () => {
     const onPitchMoved = vi.fn()
-    mockPostHelpers.mockResolvedValueOnce({})
+    apiMocks.post.mockResolvedValue({})
     render(<KanbanBoard pitches={pitches} onPitchMoved={onPitchMoved} />)
 
     fireEvent.click(screen.getByTestId('select-due_diligence'))
 
     expect(onPitchMoved).toHaveBeenCalledWith('a', 'due_diligence')
     await waitFor(() => {
-      expect(mockPostHelpers.mock).toHaveBeenCalledWith(
+      expect(apiMocks.post.mock).toHaveBeenCalledWith(
         '/pitches/a/stage',
         expect.objectContaining({ new_stage: 'due_diligence' }),
       )
@@ -129,7 +114,7 @@ describe('KanbanBoard', () => {
 
   it('reverts the card to its original stage when the API call fails', async () => {
     const onPitchMoved = vi.fn()
-    mockPostHelpers.mockRejectedValueOnce(new Error('boom'))
+    apiMocks.post.mockRejectedValue(new Error('boom'))
     render(<KanbanBoard pitches={pitches} onPitchMoved={onPitchMoved} />)
 
     fireEvent.click(screen.getByTestId('select-due_diligence'))

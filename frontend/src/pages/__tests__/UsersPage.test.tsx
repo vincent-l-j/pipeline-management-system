@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import UsersPage from "../UsersPage";
-import api from "../../services/api";
+import { createApiMocks } from "../../test/mocks/api";
 
 interface User {
   id: string;
@@ -20,6 +20,8 @@ interface MockUser {
 vi.mock("../../services/api", () => ({
   default: { get: vi.fn(), patch: vi.fn() },
 }));
+
+const apiMocks = createApiMocks();
 
 let mockUser: MockUser = { role: "admin" };
 vi.mock("../../contexts/AuthContext", () => ({
@@ -70,9 +72,7 @@ const mockUsers: User[] = [
 
 describe("UsersPage", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
-    vi.mocked(api.get).mockResolvedValue({ data: mockUsers });
-    vi.mocked(api.patch).mockReset();
+    apiMocks.get.mockResolvedValue({ data: mockUsers });
     mockUser = { role: "admin" };
   });
 
@@ -121,7 +121,7 @@ describe("UsersPage", () => {
 
   it("allows changing a user role", async () => {
     const user = userEvent.setup();
-    vi.mocked(api.patch).mockResolvedValue({
+    apiMocks.patch.mockResolvedValue({
       data: { ...mockUsers[1], role: "admin" },
     });
 
@@ -146,7 +146,7 @@ describe("UsersPage", () => {
     await user.click(saveButton);
 
     await waitFor(() => {
-      expect(vi.mocked(api.patch)).toHaveBeenCalledWith("/users/2", {
+      expect(apiMocks.patch.mock).toHaveBeenCalledWith("/users/2", {
         role: "admin",
       });
     });
@@ -174,12 +174,12 @@ describe("UsersPage", () => {
       expect(screen.queryByText(/change role/i)).not.toBeInTheDocument();
     });
 
-    expect(vi.mocked(api.patch)).not.toHaveBeenCalled();
+    expect(apiMocks.patch.mock).not.toHaveBeenCalled();
   });
 
   it("shows error message on patch failure", async () => {
     const user = userEvent.setup();
-    vi.mocked(api.patch).mockRejectedValue({
+    apiMocks.patch.mockRejectedValue({
       response: { data: { detail: "Permission denied" } },
     });
 

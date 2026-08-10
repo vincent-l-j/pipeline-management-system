@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import SearchPage from '../SearchPage'
-import api from '../../services/api'
+import { createApiMocks } from '../../test/mocks/api'
 
 interface SearchResult {
   id: string
@@ -29,6 +29,8 @@ vi.mock('../../services/api', () => ({
   default: { get: vi.fn() },
 }))
 
+const apiMocks = createApiMocks()
+
 vi.mock('../../components/Layout', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
@@ -52,23 +54,8 @@ const RESULT_ROUTES: [string, string][] = [
   ['Solar Pitch', '/pitches/p1'],
 ]
 
-function createMockGetHelpers() {
-  return (() => {
-    const get = vi.mocked(api.get)
-    return {
-      mockReset: () => get.mockReset(),
-      mockResolvedValue: (value: unknown) => get.mockResolvedValue(value),
-      get mock() {
-        return get
-      },
-    }
-  })()
-}
-
-let mockGetHelpers = createMockGetHelpers()
-
 function setup() {
-  mockGetHelpers.mockResolvedValue({ data: RESULTS })
+  apiMocks.get.mockResolvedValue({ data: RESULTS })
 }
 
 async function search(user: ReturnType<typeof userEvent.setup>, term: string) {
@@ -82,12 +69,6 @@ function isValidDetailRoute(path: string): boolean {
 }
 
 describe('SearchPage result navigation', () => {
-  beforeEach(() => {
-    mockGetHelpers = createMockGetHelpers()
-    mockGetHelpers.mockReset()
-    mockNavigate.mockReset()
-  })
-
   it('clicking a pitch result navigates to /pitches/{id}, not the dashboard', async () => {
     const user = userEvent.setup()
     setup()

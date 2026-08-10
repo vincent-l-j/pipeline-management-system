@@ -2,28 +2,13 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import ActivityTimeline from '../ActivityTimeline'
-import api from '../../../services/api'
+import { createApiMocks } from '../../../test/mocks/api'
 
 vi.mock('../../../services/api', () => ({
   default: { get: vi.fn() },
 }))
 
-function createMockGetHelpers() {
-  return (() => {
-    const get = vi.mocked(api.get)
-    return {
-      mockReturnValue: (value: unknown) => get.mockReturnValue(value),
-      mockResolvedValue: (value: unknown) => get.mockResolvedValue(value),
-      mockRejectedValue: (error: Error) => get.mockRejectedValue(error),
-      mockClear: () => get.mockClear(),
-      get mock() {
-        return get
-      },
-    }
-  })()
-}
-
-let mockGetHelpers = createMockGetHelpers()
+const apiMocks = createApiMocks()
 
 const mockNavigate = vi.fn()
 vi.mock('react-router-dom', async (importOriginal) => {
@@ -40,12 +25,9 @@ function renderTimeline(pitchId = '1') {
 }
 
 describe('ActivityTimeline', () => {
-  beforeEach(() => {
-    mockGetHelpers = createMockGetHelpers()
-  })
 
   it('shows loading text initially', () => {
-    mockGetHelpers.mockReturnValue(new Promise(/* never resolves */ () => {
+    apiMocks.get.mockReturnValue(new Promise(/* never resolves */ () => {
       // Intentionally empty - promise never resolves
     }))
     renderTimeline()
@@ -53,7 +35,7 @@ describe('ActivityTimeline', () => {
   })
 
   it('shows empty message when no events are returned', async () => {
-    mockGetHelpers.mockResolvedValue({ data: { events: [] } })
+    apiMocks.get.mockResolvedValue({ data: { events: [] } })
     renderTimeline()
     await waitFor(() => {
       expect(screen.getByText('No activity recorded yet.')).toBeInTheDocument()
@@ -61,7 +43,7 @@ describe('ActivityTimeline', () => {
   })
 
   it('shows empty message when the API call fails', async () => {
-    mockGetHelpers.mockRejectedValue(new Error('Network Error'))
+    apiMocks.get.mockRejectedValue(new Error('Network Error'))
     renderTimeline()
     await waitFor(() => {
       expect(screen.getByText('No activity recorded yet.')).toBeInTheDocument()
@@ -69,7 +51,7 @@ describe('ActivityTimeline', () => {
   })
 
   it('renders each event title after data loads', async () => {
-    mockGetHelpers.mockResolvedValue({
+    apiMocks.get.mockResolvedValue({
       data: {
         events: [
           { type: 'created', title: 'Pitch Received', date: '2026-01-01T10:00:00Z', actor: 'Admin' },
@@ -85,7 +67,7 @@ describe('ActivityTimeline', () => {
   })
 
   it('renders event description when present', async () => {
-    mockGetHelpers.mockResolvedValue({
+    apiMocks.get.mockResolvedValue({
       data: {
         events: [
           {
@@ -104,7 +86,7 @@ describe('ActivityTimeline', () => {
   })
 
   it('renders actor name when present', async () => {
-    mockGetHelpers.mockResolvedValue({
+    apiMocks.get.mockResolvedValue({
       data: {
         events: [
           { type: 'created', title: 'Created', date: '2026-01-01T10:00:00Z', actor: 'Jane Smith' },
@@ -118,7 +100,7 @@ describe('ActivityTimeline', () => {
   })
 
   it('shows "click to view" hint for meeting events', async () => {
-    mockGetHelpers.mockResolvedValue({
+    apiMocks.get.mockResolvedValue({
       data: {
         events: [
           { type: 'meeting', title: 'Discovery Meeting', date: '2026-02-01T14:00:00Z', meeting_id: 10 },
@@ -133,7 +115,7 @@ describe('ActivityTimeline', () => {
 
   it('navigates to meeting page when a meeting event is clicked', async () => {
     const user = userEvent.setup()
-    mockGetHelpers.mockResolvedValue({
+    apiMocks.get.mockResolvedValue({
       data: {
         events: [
           { type: 'meeting', title: 'Discovery Meeting', date: '2026-02-01T14:00:00Z', meeting_id: 10 },
@@ -148,7 +130,7 @@ describe('ActivityTimeline', () => {
 
   it('navigates to assessment page when an assessment event is clicked', async () => {
     const user = userEvent.setup()
-    mockGetHelpers.mockResolvedValue({
+    apiMocks.get.mockResolvedValue({
       data: {
         events: [
           { type: 'assessment', title: 'Deep Assessment', date: '2026-03-01T10:00:00Z', assessment_id: 7 },
@@ -162,9 +144,9 @@ describe('ActivityTimeline', () => {
   })
 
   it('fetches timeline for the given pitchId', async () => {
-    mockGetHelpers.mockResolvedValue({ data: { events: [] } })
+    apiMocks.get.mockResolvedValue({ data: { events: [] } })
     renderTimeline('99')
     await waitFor(() => screen.getByText('No activity recorded yet.'))
-    expect(mockGetHelpers.mock).toHaveBeenCalledWith('/pitches/99/timeline')
+    expect(apiMocks.get.mock).toHaveBeenCalledWith('/pitches/99/timeline')
   })
 })

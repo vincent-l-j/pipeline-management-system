@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import ContactsPage from '../ContactsPage'
-import api from '../../services/api'
+import { createApiMocks } from '../../test/mocks/api'
 
 interface Contact {
   id: string
@@ -20,6 +20,8 @@ vi.mock('../../services/api', () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }))
 
+const apiMocks = createApiMocks()
+
 let mockUser: MockUser = { role: 'admin' }
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: mockUser }),
@@ -34,15 +36,11 @@ const CONTACTS: Contact[] = [
 ]
 
 function setupGet(list: Contact[] = CONTACTS) {
-  vi.mocked(api.get).mockResolvedValue({ data: list })
+  apiMocks.get.mockResolvedValue({ data: list })
 }
 
 describe('ContactsPage', () => {
   beforeEach(() => {
-    vi.mocked(api.get).mockReset()
-    vi.mocked(api.post).mockReset()
-    vi.mocked(api.patch).mockReset()
-    vi.mocked(api.delete).mockReset()
     mockUser = { role: 'admin' }
   })
 
@@ -75,7 +73,7 @@ describe('ContactsPage', () => {
   it('submitting the Add form posts and renders the new row', async () => {
     const user = userEvent.setup()
     setupGet([])
-    vi.mocked(api.post).mockResolvedValue({
+    apiMocks.post.mockResolvedValue({
       data: { id: 'c2', name: 'New Person', role: null, email: null, last_contacted: null },
     })
     render(<ContactsPage />)
@@ -83,7 +81,7 @@ describe('ContactsPage', () => {
     await user.click(screen.getByRole('button', { name: /Add Contact/i }))
     await user.type(screen.getByPlaceholderText(/Contact name/i), 'New Person')
     await user.click(screen.getByRole('button', { name: 'Create' }))
-    expect(api.post).toHaveBeenCalledWith(
+    expect(apiMocks.post.mock).toHaveBeenCalledWith(
       '/contacts',
       expect.objectContaining({ name: 'New Person' }),
     )
@@ -93,12 +91,12 @@ describe('ContactsPage', () => {
   it('Remove asks for confirmation; confirming deletes and removes the row', async () => {
     const user = userEvent.setup()
     setupGet()
-    vi.mocked(api.delete).mockResolvedValue({})
+    apiMocks.delete.mockResolvedValue({})
     render(<ContactsPage />)
     await waitFor(() => screen.getByText('Jane Doe'))
     await user.click(screen.getByRole('button', { name: 'Remove' }))
     await user.click(await screen.findByRole('button', { name: 'Confirm' }))
-    expect(api.delete).toHaveBeenCalledWith('/contacts/c1')
+    expect(apiMocks.delete.mock).toHaveBeenCalledWith('/contacts/c1')
     await waitFor(() => { expect(screen.queryByText('Jane Doe')).not.toBeInTheDocument(); })
   })
 
@@ -109,14 +107,14 @@ describe('ContactsPage', () => {
     await waitFor(() => screen.getByText('Jane Doe'))
     await user.click(screen.getByRole('button', { name: 'Remove' }))
     await user.click(await screen.findByRole('button', { name: 'Cancel' }))
-    expect(api.delete).not.toHaveBeenCalled()
+    expect(apiMocks.delete.mock).not.toHaveBeenCalled()
     expect(screen.getByText('Jane Doe')).toBeInTheDocument()
   })
 
   it('a rejected delete leaves the row present and shows an error', async () => {
     const user = userEvent.setup()
     setupGet()
-    vi.mocked(api.delete).mockRejectedValue({ response: { data: { detail: 'Delete failed' } } })
+    apiMocks.delete.mockRejectedValue({ response: { data: { detail: 'Delete failed' } } })
     render(<ContactsPage />)
     await waitFor(() => screen.getByText('Jane Doe'))
     await user.click(screen.getByRole('button', { name: 'Remove' }))
@@ -162,7 +160,7 @@ describe('ContactsPage', () => {
   it('saving an edit patches the changed fields and updates the row in place', async () => {
     const user = userEvent.setup()
     setupGet()
-    vi.mocked(api.patch).mockResolvedValue({
+    apiMocks.patch.mockResolvedValue({
       data: { ...CONTACTS[0], name: 'Jane Smith' },
     })
     render(<ContactsPage />)
@@ -172,7 +170,7 @@ describe('ContactsPage', () => {
     await user.clear(nameInput)
     await user.type(nameInput, 'Jane Smith')
     await user.click(screen.getByRole('button', { name: 'Save' }))
-    expect(api.patch).toHaveBeenCalledWith('/contacts/c1', { name: 'Jane Smith' })
+    expect(apiMocks.patch.mock).toHaveBeenCalledWith('/contacts/c1', { name: 'Jane Smith' })
     await waitFor(() => { expect(screen.getByText('Jane Smith')).toBeInTheDocument(); })
     expect(screen.queryByText('Jane Doe')).not.toBeInTheDocument()
   })
@@ -187,14 +185,14 @@ describe('ContactsPage', () => {
     await user.clear(nameInput)
     await user.type(nameInput, 'Jane Smith')
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(api.patch).not.toHaveBeenCalled()
+    expect(apiMocks.patch.mock).not.toHaveBeenCalled()
     expect(screen.getByText('Jane Doe')).toBeInTheDocument()
   })
 
   it('a rejected edit leaves the row unchanged and shows an error', async () => {
     const user = userEvent.setup()
     setupGet()
-    vi.mocked(api.patch).mockRejectedValue({ response: { data: { detail: 'Update failed' } } })
+    apiMocks.patch.mockRejectedValue({ response: { data: { detail: 'Update failed' } } })
     render(<ContactsPage />)
     await waitFor(() => screen.getByText('Jane Doe'))
     await user.click(screen.getByRole('button', { name: 'Edit' }))

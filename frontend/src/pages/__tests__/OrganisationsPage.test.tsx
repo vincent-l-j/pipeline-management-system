@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import OrganisationsPage from '../OrganisationsPage'
-import api from '../../services/api'
+import { createApiMocks } from '../../test/mocks/api'
 
 interface Organisation {
   id: string
@@ -23,6 +23,8 @@ vi.mock('../../services/api', () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }))
 
+const apiMocks = createApiMocks()
+
 let mockUser: MockUser = { role: 'admin' }
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: mockUser }),
@@ -38,15 +40,11 @@ const ORGS: Organisation[] = [
 ]
 
 function setupGet(list: Organisation[] = ORGS) {
-  vi.mocked(api.get).mockResolvedValue({ data: list })
+  apiMocks.get.mockResolvedValue({ data: list })
 }
 
 describe('OrganisationsPage', () => {
   beforeEach(() => {
-    vi.mocked(api.get).mockReset()
-    vi.mocked(api.post).mockReset()
-    vi.mocked(api.patch).mockReset()
-    vi.mocked(api.delete).mockReset()
     mockUser = { role: 'admin' }
   })
 
@@ -79,7 +77,7 @@ describe('OrganisationsPage', () => {
   it('submitting the Add form posts and renders the new row', async () => {
     const user = userEvent.setup()
     setupGet([])
-    vi.mocked(api.post).mockResolvedValue({
+    apiMocks.post.mockResolvedValue({
       data: { id: 'o2', name: 'New Org', org_type: null, sector: 'Energy', state_territory: null, website: null, abn: null, notes: null },
     })
     render(<OrganisationsPage />)
@@ -87,7 +85,7 @@ describe('OrganisationsPage', () => {
     await user.click(screen.getByRole('button', { name: /Add Organisation/i }))
     await user.type(screen.getByPlaceholderText(/Organisation name/i), 'New Org')
     await user.click(screen.getByRole('button', { name: 'Create' }))
-    expect(api.post).toHaveBeenCalledWith(
+    expect(apiMocks.post.mock).toHaveBeenCalledWith(
       '/organisations',
       expect.objectContaining({ name: 'New Org' }),
     )
@@ -97,7 +95,7 @@ describe('OrganisationsPage', () => {
   it('Add form includes all optional fields', async () => {
     const user = userEvent.setup()
     setupGet([])
-    vi.mocked(api.post).mockResolvedValue({
+    apiMocks.post.mockResolvedValue({
       data: {
         id: 'o2',
         name: 'TechCorp',
@@ -120,7 +118,7 @@ describe('OrganisationsPage', () => {
     await user.type(screen.getByPlaceholderText(/ABN/), '12345678901')
     await user.type(screen.getByPlaceholderText(/Notes/), 'A tech startup')
     await user.click(screen.getByRole('button', { name: 'Create' }))
-    expect(api.post).toHaveBeenCalledWith(
+    expect(apiMocks.post.mock).toHaveBeenCalledWith(
       '/organisations',
       expect.objectContaining({
         name: 'TechCorp',
@@ -137,12 +135,12 @@ describe('OrganisationsPage', () => {
   it('Remove asks for confirmation; confirming deletes and removes the row', async () => {
     const user = userEvent.setup()
     setupGet()
-    vi.mocked(api.delete).mockResolvedValue({})
+    apiMocks.delete.mockResolvedValue({})
     render(<OrganisationsPage />)
     await waitFor(() => screen.getByText('Soil Tech Labs'))
     await user.click(screen.getByRole('button', { name: 'Remove' }))
     await user.click(await screen.findByRole('button', { name: 'Confirm' }))
-    expect(api.delete).toHaveBeenCalledWith('/organisations/o1')
+    expect(apiMocks.delete.mock).toHaveBeenCalledWith('/organisations/o1')
     await waitFor(() => { expect(screen.queryByText('Soil Tech Labs')).not.toBeInTheDocument(); })
   })
 
@@ -153,14 +151,14 @@ describe('OrganisationsPage', () => {
     await waitFor(() => screen.getByText('Soil Tech Labs'))
     await user.click(screen.getByRole('button', { name: 'Remove' }))
     await user.click(await screen.findByRole('button', { name: 'Cancel' }))
-    expect(api.delete).not.toHaveBeenCalled()
+    expect(apiMocks.delete.mock).not.toHaveBeenCalled()
     expect(screen.getByText('Soil Tech Labs')).toBeInTheDocument()
   })
 
   it('a rejected delete leaves the row present and shows an error', async () => {
     const user = userEvent.setup()
     setupGet()
-    vi.mocked(api.delete).mockRejectedValue({ response: { data: { detail: 'Delete failed' } } })
+    apiMocks.delete.mockRejectedValue({ response: { data: { detail: 'Delete failed' } } })
     render(<OrganisationsPage />)
     await waitFor(() => screen.getByText('Soil Tech Labs'))
     await user.click(screen.getByRole('button', { name: 'Remove' }))
@@ -205,7 +203,7 @@ describe('OrganisationsPage', () => {
   it('saving an edit patches the changed fields and updates the row in place', async () => {
     const user = userEvent.setup()
     setupGet()
-    vi.mocked(api.patch).mockResolvedValue({
+    apiMocks.patch.mockResolvedValue({
       data: { ...ORGS[0], sector: 'Energy' },
     })
     render(<OrganisationsPage />)
@@ -215,7 +213,7 @@ describe('OrganisationsPage', () => {
     await user.clear(sectorInput)
     await user.type(sectorInput, 'Energy')
     await user.click(screen.getByRole('button', { name: 'Save' }))
-    expect(api.patch).toHaveBeenCalledWith('/organisations/o1', { sector: 'Energy' })
+    expect(apiMocks.patch.mock).toHaveBeenCalledWith('/organisations/o1', { sector: 'Energy' })
     await waitFor(() => { expect(screen.getByText('Energy')).toBeInTheDocument(); })
     expect(screen.queryByText('Agriculture')).not.toBeInTheDocument()
   })
@@ -223,7 +221,7 @@ describe('OrganisationsPage', () => {
   it('saving an edit with optional fields included patches all changed fields', async () => {
     const user = userEvent.setup()
     setupGet()
-    vi.mocked(api.patch).mockResolvedValue({
+    apiMocks.patch.mockResolvedValue({
       data: { ...ORGS[0], org_type: 'startup', abn: '98765432100' },
     })
     render(<OrganisationsPage />)
@@ -234,7 +232,7 @@ describe('OrganisationsPage', () => {
     await user.selectOptions(typeSelect, 'startup')
     await user.type(abnInput, '98765432100')
     await user.click(screen.getByRole('button', { name: 'Save' }))
-    expect(api.patch).toHaveBeenCalledWith(
+    expect(apiMocks.patch.mock).toHaveBeenCalledWith(
       '/organisations/o1',
       expect.objectContaining({ org_type: 'startup', abn: '98765432100' }),
     )
@@ -250,14 +248,14 @@ describe('OrganisationsPage', () => {
     await user.clear(sectorInput)
     await user.type(sectorInput, 'Energy')
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(api.patch).not.toHaveBeenCalled()
+    expect(apiMocks.patch.mock).not.toHaveBeenCalled()
     expect(screen.getByText('Agriculture')).toBeInTheDocument()
   })
 
   it('a rejected edit leaves the row unchanged and shows an error', async () => {
     const user = userEvent.setup()
     setupGet()
-    vi.mocked(api.patch).mockRejectedValue({ response: { data: { detail: 'Update failed' } } })
+    apiMocks.patch.mockRejectedValue({ response: { data: { detail: 'Update failed' } } })
     render(<OrganisationsPage />)
     await waitFor(() => screen.getByText('Soil Tech Labs'))
     await user.click(screen.getByRole('button', { name: 'Edit' }))

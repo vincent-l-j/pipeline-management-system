@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import PitchCreatePage from '../PitchCreatePage'
-import api from '../../services/api'
+import { createApiMocks } from '../../test/mocks/api'
 
 interface MockUser {
   role: string
@@ -17,6 +17,8 @@ vi.mock('../../services/api', () => ({
   default: { get: vi.fn(), post: vi.fn() },
 }))
 
+const apiMocks = createApiMocks()
+
 let mockUser: MockUser = { role: 'assessor' }
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: mockUser }),
@@ -26,54 +28,19 @@ vi.mock('../../components/Layout', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
 
-function createMockGetHelpers() {
-  return (() => {
-    const get = vi.mocked(api.get)
-    return {
-      mockReset: () => get.mockReset(),
-      mockResolvedValue: (value: unknown) => get.mockResolvedValue(value),
-      get mock() {
-        return get
-      },
-      get calls() {
-        return get.mock.calls
-      },
-    }
-  })()
-}
-
-function createMockPostHelpers() {
-  return (() => {
-    const post = vi.mocked(api.post)
-    return {
-      mockReset: () => post.mockReset(),
-      get mock() {
-        return post
-      },
-    }
-  })()
-}
-
-let mockGetHelpers = createMockGetHelpers()
-let mockPostHelpers = createMockPostHelpers()
-
 describe('PitchCreatePage', () => {
   beforeEach(() => {
-    mockGetHelpers = createMockGetHelpers()
-    mockPostHelpers = createMockPostHelpers()
-    mockGetHelpers.mockReset()
-    mockPostHelpers.mockReset()
     mockUser = { role: 'assessor' }
-    mockGetHelpers.mockResolvedValue({ data: [] })
+    apiMocks.get.mockResolvedValue({ data: [] })
   })
 
   it('resolves lead names via /users/directory, not the admin /users listing', async () => {
     render(<PitchCreatePage />)
     await waitFor(() =>
-      { expect(mockGetHelpers.calls.map((c: unknown[]) => c[0])).toContain('/users/directory') },
+      { expect(apiMocks.get.mock.mock.calls.map((c: unknown[]) => c[0])).toContain('/users/directory') },
     )
     // The sensitive admin listing is never called from the create form.
-    expect(mockGetHelpers.calls.map((c: unknown[]) => c[0])).not.toContain('/users')
+    expect(apiMocks.get.mock.mock.calls.map((c: unknown[]) => c[0])).not.toContain('/users')
   })
 
   it('renders the create form for an assessor', async () => {

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import PitchEditPage from '../PitchEditPage'
-import api from '../../services/api'
+import { createApiMocks } from '../../test/mocks/api'
 
 interface Pitch {
   id: string
@@ -38,6 +38,8 @@ vi.mock('../../services/api', () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }))
 
+const apiMocks = createApiMocks()
+
 let mockUser: MockUser = { role: 'admin' }
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: mockUser }),
@@ -62,43 +64,8 @@ const PITCH: Pitch = {
   current_stage: 'initial_screen',
 }
 
-function createMockGetHelpers() {
-  return (() => {
-    const get = vi.mocked(api.get)
-    return {
-      mockImplementation: (fn: (url: string) => Promise<unknown>) => get.mockImplementation(fn),
-      mockReset: () => get.mockReset(),
-      get mock() {
-        return get
-      },
-      get calls() {
-        return get.mock.calls
-      },
-    }
-  })()
-}
-
-function createMockPatchHelpers() {
-  return (() => {
-    const patch = vi.mocked(api.patch)
-    return {
-      mockReset: () => patch.mockReset(),
-      mockResolvedValue: (value: unknown) => patch.mockResolvedValue(value),
-      get mock() {
-        return patch
-      },
-      get calls() {
-        return patch.mock.calls
-      },
-    }
-  })()
-}
-
-let mockGetHelpers = createMockGetHelpers()
-let mockPatchHelpers = createMockPatchHelpers()
-
 function setupGet() {
-  mockGetHelpers.mockImplementation((url: string) => {
+  apiMocks.get.mockImplementation((url: string) => {
     if (url === '/pitches/42') return Promise.resolve({ data: PITCH })
     if (url === '/organisations') return Promise.resolve({ data: [] })
     if (url === '/users') return Promise.resolve({ data: [] })
@@ -108,11 +75,6 @@ function setupGet() {
 
 describe('PitchEditPage', () => {
   beforeEach(() => {
-    mockGetHelpers = createMockGetHelpers()
-    mockPatchHelpers = createMockPatchHelpers()
-    mockGetHelpers.mockReset()
-    mockPatchHelpers.mockReset()
-    mockNavigate.mockReset()
     mockUser = { role: 'admin' }
   })
 
@@ -135,7 +97,7 @@ describe('PitchEditPage', () => {
   it('saving PATCHes the pitch then navigates to the detail route', async () => {
     const user = userEvent.setup()
     setupGet()
-    mockPatchHelpers.mockResolvedValue({ data: { ...PITCH, title: 'New Title' } })
+    apiMocks.patch.mockResolvedValue({ data: { ...PITCH, title: 'New Title' } })
     render(<PitchEditPage />)
     await waitFor(() => screen.getByDisplayValue('Original Title'))
 
@@ -144,12 +106,12 @@ describe('PitchEditPage', () => {
     await user.type(titleInput, 'New Title')
     await user.click(screen.getByRole('button', { name: /save/i }))
 
-    expect(api.patch).toHaveBeenCalledWith(
+    expect(apiMocks.patch.mock).toHaveBeenCalledWith(
       '/pitches/42',
       expect.objectContaining({ title: 'New Title' }),
     )
     // Stage is never sent from the edit form.
-    const patchCalls = mockPatchHelpers.calls as unknown[][]
+    const patchCalls = apiMocks.patch.mock.mock.calls as unknown[][]
     expect(patchCalls[0][1]).not.toHaveProperty('current_stage')
     await waitFor(() => { expect(mockNavigate).toHaveBeenCalledWith('/pitches/42') })
   })
@@ -161,7 +123,7 @@ describe('PitchEditPage', () => {
     await waitFor(() => screen.getByDisplayValue('Original Title'))
 
     await user.click(screen.getByRole('button', { name: /cancel/i }))
-    expect(api.patch).not.toHaveBeenCalled()
+    expect(apiMocks.patch.mock).not.toHaveBeenCalled()
     expect(mockNavigate).toHaveBeenCalledWith('/pitches/42')
   })
 

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import AssessmentDetailPage from '../AssessmentDetailPage'
-import api from '../../services/api'
+import { createApiMocks } from '../../test/mocks/api'
 
 interface Assessment {
   id: string
@@ -32,6 +32,8 @@ vi.mock('../../services/api', () => ({
   default: { get: vi.fn() },
 }))
 
+const apiMocks = createApiMocks()
+
 let mockUser: MockUser = { role: 'admin' }
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: mockUser }),
@@ -48,23 +50,8 @@ vi.mock('../../components/assessments/ScoringCard', () => ({
 const V2: Assessment = { id: 'a2', pitch_id: 'p1', version: 2, assessment_date: '2026-02-01', assessor_id: 'u2', recommendation: 'proceed' }
 const V1: Assessment = { id: 'a1', pitch_id: 'p1', version: 1, assessment_date: '2026-01-01', assessor_id: 'u1', recommendation: 'park' }
 
-function createMockGetHelpers() {
-  return (() => {
-    const get = vi.mocked(api.get)
-    return {
-      mockImplementation: (fn: (url: string) => Promise<unknown>) => get.mockImplementation(fn),
-      mockReset: () => get.mockReset(),
-      get mock() {
-        return get
-      },
-    }
-  })()
-}
-
-let mockGetHelpers = createMockGetHelpers()
-
 function setupGet() {
-  mockGetHelpers.mockImplementation((url: string) => {
+  apiMocks.get.mockImplementation((url: string) => {
     if (url === '/assessments/a2') return Promise.resolve({ data: V2 })
     if (url === '/users/directory') return Promise.resolve({ data: [
       { id: 'u1', display_name: 'Alice' }, { id: 'u2', display_name: 'Bob' },
@@ -77,9 +64,6 @@ function setupGet() {
 
 describe('AssessmentDetailPage', () => {
   beforeEach(() => {
-    mockGetHelpers = createMockGetHelpers()
-    mockGetHelpers.mockReset()
-    mockNavigate.mockReset()
     mockUser = { role: 'admin' }
   })
 

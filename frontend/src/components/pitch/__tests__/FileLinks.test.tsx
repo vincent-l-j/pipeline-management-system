@@ -1,48 +1,21 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import FileLinks from '../FileLinks'
-import api from '../../../services/api'
+import { createApiMocks } from '../../../test/mocks/api'
 
 vi.mock('../../../services/api', () => ({
   default: { get: vi.fn(), post: vi.fn() },
 }))
+
+const apiMocks = createApiMocks()
 
 let mockUser = { role: 'admin' }
 vi.mock('../../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: mockUser }),
 }))
 
-function createMockGetHelpers() {
-  return (() => {
-    const get = vi.mocked(api.get)
-    return {
-      mockClear: () => get.mockClear(),
-      mockResolvedValue: (value: unknown) => get.mockResolvedValue(value),
-      get mock() {
-        return get
-      },
-    }
-  })()
-}
-
-function createMockPostHelpers() {
-  return (() => {
-    const post = vi.mocked(api.post)
-    return {
-      mockClear: () => post.mockClear(),
-      mockResolvedValue: (value: unknown) => post.mockResolvedValue(value),
-      get mock() {
-        return post
-      },
-    }
-  })()
-}
-
-let mockGetHelpers = createMockGetHelpers()
-let mockPostHelpers = createMockPostHelpers()
-
 function setupGet(files: unknown[] = []) {
-  mockGetHelpers.mockResolvedValue({ data: files })
+  apiMocks.get.mockResolvedValue({ data: files })
 }
 
 const sampleFiles = [
@@ -52,10 +25,6 @@ const sampleFiles = [
 
 describe('FileLinks', () => {
   beforeEach(() => {
-    mockGetHelpers = createMockGetHelpers()
-    mockPostHelpers = createMockPostHelpers()
-    mockGetHelpers.mockClear()
-    mockPostHelpers.mockClear()
     mockUser = { role: 'admin' }
   })
 
@@ -63,7 +32,7 @@ describe('FileLinks', () => {
     setupGet([])
     render(<FileLinks pitchId="99" />)
     await waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith('/pitches/99/files')
+      expect(apiMocks.get.mock).toHaveBeenCalledWith('/pitches/99/files')
     })
   })
 
@@ -146,7 +115,7 @@ describe('FileLinks', () => {
   it('POSTs the new file and reloads the list when Add Reference is clicked', async () => {
     const user = userEvent.setup()
     setupGet([])
-    mockPostHelpers.mockResolvedValue({})
+    apiMocks.post.mockResolvedValue({})
     render(<FileLinks pitchId="7" />)
     await waitFor(() => screen.getByRole('button', { name: '+ Add File' }))
     await user.click(screen.getByRole('button', { name: '+ Add File' }))
@@ -155,14 +124,14 @@ describe('FileLinks', () => {
     await user.type(screen.getByPlaceholderText(/Label/), 'Proposal')
     await user.click(screen.getByRole('button', { name: 'Add Reference' }))
 
-    expect(api.post).toHaveBeenCalledWith('/pitches/7/files', {
+    expect(apiMocks.post.mock).toHaveBeenCalledWith('/pitches/7/files', {
       file_path: 'C:\\proposal.pdf',
       label: 'Proposal',
       description: '',
     })
     // loadFiles called again after the post (initial + reload)
     await waitFor(() => {
-      expect(api.get).toHaveBeenCalledTimes(2)
+      expect(apiMocks.get.mock).toHaveBeenCalledTimes(2)
     })
   })
 })

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import PitchDetailPage from '../PitchDetailPage'
-import api from '../../services/api'
+import { createApiMocks } from '../../test/mocks/api'
 
 interface Pitch {
   id: string
@@ -37,6 +37,8 @@ vi.mock('../../services/api', () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }))
 
+const apiMocks = createApiMocks()
+
 let mockUser: MockUser = { role: 'admin' }
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({ user: mockUser }),
@@ -63,23 +65,8 @@ const BASE_PITCH: Pitch = {
   organisation_id: null,
 }
 
-function createMockGetHelpers() {
-  return (() => {
-    const get = vi.mocked(api.get)
-    return {
-      mockImplementation: (fn: (url: string) => Promise<unknown>) => get.mockImplementation(fn),
-      mockReset: () => get.mockReset(),
-      get mock() {
-        return get
-      },
-    }
-  })()
-}
-
-let mockGetHelpers = createMockGetHelpers()
-
 function setupGet(pitch: Pitch = BASE_PITCH) {
-  mockGetHelpers.mockImplementation((url: string) => {
+  apiMocks.get.mockImplementation((url: string) => {
     if (url === '/pitches/42') return Promise.resolve({ data: pitch })
     if (url === '/users') return Promise.resolve({ data: [] })
     if (url.startsWith('/meetings')) return Promise.resolve({ data: [] })
@@ -91,9 +78,6 @@ function setupGet(pitch: Pitch = BASE_PITCH) {
 
 describe('PitchDetailPage', () => {
   beforeEach(() => {
-    mockGetHelpers = createMockGetHelpers()
-    mockGetHelpers.mockReset()
-    mockNavigate.mockReset()
     mockUser = { role: 'admin' }
   })
 

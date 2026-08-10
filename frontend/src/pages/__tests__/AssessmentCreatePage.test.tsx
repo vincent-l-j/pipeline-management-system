@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import AssessmentCreatePage from '../AssessmentCreatePage'
-import api from '../../services/api'
+import { createApiMocks } from '../../test/mocks/api'
 
 interface Assessment {
   id: string
@@ -33,6 +33,8 @@ vi.mock('../../services/api', () => ({
   default: { get: vi.fn(), post: vi.fn() },
 }))
 
+const apiMocks = createApiMocks()
+
 vi.mock('../../components/Layout', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
@@ -51,37 +53,8 @@ const LATEST: Assessment = {
   masterplan_alignment: 4,
 }
 
-function createMockGetHelpers() {
-  return (() => {
-    const get = vi.mocked(api.get)
-    return {
-      mockImplementation: (fn: (url: string) => Promise<unknown>) => get.mockImplementation(fn),
-      mockReset: () => get.mockReset(),
-      get mock() {
-        return get
-      },
-    }
-  })()
-}
-
-function createMockPostHelpers() {
-  return (() => {
-    const post = vi.mocked(api.post)
-    return {
-      mockReset: () => post.mockReset(),
-      mockResolvedValue: (value: unknown) => post.mockResolvedValue(value),
-      get mock() {
-        return post
-      },
-    }
-  })()
-}
-
-let mockGetHelpers = createMockGetHelpers()
-let mockPostHelpers = createMockPostHelpers()
-
 function setupGet() {
-  mockGetHelpers.mockImplementation((url: string) => {
+  apiMocks.get.mockImplementation((url: string) => {
     if (url === '/pitches') return Promise.resolve({ data: [{ id: 'p1', title: 'Solar Pitch' }] })
     if (url === '/assessments/a2') return Promise.resolve({ data: LATEST })
     return Promise.resolve({ data: [] })
@@ -90,11 +63,6 @@ function setupGet() {
 
 describe('AssessmentCreatePage (amend)', () => {
   beforeEach(() => {
-    mockGetHelpers = createMockGetHelpers()
-    mockPostHelpers = createMockPostHelpers()
-    mockGetHelpers.mockReset()
-    mockPostHelpers.mockReset()
-    mockNavigate.mockReset()
     mockSearch = 'pitch_id=p1&from=a2'
   })
 
@@ -112,14 +80,14 @@ describe('AssessmentCreatePage (amend)', () => {
   it('saving posts to /assessments and navigates to the new version', async () => {
     const user = userEvent.setup()
     setupGet()
-    mockPostHelpers.mockResolvedValue({ data: { id: 'a3', version: 3 } })
+    apiMocks.post.mockResolvedValue({ data: { id: 'a3', version: 3 } })
     render(<AssessmentCreatePage />)
     await waitFor(() => screen.getByDisplayValue('Strong national impact'))
 
     await user.click(screen.getByRole('button', { name: /submit assessment/i }))
 
     // When amending, the query parameter is passed to validate the pitch hasn't changed
-    expect(api.post).toHaveBeenCalledWith(
+    expect(apiMocks.post.mock).toHaveBeenCalledWith(
       '/assessments?amending_from_id=a2',
       expect.objectContaining({
         pitch_id: 'p1',
@@ -138,7 +106,7 @@ describe('AssessmentCreatePage (amend)', () => {
     await waitFor(() => screen.getByDisplayValue('Strong national impact'))
 
     await user.click(screen.getByRole('button', { name: /cancel/i }))
-    expect(api.post).not.toHaveBeenCalled()
+    expect(apiMocks.post.mock).not.toHaveBeenCalled()
     expect(mockNavigate).toHaveBeenCalledWith('/assessments')
   })
 
@@ -148,6 +116,6 @@ describe('AssessmentCreatePage (amend)', () => {
     render(<AssessmentCreatePage />)
     await waitFor(() => screen.getByRole('button', { name: /submit assessment/i }))
     expect(screen.queryByDisplayValue('Strong national impact')).not.toBeInTheDocument()
-    expect(api.get).not.toHaveBeenCalledWith('/assessments/a2')
+    expect(apiMocks.get.mock).not.toHaveBeenCalledWith('/assessments/a2')
   })
 })

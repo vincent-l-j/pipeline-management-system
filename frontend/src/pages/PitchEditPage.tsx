@@ -151,8 +151,8 @@ export default function PitchEditPage(): React.JSX.Element {
     }
   }
 
-  if (!canEdit) return <Navigate to={`/pitches/${pitchId}`} replace />
   if (!pitchId) return <Navigate to="/pitches" replace />
+  if (!canEdit) return <Navigate to={`/pitches/${pitchId}`} replace />
 
   if (loading) {
     return <Layout><p className="text-navy-400">Loading pitch...</p></Layout>

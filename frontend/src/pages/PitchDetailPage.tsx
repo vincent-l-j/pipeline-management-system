@@ -132,11 +132,9 @@ export default function PitchDetailPage(): React.JSX.Element {
           {/* Pitch details card */}
           <div className="bg-white rounded-xl border border-navy-100 p-6">
             <div className="flex items-center gap-3 mb-4">
-              {stage && (
-                <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${stage.lightColor}`}>
-                  {stage.label}
-                </span>
-              )}
+              <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${stage.lightColor}`}>
+                {stage.label}
+              </span>
               {pitch.is_confidential && (
                 <span className="text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded font-medium">
                   Confidential

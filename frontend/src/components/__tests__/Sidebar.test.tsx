@@ -19,7 +19,6 @@ function renderSidebar() {
 
 describe('Sidebar', () => {
   beforeEach(() => {
-    mockLogout.mockClear()
     mockUser = { display_name: 'Alice Admin', role: 'admin' }
   })
 

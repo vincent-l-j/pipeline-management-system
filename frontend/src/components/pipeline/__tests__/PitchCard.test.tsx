@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { DraggableProvidedDraggableProps } from '@hello-pangea/dnd'
 import PitchCard from '../PitchCard'
@@ -27,10 +27,6 @@ vi.mock('../PipelineConfig', () => ({
 }))
 
 describe('PitchCard', () => {
-  beforeEach(() => {
-    mockNavigate.mockClear()
-  })
-
   it('renders pitch title', () => {
     const pitch = { id: 1, title: 'Test Pitch', current_stage: 'received', is_confidential: false }
     render(

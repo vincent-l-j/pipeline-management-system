@@ -19,11 +19,8 @@ function Protected() {
 }
 
 describe('AdminRoute', () => {
-  beforeEach(() => {
-    mockAuth = { user: { role: 'admin' }, loading: false }
-  })
-
   it('renders children for an admin', () => {
+    mockAuth = { user: { role: 'admin' }, loading: false }
     render(<AdminRoute><Protected /></AdminRoute>)
     expect(screen.getByTestId('protected')).toBeInTheDocument()
     expect(screen.queryByTestId('redirect')).not.toBeInTheDocument()

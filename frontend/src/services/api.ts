@@ -1,5 +1,4 @@
 import axios, {
-  AxiosError,
   AxiosInstance,
   InternalAxiosRequestConfig,
 } from "axios";
@@ -21,12 +20,12 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 api.interceptors.response.use(
   (response) => response,
   (error: unknown) => {
-    if ((error as AxiosError | undefined)?.response?.status === 401) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       window.location.href = "/login";
     }
-    return Promise.reject(error);
+    return Promise.reject(error instanceof Error ? error : new Error(String(error)));
   },
 );
 

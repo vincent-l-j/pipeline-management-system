@@ -64,9 +64,9 @@ describe("api response interceptor", () => {
   it("clears auth storage and redirects to /login on 401", async () => {
     localStorage.setItem("token", "abc123");
     localStorage.setItem("user", JSON.stringify({ id: 1 }));
-    const error = { response: { status: 401 } };
+    const error = { response: { status: 401 }, isAxiosError: true } as unknown;
 
-    await expect(responseRejected(error)).rejects.toBe(error);
+    await expect(responseRejected(error)).rejects.toBeInstanceOf(Error);
     expect(localStorage.getItem("token")).toBeNull();
     expect(localStorage.getItem("user")).toBeNull();
     expect(window.location.href).toBe("/login");
@@ -74,9 +74,9 @@ describe("api response interceptor", () => {
 
   it("does not clear storage or redirect on non-401 errors", async () => {
     localStorage.setItem("token", "abc123");
-    const error = { response: { status: 500 } };
+    const error = { response: { status: 500 }, isAxiosError: true } as unknown;
 
-    await expect(responseRejected(error)).rejects.toBe(error);
+    await expect(responseRejected(error)).rejects.toBeInstanceOf(Error);
     expect(localStorage.getItem("token")).toBe("abc123");
     expect(window.location.href).toBe("");
   });

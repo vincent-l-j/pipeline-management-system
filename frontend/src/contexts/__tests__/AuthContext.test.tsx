@@ -1,80 +1,90 @@
-import { renderHook, act, waitFor } from '@testing-library/react'
-import { AuthProvider, useAuth } from '../AuthContext'
-import { ReactNode } from 'react'
+import { renderHook, act, waitFor } from "@testing-library/react";
+import { AuthProvider, useAuth } from "../AuthContext";
+import { ReactNode } from "react";
 
-const wrapper = ({ children }: { children: ReactNode }) => <AuthProvider>{children}</AuthProvider>
+const wrapper = ({ children }: { children: ReactNode }) => (
+  <AuthProvider>{children}</AuthProvider>
+);
 
-describe('AuthContext', () => {
+describe("AuthContext", () => {
   beforeEach(() => {
-    localStorage.clear()
-  })
+    localStorage.clear();
+  });
 
-  it('starts unauthenticated when storage is empty', async () => {
-    const { result } = renderHook(() => useAuth(), { wrapper })
+  it("starts unauthenticated when storage is empty", async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper });
     await waitFor(() => {
-      expect(result.current.loading).toBe(false)
-    })
-    expect(result.current.user).toBeNull()
-    expect(result.current.token).toBeNull()
-  })
+      expect(result.current.loading).toBe(false);
+    });
+    expect(result.current.user).toBeNull();
+    expect(result.current.token).toBeNull();
+  });
 
-  it('hydrates the user from localStorage on mount', async () => {
-    localStorage.setItem('token', 'tok')
-    localStorage.setItem('user', JSON.stringify({ id: 7, name: 'Ada' }))
+  it("hydrates the user from localStorage on mount", async () => {
+    localStorage.setItem("token", "tok");
+    localStorage.setItem("user", JSON.stringify({ id: 7, name: "Ada" }));
 
-    const { result } = renderHook(() => useAuth(), { wrapper })
+    const { result } = renderHook(() => useAuth(), { wrapper });
     await waitFor(() => {
-      expect(result.current.loading).toBe(false)
-    })
-    expect(result.current.token).toBe('tok')
-    expect(result.current.user).toEqual({ id: 7, name: 'Ada' })
-  })
+      expect(result.current.loading).toBe(false);
+    });
+    expect(result.current.token).toBe("tok");
+    expect(result.current.user).toEqual({ id: 7, name: "Ada" });
+  });
 
-  it('login() persists token and user and updates state', async () => {
-    const { result } = renderHook(() => useAuth(), { wrapper })
+  it("login() persists token and user and updates state", async () => {
+    const { result } = renderHook(() => useAuth(), { wrapper });
     await waitFor(() => {
-      expect(result.current.loading).toBe(false)
-    })
+      expect(result.current.loading).toBe(false);
+    });
 
-    const user = { id: 1, name: 'Grace', role: 'admin' }
+    const user = { id: 1, name: "Grace", role: "admin" };
     act(() => {
-      result.current.login('new-token', user)
-    })
+      result.current.login("new-token", user);
+    });
 
-    expect(result.current.token).toBe('new-token')
-    expect(result.current.user).toEqual({ id: 1, name: 'Grace', role: 'admin' })
-    expect(localStorage.getItem('token')).toBe('new-token')
-    const userString = localStorage.getItem('user')
-    expect(userString ? JSON.parse(userString) : null).toEqual({ id: 1, name: 'Grace', role: 'admin' })
-  })
+    expect(result.current.token).toBe("new-token");
+    expect(result.current.user).toEqual({
+      id: 1,
+      name: "Grace",
+      role: "admin",
+    });
+    expect(localStorage.getItem("token")).toBe("new-token");
+    const userString = localStorage.getItem("user");
+    expect(userString ? JSON.parse(userString) : null).toEqual({
+      id: 1,
+      name: "Grace",
+      role: "admin",
+    });
+  });
 
-  it('logout() clears token, user, and storage', async () => {
-    localStorage.setItem('token', 'tok')
-    localStorage.setItem('user', JSON.stringify({ id: 7 }))
+  it("logout() clears token, user, and storage", async () => {
+    localStorage.setItem("token", "tok");
+    localStorage.setItem("user", JSON.stringify({ id: 7 }));
 
-    const { result } = renderHook(() => useAuth(), { wrapper })
+    const { result } = renderHook(() => useAuth(), { wrapper });
     await waitFor(() => {
-      expect(result.current.loading).toBe(false)
-    })
+      expect(result.current.loading).toBe(false);
+    });
 
     act(() => {
-      result.current.logout()
-    })
+      result.current.logout();
+    });
 
-    expect(result.current.token).toBeNull()
-    expect(result.current.user).toBeNull()
-    expect(localStorage.getItem('token')).toBeNull()
-    expect(localStorage.getItem('user')).toBeNull()
-  })
+    expect(result.current.token).toBeNull();
+    expect(result.current.user).toBeNull();
+    expect(localStorage.getItem("token")).toBeNull();
+    expect(localStorage.getItem("user")).toBeNull();
+  });
 
-  it('useAuth throws when used outside an AuthProvider', () => {
+  it("useAuth throws when used outside an AuthProvider", () => {
     // Suppress the expected React error-boundary console noise for this case.
-    const spy = vi.spyOn(console, 'error').mockImplementation(() => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {
       // Intentionally empty to suppress console errors
-    })
+    });
     expect(() => renderHook(() => useAuth())).toThrow(
-      'useAuth must be used within AuthProvider',
-    )
-    spy.mockRestore()
-  })
-})
+      "useAuth must be used within AuthProvider",
+    );
+    spy.mockRestore();
+  });
+});

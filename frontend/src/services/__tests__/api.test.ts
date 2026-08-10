@@ -4,12 +4,15 @@ import api from "../api";
 // The interceptors are registered on the shared axios instance at import time.
 // Pull the registered handlers straight off the instance and invoke them
 // directly — no network needed to exercise the token/401 logic.
-const requestFulfilled = api.interceptors.request.handlers[0]
-  ?.fulfilled as (config: InternalAxiosRequestConfig) => InternalAxiosRequestConfig | Promise<InternalAxiosRequestConfig>;
-const responseFulfilled = api.interceptors.response.handlers[0]
-  ?.fulfilled as (data: unknown) => unknown;
-const responseRejected = api.interceptors.response.handlers[0]
-  ?.rejected as (error: unknown) => Promise<unknown>;
+const requestFulfilled = api.interceptors.request.handlers[0]?.fulfilled as (
+  config: InternalAxiosRequestConfig,
+) => InternalAxiosRequestConfig | Promise<InternalAxiosRequestConfig>;
+const responseFulfilled = api.interceptors.response.handlers[0]?.fulfilled as (
+  data: unknown,
+) => unknown;
+const responseRejected = api.interceptors.response.handlers[0]?.rejected as (
+  error: unknown,
+) => Promise<unknown>;
 
 describe("api request interceptor", () => {
   beforeEach(() => {
@@ -28,8 +31,12 @@ describe("api request interceptor", () => {
   });
 
   it("leaves Authorization unset when no token is stored", () => {
-    const config = requestFulfilled({ headers: {} } as InternalAxiosRequestConfig);
-    expect((config.headers as Record<string, unknown>).Authorization).toBeUndefined();
+    const config = requestFulfilled({
+      headers: {},
+    } as InternalAxiosRequestConfig);
+    expect(
+      (config.headers as Record<string, unknown>).Authorization,
+    ).toBeUndefined();
   });
 });
 

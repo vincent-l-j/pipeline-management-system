@@ -3,21 +3,21 @@
  * Shows clickable circles that fill with colour on selection.
  */
 
-import { SCORE_LABELS, Criterion } from './AssessmentConfig'
+import { SCORE_LABELS, Criterion } from "./AssessmentConfig";
 
 interface ScoreSelectorProps {
-  criterion: Criterion
-  value?: number
-  onChange: (score: number) => void
-  readOnly?: boolean
+  criterion: Criterion;
+  value?: number;
+  onChange: (score: number) => void;
+  readOnly?: boolean;
 }
 
 function getScoreColor(score: number): string {
-  if (score <= 1) return 'bg-red-500'
-  if (score <= 2) return 'bg-orange-500'
-  if (score <= 3) return 'bg-amber-500'
-  if (score <= 4) return 'bg-teal-500'
-  return 'bg-green-500'
+  if (score <= 1) return "bg-red-500";
+  if (score <= 2) return "bg-orange-500";
+  if (score <= 3) return "bg-amber-500";
+  if (score <= 4) return "bg-teal-500";
+  return "bg-green-500";
 }
 
 export default function ScoreSelector({
@@ -26,13 +26,15 @@ export default function ScoreSelector({
   onChange,
   readOnly = false,
 }: ScoreSelectorProps): React.JSX.Element {
-  const scores: number[] = [1, 2, 3, 4, 5]
+  const scores: number[] = [1, 2, 3, 4, 5];
 
   return (
     <div className="py-3">
       <div className="flex items-start justify-between mb-2">
         <div>
-          <h4 className="text-sm font-semibold text-navy-900">{criterion.label}</h4>
+          <h4 className="text-sm font-semibold text-navy-900">
+            {criterion.label}
+          </h4>
           <p className="text-xs text-navy-400">{criterion.description}</p>
         </div>
         {value && (
@@ -48,17 +50,20 @@ export default function ScoreSelector({
             key={score}
             type="button"
             disabled={readOnly}
-            onClick={() => { if (!readOnly) onChange(score) }}
+            onClick={() => {
+              if (!readOnly) onChange(score);
+            }}
             className={`
               w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold
               transition-all duration-150
-              ${value && value >= score
-                ? `${getScoreColor(score)} text-white shadow-sm`
-                : readOnly
-                  ? 'bg-navy-100 text-navy-300'
-                  : 'bg-navy-100 text-navy-400 hover:bg-navy-200 cursor-pointer'
+              ${
+                value && value >= score
+                  ? `${getScoreColor(score)} text-white shadow-sm`
+                  : readOnly
+                    ? "bg-navy-100 text-navy-300"
+                    : "bg-navy-100 text-navy-400 hover:bg-navy-200 cursor-pointer"
               }
-              ${readOnly ? '' : 'cursor-pointer'}
+              ${readOnly ? "" : "cursor-pointer"}
             `}
             title={`${String(score)} — ${SCORE_LABELS[score]}`}
           >
@@ -69,11 +74,11 @@ export default function ScoreSelector({
         {/* Score bar visual */}
         <div className="flex-1 ml-2 h-2 bg-navy-100 rounded-full overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all duration-300 ${value ? getScoreColor(value) : ''}`}
-            style={{ width: value ? `${String((value / 5) * 100)}%` : '0%' }}
+            className={`h-full rounded-full transition-all duration-300 ${value ? getScoreColor(value) : ""}`}
+            style={{ width: value ? `${String((value / 5) * 100)}%` : "0%" }}
           />
         </div>
       </div>
     </div>
-  )
+  );
 }

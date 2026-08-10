@@ -24,7 +24,9 @@ interface FileLinksProps {
   pitchId: string | number;
 }
 
-export default function FileLinks({ pitchId }: FileLinksProps): React.JSX.Element {
+export default function FileLinks({
+  pitchId,
+}: FileLinksProps): React.JSX.Element {
   const { user } = useAuth();
   const [files, setFiles] = useState<FileLink[]>([]);
   const [showAdd, setShowAdd] = useState(false);
@@ -43,7 +45,9 @@ export default function FileLinks({ pitchId }: FileLinksProps): React.JSX.Elemen
   function loadFiles(): void {
     void api
       .get<FileLink[]>(`/pitches/${String(pitchId)}/files`)
-      .then(({ data }) => { setFiles(data); });
+      .then(({ data }) => {
+        setFiles(data);
+      });
   }
 
   async function addFile(): Promise<void> {
@@ -65,7 +69,9 @@ export default function FileLinks({ pitchId }: FileLinksProps): React.JSX.Elemen
         </h2>
         {canEdit && (
           <button
-            onClick={() => { setShowAdd(!showAdd); }}
+            onClick={() => {
+              setShowAdd(!showAdd);
+            }}
             className="text-xs text-navy-600 hover:text-navy-900 font-medium"
           >
             {showAdd ? "Cancel" : "+ Add File"}
@@ -85,7 +91,7 @@ export default function FileLinks({ pitchId }: FileLinksProps): React.JSX.Elemen
             type="text"
             value={newFile.file_path}
             onChange={(e) => {
-              setNewFile((prev) => ({ ...prev, file_path: e.target.value }))
+              setNewFile((prev) => ({ ...prev, file_path: e.target.value }));
             }}
             placeholder="File path (e.g. S:\Pitches\AgriTech\proposal.pdf)"
             className={inputClass}
@@ -95,7 +101,7 @@ export default function FileLinks({ pitchId }: FileLinksProps): React.JSX.Elemen
               type="text"
               value={newFile.label}
               onChange={(e) => {
-                setNewFile((prev) => ({ ...prev, label: e.target.value }))
+                setNewFile((prev) => ({ ...prev, label: e.target.value }));
               }}
               placeholder="Label (e.g. Pitch Deck)"
               className={inputClass}
@@ -104,7 +110,10 @@ export default function FileLinks({ pitchId }: FileLinksProps): React.JSX.Elemen
               type="text"
               value={newFile.description}
               onChange={(e) => {
-                setNewFile((prev) => ({ ...prev, description: e.target.value }))
+                setNewFile((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }));
               }}
               placeholder="Description (optional)"
               className={inputClass}

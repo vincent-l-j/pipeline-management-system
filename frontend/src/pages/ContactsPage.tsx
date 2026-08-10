@@ -56,7 +56,9 @@ export default function ContactsPage(): React.JSX.Element {
         setContacts(data);
         setLoading(false);
       })
-      .catch(() => { setLoading(false); });
+      .catch(() => {
+        setLoading(false);
+      });
   }, []);
 
   const addContact = async (): Promise<void> => {
@@ -160,9 +162,9 @@ export default function ContactsPage(): React.JSX.Element {
           <input
             type="text"
             value={form.name}
-            onChange={(e: ChangeEvent<HTMLInputElement>) =>
-              { setForm((p) => ({ ...p, name: e.target.value })); }
-            }
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+              setForm((p) => ({ ...p, name: e.target.value }));
+            }}
             placeholder="Contact name"
             className={inputClass}
           />
@@ -170,25 +172,27 @@ export default function ContactsPage(): React.JSX.Element {
             <input
               type="text"
               value={form.role}
-              onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                { setForm((p) => ({ ...p, role: e.target.value })); }
-              }
+              onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                setForm((p) => ({ ...p, role: e.target.value }));
+              }}
               placeholder="Role (optional)"
               className={inputClass}
             />
             <input
               type="email"
               value={form.email}
-              onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                { setForm((p) => ({ ...p, email: e.target.value })); }
-              }
+              onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                setForm((p) => ({ ...p, email: e.target.value }));
+              }}
               placeholder="Email (optional)"
               className={inputClass}
             />
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => { void addContact() }}
+              onClick={() => {
+                void addContact();
+              }}
               disabled={!form.name.trim()}
               className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
             >
@@ -245,9 +249,9 @@ export default function ContactsPage(): React.JSX.Element {
                       <input
                         type="text"
                         value={editForm.name}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                          { setEditForm((p) => ({ ...p, name: e.target.value })); }
-                        }
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                          setEditForm((p) => ({ ...p, name: e.target.value }));
+                        }}
                         aria-label="Contact name"
                         className={inputClass}
                       />
@@ -256,9 +260,9 @@ export default function ContactsPage(): React.JSX.Element {
                       <input
                         type="text"
                         value={editForm.role}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                          { setEditForm((p) => ({ ...p, role: e.target.value })); }
-                        }
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                          setEditForm((p) => ({ ...p, role: e.target.value }));
+                        }}
                         aria-label="Contact role"
                         className={inputClass}
                       />
@@ -267,9 +271,9 @@ export default function ContactsPage(): React.JSX.Element {
                       <input
                         type="email"
                         value={editForm.email}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                          { setEditForm((p) => ({ ...p, email: e.target.value })); }
-                        }
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                          setEditForm((p) => ({ ...p, email: e.target.value }));
+                        }}
                         aria-label="Contact email"
                         className={inputClass}
                       />
@@ -280,7 +284,9 @@ export default function ContactsPage(): React.JSX.Element {
                     <td className="px-4 py-3 text-right">
                       <span className="inline-flex gap-2">
                         <button
-                          onClick={() => { void saveEdit(c) }}
+                          onClick={() => {
+                            void saveEdit(c);
+                          }}
                           disabled={!editForm.name.trim()}
                           className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
                         >
@@ -315,13 +321,17 @@ export default function ContactsPage(): React.JSX.Element {
                         {confirmingId === c.id ? (
                           <span className="inline-flex gap-2">
                             <button
-                              onClick={() => { void removeContact(c.id) }}
+                              onClick={() => {
+                                void removeContact(c.id);
+                              }}
                               className="text-xs text-red-600 hover:text-red-800 font-medium"
                             >
                               Confirm
                             </button>
                             <button
-                              onClick={() => { setConfirmingId(null); }}
+                              onClick={() => {
+                                setConfirmingId(null);
+                              }}
                               className="text-xs text-navy-500 hover:text-navy-700"
                             >
                               Cancel
@@ -331,7 +341,9 @@ export default function ContactsPage(): React.JSX.Element {
                           <span className="inline-flex gap-3">
                             {canEdit && (
                               <button
-                                onClick={() => { startEdit(c); }}
+                                onClick={() => {
+                                  startEdit(c);
+                                }}
                                 className="text-xs text-navy-600 hover:text-navy-900"
                               >
                                 Edit

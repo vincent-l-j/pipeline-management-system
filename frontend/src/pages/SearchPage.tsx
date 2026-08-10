@@ -101,7 +101,9 @@ export default function SearchPage(): React.JSX.Element {
 
   const categories = results
     ? Object.entries(CATEGORY_CONFIG).filter(
-        ([key]) => ((results[key as keyof SearchResults] as SearchResult[] | undefined)?.length ?? 0) > 0,
+        ([key]) =>
+          ((results[key as keyof SearchResults] as SearchResult[] | undefined)
+            ?.length ?? 0) > 0,
       )
     : [];
 
@@ -118,7 +120,9 @@ export default function SearchPage(): React.JSX.Element {
           <input
             type="text"
             value={query}
-            onChange={(e) => { handleInput(e.target.value); }}
+            onChange={(e) => {
+              handleInput(e.target.value);
+            }}
             placeholder="Search pitches, organisations, contacts, meetings, assessments..."
             autoFocus
             className="w-full border border-navy-200 rounded-xl px-4 py-3 pl-10 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300 shadow-sm"
@@ -168,7 +172,9 @@ export default function SearchPage(): React.JSX.Element {
                       ).map((item: SearchResult) => (
                         <button
                           key={item.id}
-                          onClick={() => { handleResultClick(item); }}
+                          onClick={() => {
+                            handleResultClick(item);
+                          }}
                           className="w-full text-left px-4 py-3 hover:bg-navy-50/50 transition-colors flex items-center justify-between"
                         >
                           <div className="min-w-0">

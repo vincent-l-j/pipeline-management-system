@@ -22,7 +22,11 @@ export default defineConfig(
     },
   },
   {
-    files: ["**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}", "**/mocks/**/*.{ts,tsx}"],
+    files: [
+      "**/*.test.{ts,tsx}",
+      "**/__tests__/**/*.{ts,tsx}",
+      "**/mocks/**/*.{ts,tsx}",
+    ],
     languageOptions: {
       globals: {
         describe: "readonly",
@@ -35,5 +39,5 @@ export default defineConfig(
         vi: "readonly",
       },
     },
-  }
+  },
 );

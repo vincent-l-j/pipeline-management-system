@@ -1,61 +1,63 @@
-import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import type { AxiosResponse } from 'axios'
-import Layout from '../components/Layout'
-import PageHeader from '../components/PageHeader'
-import api from '../services/api'
-import { useAuth } from '../contexts/AuthContext'
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import type { AxiosResponse } from "axios";
+import Layout from "../components/Layout";
+import PageHeader from "../components/PageHeader";
+import api from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
 
 interface Meeting {
-  id: number
-  title: string
-  meeting_date: string
-  platform: string | null
-  follow_up_date: string | null
-  ai_import_status: string | null
+  id: number;
+  title: string;
+  meeting_date: string;
+  platform: string | null;
+  follow_up_date: string | null;
+  ai_import_status: string | null;
 }
 
 const PLATFORM_LABELS: Record<string, string> = {
-  teams: 'Microsoft Teams',
-  zoom: 'Zoom',
-  in_person: 'In Person',
-  phone: 'Phone',
-  other: 'Other',
-}
+  teams: "Microsoft Teams",
+  zoom: "Zoom",
+  in_person: "In Person",
+  phone: "Phone",
+  other: "Other",
+};
 
 export default function MeetingsPage(): React.JSX.Element {
-  const { user } = useAuth()
-  const navigate = useNavigate()
-  const [meetings, setMeetings] = useState<Meeting[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  const canCreate = user?.role === 'admin' || user?.role === 'assessor'
+  const canCreate = user?.role === "admin" || user?.role === "assessor";
 
   useEffect((): void => {
     api
-      .get<Meeting[]>('/meetings')
+      .get<Meeting[]>("/meetings")
       .then((response: AxiosResponse<Meeting[]>): void => {
-        setMeetings(response.data)
-        setLoading(false)
+        setMeetings(response.data);
+        setLoading(false);
       })
       .catch((): void => {
-        setLoading(false)
-      })
-  }, [])
+        setLoading(false);
+      });
+  }, []);
 
   return (
     <Layout>
       <PageHeader
         title="Meetings"
-        description={`${String(meetings.length)} meeting${meetings.length !== 1 ? 's' : ''} recorded`}
-        action={canCreate && (
-          <Link
-            to="/meetings/new"
-            className="bg-navy-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-navy-800 transition-colors"
-          >
-            Log Meeting
-          </Link>
-        )}
+        description={`${String(meetings.length)} meeting${meetings.length !== 1 ? "s" : ""} recorded`}
+        action={
+          canCreate && (
+            <Link
+              to="/meetings/new"
+              className="bg-navy-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-navy-800 transition-colors"
+            >
+              Log Meeting
+            </Link>
+          )
+        }
       />
 
       {loading ? (
@@ -77,24 +79,42 @@ export default function MeetingsPage(): React.JSX.Element {
           <table className="w-full text-sm">
             <thead className="bg-navy-50 border-b border-navy-100">
               <tr>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">Title</th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">Date</th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">Platform</th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">Follow-up</th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">AI Notes</th>
+                <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                  Title
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                  Date
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                  Platform
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                  Follow-up
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                  AI Notes
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-navy-50">
               {meetings.map((m) => (
                 <tr
                   key={m.id}
-                  onClick={() => { void navigate(`/meetings/${String(m.id)}`); }}
+                  onClick={() => {
+                    void navigate(`/meetings/${String(m.id)}`);
+                  }}
                   className="hover:bg-navy-50/50 transition-colors cursor-pointer"
                 >
-                  <td className="px-4 py-3 font-medium text-navy-900">{m.title}</td>
+                  <td className="px-4 py-3 font-medium text-navy-900">
+                    {m.title}
+                  </td>
                   <td className="px-4 py-3 text-navy-500">{m.meeting_date}</td>
-                  <td className="px-4 py-3 text-navy-500">{PLATFORM_LABELS[m.platform] ?? m.platform ?? '-'}</td>
-                  <td className="px-4 py-3 text-navy-500">{m.follow_up_date ?? '-'}</td>
+                  <td className="px-4 py-3 text-navy-500">
+                    {PLATFORM_LABELS[m.platform] ?? m.platform ?? "-"}
+                  </td>
+                  <td className="px-4 py-3 text-navy-500">
+                    {m.follow_up_date ?? "-"}
+                  </td>
                   <td className="px-4 py-3">
                     {m.ai_import_status ? (
                       <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded capitalize">
@@ -111,5 +131,5 @@ export default function MeetingsPage(): React.JSX.Element {
         </div>
       )}
     </Layout>
-  )
+  );
 }

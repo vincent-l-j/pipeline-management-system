@@ -95,7 +95,9 @@ export default function ReportsPage(): React.JSX.Element {
         setVelocity(velRes.data);
         setLoading(false);
       })
-      .catch(() => { setLoading(false); });
+      .catch(() => {
+        setLoading(false);
+      });
   }, []);
 
   async function handleExport(endpoint: string): Promise<void> {
@@ -169,7 +171,9 @@ export default function ReportsPage(): React.JSX.Element {
           {CSV_EXPORTS.map((exp) => (
             <button
               key={exp.key}
-              onClick={() => { void handleExport(exp.endpoint); }}
+              onClick={() => {
+                void handleExport(exp.endpoint);
+              }}
               className="bg-navy-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-navy-800 transition-colors"
             >
               Export {exp.label}
@@ -228,7 +232,9 @@ export default function ReportsPage(): React.JSX.Element {
           </h2>
           <select
             value={stageFilter}
-            onChange={(e) => { setStageFilter(e.target.value); }}
+            onChange={(e) => {
+              setStageFilter(e.target.value);
+            }}
             className="text-sm border border-navy-200 rounded-lg px-3 py-1.5 bg-white text-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-300 print:hidden"
           >
             <option value="">All stages ({summary.total})</option>

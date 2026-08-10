@@ -22,9 +22,7 @@ interface PipelineListViewProps {
   onStageClick?: (pitchId: number, stage: string) => void;
 }
 
-export default function PipelineListView({
-  pitches,
-}: PipelineListViewProps) {
+export default function PipelineListView({ pitches }: PipelineListViewProps) {
   return (
     <div className="bg-white rounded-xl border border-navy-100 overflow-hidden">
       <table className="w-full text-sm">
@@ -88,10 +86,15 @@ export default function PipelineListView({
                     </span>
                   </td>
                   <td className="px-4 py-3 text-navy-500">
-                    {pitch.source ? SOURCE_LABELS[pitch.source] ?? pitch.source : "-"}
+                    {pitch.source
+                      ? (SOURCE_LABELS[pitch.source] ?? pitch.source)
+                      : "-"}
                   </td>
                   <td className="px-4 py-3 text-navy-500">
-                    {pitch.funding_pathway ? FUNDING_LABELS[pitch.funding_pathway] ?? pitch.funding_pathway : "-"}
+                    {pitch.funding_pathway
+                      ? (FUNDING_LABELS[pitch.funding_pathway] ??
+                        pitch.funding_pathway)
+                      : "-"}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">

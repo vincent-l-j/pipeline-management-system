@@ -12,61 +12,65 @@
  * Nothing is saved automatically — the user always reviews first.
  */
 
-import { useState } from 'react'
-import api from '../../services/api'
-import { useAuth } from '../../contexts/AuthContext'
+import { useState } from "react";
+import api from "../../services/api";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface ParsedNotes {
-  ai_parsed?: boolean
-  summary: string
-  notice?: string
-  key_points?: string[]
-  action_items?: string[]
-  follow_up_date?: string
-  attendees?: string[]
+  ai_parsed?: boolean;
+  summary: string;
+  notice?: string;
+  key_points?: string[];
+  action_items?: string[];
+  follow_up_date?: string;
+  attendees?: string[];
 }
 
 interface AINoteImporterProps {
-  onImport: (parsed: ParsedNotes) => void
+  onImport: (parsed: ParsedNotes) => void;
 }
 
 export default function AINoteImporter({ onImport }: AINoteImporterProps) {
-  const { user } = useAuth()
-  const [expanded, setExpanded] = useState(false)
-  const [rawNotes, setRawNotes] = useState('')
-  const [parsed, setParsed] = useState<ParsedNotes | null>(null)
-  const [parsing, setParsing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { user } = useAuth();
+  const [expanded, setExpanded] = useState(false);
+  const [rawNotes, setRawNotes] = useState("");
+  const [parsed, setParsed] = useState<ParsedNotes | null>(null);
+  const [parsing, setParsing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const canUse = user?.role === 'admin' || user?.role === 'assessor'
+  const canUse = user?.role === "admin" || user?.role === "assessor";
 
-  if (!canUse) return null
+  if (!canUse) return null;
 
   async function handleParse(): Promise<void> {
-    if (!rawNotes.trim()) return
-    setParsing(true)
-    setError(null)
-    setParsed(null)
+    if (!rawNotes.trim()) return;
+    setParsing(true);
+    setError(null);
+    setParsed(null);
 
     try {
-      const { data } = await api.post<ParsedNotes>('/meetings/parse-notes', { raw_notes: rawNotes })
-      setParsed(data)
+      const { data } = await api.post<ParsedNotes>("/meetings/parse-notes", {
+        raw_notes: rawNotes,
+      });
+      setParsed(data);
     } catch (err: unknown) {
-      const errorMessage = err && typeof err === 'object' && 'response' in err
-        ? (err as { response?: { data?: { detail?: string } } }).response?.data?.detail
-        : undefined
-      setError(errorMessage ?? 'Failed to parse notes. Please try again.')
+      const errorMessage =
+        err && typeof err === "object" && "response" in err
+          ? (err as { response?: { data?: { detail?: string } } }).response
+              ?.data?.detail
+          : undefined;
+      setError(errorMessage ?? "Failed to parse notes. Please try again.");
     }
-    setParsing(false)
+    setParsing(false);
   }
 
   function handleApply(): void {
     if (parsed) {
-      onImport(parsed)
+      onImport(parsed);
       // Reset the importer
-      setExpanded(false)
-      setRawNotes('')
-      setParsed(null)
+      setExpanded(false);
+      setRawNotes("");
+      setParsed(null);
     }
   }
 
@@ -74,7 +78,9 @@ export default function AINoteImporter({ onImport }: AINoteImporterProps) {
     <div className="bg-white rounded-xl border border-navy-100 overflow-hidden">
       {/* Collapsible header */}
       <button
-        onClick={() => { setExpanded(!expanded) }}
+        onClick={() => {
+          setExpanded(!expanded);
+        }}
         className="w-full px-6 py-4 flex items-center justify-between hover:bg-navy-50/50 transition-colors"
       >
         <div className="flex items-center gap-3">
@@ -82,11 +88,15 @@ export default function AINoteImporter({ onImport }: AINoteImporterProps) {
             AI
           </span>
           <div className="text-left">
-            <h3 className="text-sm font-semibold text-navy-900">Import Meeting Notes</h3>
-            <p className="text-xs text-navy-500">Paste raw notes and parse into structured fields</p>
+            <h3 className="text-sm font-semibold text-navy-900">
+              Import Meeting Notes
+            </h3>
+            <p className="text-xs text-navy-500">
+              Paste raw notes and parse into structured fields
+            </p>
           </div>
         </div>
-        <span className="text-navy-400 text-lg">{expanded ? '-' : '+'}</span>
+        <span className="text-navy-400 text-lg">{expanded ? "-" : "+"}</span>
       </button>
 
       {expanded && (
@@ -99,14 +109,19 @@ export default function AINoteImporter({ onImport }: AINoteImporterProps) {
                   Paste your meeting notes below
                 </label>
                 <p className="text-xs text-navy-400 mb-2">
-                  Works with AI-generated summaries (e.g. from Otter, Fireflies, Copilot),
-                  raw transcripts, or hand-written notes. The parser will extract the key information.
+                  Works with AI-generated summaries (e.g. from Otter, Fireflies,
+                  Copilot), raw transcripts, or hand-written notes. The parser
+                  will extract the key information.
                 </p>
                 <textarea
                   rows={10}
                   value={rawNotes}
-                  onChange={e => { setRawNotes(e.target.value) }}
-                  placeholder={"Paste your meeting notes here...\n\nExample:\n\nSummary: We discussed the CRC bid timeline...\n\nKey Points:\n- Agreed on Q3 submission\n- Need co-investigator from UQ\n\nAction Items:\n- Sarah to draft budget by Friday\n- James to contact UQ faculty\n\nNext meeting: 2026-04-20"}
+                  onChange={(e) => {
+                    setRawNotes(e.target.value);
+                  }}
+                  placeholder={
+                    "Paste your meeting notes here...\n\nExample:\n\nSummary: We discussed the CRC bid timeline...\n\nKey Points:\n- Agreed on Q3 submission\n- Need co-investigator from UQ\n\nAction Items:\n- Sarah to draft budget by Friday\n- James to contact UQ faculty\n\nNext meeting: 2026-04-20"
+                  }
                   className="w-full border border-navy-200 rounded-lg px-3 py-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300 font-mono"
                 />
               </div>
@@ -118,11 +133,13 @@ export default function AINoteImporter({ onImport }: AINoteImporterProps) {
               )}
 
               <button
-                onClick={() => { void handleParse() }}
+                onClick={() => {
+                  void handleParse();
+                }}
                 disabled={parsing || !rawNotes.trim()}
                 className="bg-amber-500 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors disabled:opacity-50"
               >
-                {parsing ? 'Parsing...' : 'Parse Notes'}
+                {parsing ? "Parsing..." : "Parse Notes"}
               </button>
             </>
           )}
@@ -133,7 +150,9 @@ export default function AINoteImporter({ onImport }: AINoteImporterProps) {
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-2 h-2 bg-green-500 rounded-full" />
                 <h4 className="text-sm font-semibold text-navy-900">
-                  {parsed.ai_parsed ? 'AI-Parsed Results' : 'Parsed Results (Basic Parser)'}
+                  {parsed.ai_parsed
+                    ? "AI-Parsed Results"
+                    : "Parsed Results (Basic Parser)"}
                 </h4>
               </div>
 
@@ -145,13 +164,17 @@ export default function AINoteImporter({ onImport }: AINoteImporterProps) {
 
               {/* Summary */}
               <div className="bg-navy-50 rounded-lg p-4">
-                <h5 className="text-xs font-semibold text-navy-500 uppercase mb-1">Summary</h5>
+                <h5 className="text-xs font-semibold text-navy-500 uppercase mb-1">
+                  Summary
+                </h5>
                 <p className="text-sm text-navy-800">{parsed.summary}</p>
               </div>
 
               {/* Key Points */}
               <div className="bg-navy-50 rounded-lg p-4">
-                <h5 className="text-xs font-semibold text-navy-500 uppercase mb-1">Key Points</h5>
+                <h5 className="text-xs font-semibold text-navy-500 uppercase mb-1">
+                  Key Points
+                </h5>
                 {parsed.key_points && parsed.key_points.length > 0 ? (
                   <ul className="list-disc list-inside text-sm text-navy-800 space-y-0.5">
                     {parsed.key_points.map((point, i) => (
@@ -165,7 +188,9 @@ export default function AINoteImporter({ onImport }: AINoteImporterProps) {
 
               {/* Action Items */}
               <div className="bg-navy-50 rounded-lg p-4">
-                <h5 className="text-xs font-semibold text-navy-500 uppercase mb-1">Action Items</h5>
+                <h5 className="text-xs font-semibold text-navy-500 uppercase mb-1">
+                  Action Items
+                </h5>
                 {parsed.action_items && parsed.action_items.length > 0 ? (
                   <ul className="list-disc list-inside text-sm text-navy-800 space-y-0.5">
                     {parsed.action_items.map((item, i) => (
@@ -180,13 +205,21 @@ export default function AINoteImporter({ onImport }: AINoteImporterProps) {
               {/* Follow-up & Attendees */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-navy-50 rounded-lg p-4">
-                  <h5 className="text-xs font-semibold text-navy-500 uppercase mb-1">Follow-up Date</h5>
-                  <p className="text-sm text-navy-800">{parsed.follow_up_date ?? 'Not detected'}</p>
+                  <h5 className="text-xs font-semibold text-navy-500 uppercase mb-1">
+                    Follow-up Date
+                  </h5>
+                  <p className="text-sm text-navy-800">
+                    {parsed.follow_up_date ?? "Not detected"}
+                  </p>
                 </div>
                 <div className="bg-navy-50 rounded-lg p-4">
-                  <h5 className="text-xs font-semibold text-navy-500 uppercase mb-1">Attendees Detected</h5>
+                  <h5 className="text-xs font-semibold text-navy-500 uppercase mb-1">
+                    Attendees Detected
+                  </h5>
                   {parsed.attendees && parsed.attendees.length > 0 ? (
-                    <p className="text-sm text-navy-800">{parsed.attendees.join(', ')}</p>
+                    <p className="text-sm text-navy-800">
+                      {parsed.attendees.join(", ")}
+                    </p>
                   ) : (
                     <p className="text-sm text-navy-400">None detected</p>
                   )}
@@ -202,13 +235,19 @@ export default function AINoteImporter({ onImport }: AINoteImporterProps) {
                   Apply to Meeting
                 </button>
                 <button
-                  onClick={() => { setParsed(null) }}
+                  onClick={() => {
+                    setParsed(null);
+                  }}
                   className="border border-navy-200 text-navy-600 px-5 py-2.5 rounded-lg text-sm font-medium hover:border-navy-400 transition-colors"
                 >
                   Re-parse
                 </button>
                 <button
-                  onClick={() => { setParsed(null); setRawNotes(''); setExpanded(false); }}
+                  onClick={() => {
+                    setParsed(null);
+                    setRawNotes("");
+                    setExpanded(false);
+                  }}
                   className="text-sm text-navy-500 hover:text-navy-700 px-3 py-2.5"
                 >
                   Discard
@@ -216,13 +255,13 @@ export default function AINoteImporter({ onImport }: AINoteImporterProps) {
               </div>
 
               <p className="text-xs text-navy-400">
-                Clicking "Apply to Meeting" will populate the meeting edit form with these values.
-                You can review and modify them before saving.
+                Clicking "Apply to Meeting" will populate the meeting edit form
+                with these values. You can review and modify them before saving.
               </p>
             </div>
           )}
         </div>
       )}
     </div>
-  )
+  );
 }

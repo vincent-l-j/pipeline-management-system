@@ -1,56 +1,81 @@
-import { useState, useEffect } from 'react'
-import Layout from '../components/Layout'
-import PageHeader from '../components/PageHeader'
-import { useAuth } from '../contexts/AuthContext'
-import api from '../services/api'
-import type { Organisation, OrgType, ApiError } from '../types'
+import { useState, useEffect } from "react";
+import Layout from "../components/Layout";
+import PageHeader from "../components/PageHeader";
+import { useAuth } from "../contexts/AuthContext";
+import api from "../services/api";
+import type { Organisation, OrgType, ApiError } from "../types";
 
 const inputClass =
-  'w-full border border-navy-200 rounded-lg px-3 py-1.5 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300'
+  "w-full border border-navy-200 rounded-lg px-3 py-1.5 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300";
 
-const ORG_TYPES: OrgType[] = ['startup', 'university', 'ngo', 'government', 'consortium', 'research_centre', 'other']
+const ORG_TYPES: OrgType[] = [
+  "startup",
+  "university",
+  "ngo",
+  "government",
+  "consortium",
+  "research_centre",
+  "other",
+];
 
 interface OrgForm {
-  name: string
-  org_type: string
-  sector: string
-  state_territory: string
-  website: string
-  abn: string
-  notes: string
+  name: string;
+  org_type: string;
+  sector: string;
+  state_territory: string;
+  website: string;
+  abn: string;
+  notes: string;
 }
 
 export default function OrganisationsPage(): React.JSX.Element {
-  const { user } = useAuth()
-  const [orgs, setOrgs] = useState<Organisation[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
-  const [showAdd, setShowAdd] = useState<boolean>(false)
+  const { user } = useAuth();
+  const [orgs, setOrgs] = useState<Organisation[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [showAdd, setShowAdd] = useState<boolean>(false);
   const [form, setForm] = useState<OrgForm>({
-    name: '', org_type: '', sector: '', state_territory: '', website: '', abn: '', notes: '',
-  })
-  const [editingId, setEditingId] = useState<string | null>(null)
+    name: "",
+    org_type: "",
+    sector: "",
+    state_territory: "",
+    website: "",
+    abn: "",
+    notes: "",
+  });
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<OrgForm>({
-    name: '', org_type: '', sector: '', state_territory: '', website: '', abn: '', notes: '',
-  })
-  const [confirmingId, setConfirmingId] = useState<string | null>(null)
-  const [error, setError] = useState<string>('')
+    name: "",
+    org_type: "",
+    sector: "",
+    state_territory: "",
+    website: "",
+    abn: "",
+    notes: "",
+  });
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [error, setError] = useState<string>("");
 
-  const canAdd = user?.role === 'admin' || user?.role === 'assessor'
-  const canEdit = user?.role === 'admin' || user?.role === 'assessor'
-  const canRemove = user?.role === 'admin'
+  const canAdd = user?.role === "admin" || user?.role === "assessor";
+  const canEdit = user?.role === "admin" || user?.role === "assessor";
+  const canRemove = user?.role === "admin";
 
   useEffect((): void => {
-    api.get<Organisation[]>('/organisations').then(({ data }) => {
-      setOrgs(data)
-      setLoading(false)
-    }).catch(() => { setLoading(false); })
-  }, [])
+    api
+      .get<Organisation[]>("/organisations")
+      .then(({ data }) => {
+        setOrgs(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
+  }, []);
 
   async function addOrg(): Promise<void> {
-    if (!form.name.trim()) return
-    setError('')
+    if (!form.name.trim()) return;
+    setError("");
     try {
-      const { data } = await api.post<Organisation>('/organisations', {
+      const { data } = await api.post<Organisation>("/organisations", {
         name: form.name.trim(),
         org_type: form.org_type || null,
         sector: form.sector.trim() || null,
@@ -58,65 +83,92 @@ export default function OrganisationsPage(): React.JSX.Element {
         website: form.website.trim() || null,
         abn: form.abn.trim() || null,
         notes: form.notes.trim() || null,
-      })
-      setOrgs((prev) => [...prev, data])
-      setForm({ name: '', org_type: '', sector: '', state_territory: '', website: '', abn: '', notes: '' })
-      setShowAdd(false)
+      });
+      setOrgs((prev) => [...prev, data]);
+      setForm({
+        name: "",
+        org_type: "",
+        sector: "",
+        state_territory: "",
+        website: "",
+        abn: "",
+        notes: "",
+      });
+      setShowAdd(false);
     } catch (err) {
-      const apiError = err as ApiError
-      setError(apiError.response?.data.detail ?? 'Failed to add organisation')
+      const apiError = err as ApiError;
+      setError(apiError.response?.data.detail ?? "Failed to add organisation");
     }
   }
 
   function startEdit(org: Organisation): void {
-    setError('')
-    setEditingId(org.id)
+    setError("");
+    setEditingId(org.id);
     setEditForm({
       name: org.name,
-      org_type: org.org_type ?? '',
-      sector: org.sector ?? '',
-      state_territory: org.state_territory ?? '',
-      website: org.website ?? '',
-      abn: org.abn ?? '',
-      notes: org.notes ?? '',
-    })
+      org_type: org.org_type ?? "",
+      sector: org.sector ?? "",
+      state_territory: org.state_territory ?? "",
+      website: org.website ?? "",
+      abn: org.abn ?? "",
+      notes: org.notes ?? "",
+    });
   }
 
   function cancelEdit(): void {
-    setEditingId(null)
+    setEditingId(null);
   }
 
   async function saveEdit(org: Organisation): Promise<void> {
-    const changes: Record<string, string | null> = {}
-    for (const field of ['name', 'org_type', 'sector', 'state_territory', 'website', 'abn', 'notes']) {
-      const next = field === 'org_type' ? (editForm[field as keyof OrgForm] || null) : (editForm[field as keyof OrgForm].trim() || null)
-      if (next !== (org[field as keyof Organisation] ?? null)) changes[field] = next
+    const changes: Record<string, string | null> = {};
+    for (const field of [
+      "name",
+      "org_type",
+      "sector",
+      "state_territory",
+      "website",
+      "abn",
+      "notes",
+    ]) {
+      const next =
+        field === "org_type"
+          ? editForm[field as keyof OrgForm] || null
+          : editForm[field as keyof OrgForm].trim() || null;
+      if (next !== (org[field as keyof Organisation] ?? null))
+        changes[field] = next;
     }
     if (!editForm.name.trim() || Object.keys(changes).length === 0) {
-      setEditingId(null)
-      return
+      setEditingId(null);
+      return;
     }
-    setError('')
+    setError("");
     try {
-      const { data } = await api.patch<Organisation>(`/organisations/${org.id}`, changes)
-      setOrgs((prev) => prev.map((o) => (o.id === org.id ? data : o)))
-      setEditingId(null)
+      const { data } = await api.patch<Organisation>(
+        `/organisations/${org.id}`,
+        changes,
+      );
+      setOrgs((prev) => prev.map((o) => (o.id === org.id ? data : o)));
+      setEditingId(null);
     } catch (err) {
-      const apiError = err as ApiError
-      setError(apiError.response?.data.detail ?? 'Failed to update organisation')
+      const apiError = err as ApiError;
+      setError(
+        apiError.response?.data.detail ?? "Failed to update organisation",
+      );
     }
   }
 
   async function removeOrg(id: string): Promise<void> {
-    setError('')
+    setError("");
     try {
-      await api.delete(`/organisations/${id}`)
-      setOrgs((prev) => prev.filter((o) => o.id !== id))
+      await api.delete(`/organisations/${id}`);
+      setOrgs((prev) => prev.filter((o) => o.id !== id));
     } catch (err) {
-      const apiError = err as ApiError
-      setError(apiError.response?.data.detail ?? 'Failed to remove organisation')
+      const apiError = err as ApiError;
+      setError(
+        apiError.response?.data.detail ?? "Failed to remove organisation",
+      );
     } finally {
-      setConfirmingId(null)
+      setConfirmingId(null);
     }
   }
 
@@ -125,14 +177,19 @@ export default function OrganisationsPage(): React.JSX.Element {
       <PageHeader
         title="Organisations"
         description="Organisations linked to pitches and contacts"
-        action={canAdd && (
-          <button
-            onClick={() => { setShowAdd((s) => !s); setError('') }}
-            className="bg-navy-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-navy-800 transition-colors"
-          >
-            + Add Organisation
-          </button>
-        )}
+        action={
+          canAdd && (
+            <button
+              onClick={() => {
+                setShowAdd((s) => !s);
+                setError("");
+              }}
+              className="bg-navy-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-navy-800 transition-colors"
+            >
+              + Add Organisation
+            </button>
+          )
+        }
       />
 
       {error && (
@@ -146,60 +203,76 @@ export default function OrganisationsPage(): React.JSX.Element {
           <input
             type="text"
             value={form.name}
-            onChange={(e) => { setForm((p) => ({ ...p, name: e.target.value })); }}
+            onChange={(e) => {
+              setForm((p) => ({ ...p, name: e.target.value }));
+            }}
             placeholder="Organisation name (required)"
             className={inputClass}
           />
           <select
             value={form.org_type}
-            onChange={(e) => { setForm((p) => ({ ...p, org_type: e.target.value })); }}
+            onChange={(e) => {
+              setForm((p) => ({ ...p, org_type: e.target.value }));
+            }}
             className={inputClass}
           >
             <option value="">Type (optional)</option>
             {ORG_TYPES.map((type) => (
               <option key={type} value={type}>
-                {type.replace(/_/g, ' ')}
+                {type.replace(/_/g, " ")}
               </option>
             ))}
           </select>
           <input
             type="text"
             value={form.sector}
-            onChange={(e) => { setForm((p) => ({ ...p, sector: e.target.value })); }}
+            onChange={(e) => {
+              setForm((p) => ({ ...p, sector: e.target.value }));
+            }}
             placeholder="Sector (optional)"
             className={inputClass}
           />
           <input
             type="text"
             value={form.state_territory}
-            onChange={(e) => { setForm((p) => ({ ...p, state_territory: e.target.value })); }}
+            onChange={(e) => {
+              setForm((p) => ({ ...p, state_territory: e.target.value }));
+            }}
             placeholder="State/Territory (optional)"
             className={inputClass}
           />
           <input
             type="text"
             value={form.website}
-            onChange={(e) => { setForm((p) => ({ ...p, website: e.target.value })); }}
+            onChange={(e) => {
+              setForm((p) => ({ ...p, website: e.target.value }));
+            }}
             placeholder="Website (optional)"
             className={inputClass}
           />
           <input
             type="text"
             value={form.abn}
-            onChange={(e) => { setForm((p) => ({ ...p, abn: e.target.value })); }}
+            onChange={(e) => {
+              setForm((p) => ({ ...p, abn: e.target.value }));
+            }}
             placeholder="ABN (optional)"
             className={inputClass}
           />
           <textarea
             value={form.notes}
-            onChange={(e) => { setForm((p) => ({ ...p, notes: e.target.value })); }}
+            onChange={(e) => {
+              setForm((p) => ({ ...p, notes: e.target.value }));
+            }}
             placeholder="Notes (optional)"
             className={`${inputClass} resize-none`}
             rows={3}
           />
           <div className="flex gap-2">
             <button
-              onClick={() => { void addOrg() }}
+              onClick={() => {
+                void addOrg();
+              }}
               disabled={!form.name.trim()}
               className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
             >
@@ -207,8 +280,16 @@ export default function OrganisationsPage(): React.JSX.Element {
             </button>
             <button
               onClick={() => {
-                setShowAdd(false)
-                setForm({ name: '', org_type: '', sector: '', state_territory: '', website: '', abn: '', notes: '' })
+                setShowAdd(false);
+                setForm({
+                  name: "",
+                  org_type: "",
+                  sector: "",
+                  state_territory: "",
+                  website: "",
+                  abn: "",
+                  notes: "",
+                });
               }}
               className="text-xs border border-navy-200 text-navy-600 px-3 py-1.5 rounded-lg"
             >
@@ -229,150 +310,216 @@ export default function OrganisationsPage(): React.JSX.Element {
           <table className="w-full text-sm">
             <thead className="bg-navy-50 border-b border-navy-100">
               <tr>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">Name</th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">Type</th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">Sector</th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">State</th>
+                <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                  Name
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                  Type
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                  Sector
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                  State
+                </th>
                 {(canEdit || canRemove) && (
-                  <th className="text-right px-4 py-3 font-semibold text-navy-700">Actions</th>
+                  <th className="text-right px-4 py-3 font-semibold text-navy-700">
+                    Actions
+                  </th>
                 )}
               </tr>
             </thead>
             <tbody className="divide-y divide-navy-50">
-              {orgs.map((org) => editingId === org.id ? (
-                <tr key={org.id} className="bg-navy-50/50">
-                  <td colSpan={5} className="px-4 py-3">
-                    <div className="space-y-2">
-                      <input
-                        type="text"
-                        value={editForm.name}
-                        onChange={(e) => { setEditForm((p) => ({ ...p, name: e.target.value })); }}
-                        placeholder="Organisation name (required)"
-                        aria-label="Organisation name"
-                        className={inputClass}
-                      />
-                      <select
-                        value={editForm.org_type}
-                        onChange={(e) => { setEditForm((p) => ({ ...p, org_type: e.target.value })); }}
-                        aria-label="Organisation type"
-                        className={inputClass}
-                      >
-                        <option value="">Type (optional)</option>
-                        {ORG_TYPES.map((type) => (
-                          <option key={type} value={type}>
-                            {type.replace(/_/g, ' ')}
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        type="text"
-                        value={editForm.sector}
-                        onChange={(e) => { setEditForm((p) => ({ ...p, sector: e.target.value })); }}
-                        placeholder="Sector (optional)"
-                        aria-label="Organisation sector"
-                        className={inputClass}
-                      />
-                      <input
-                        type="text"
-                        value={editForm.state_territory}
-                        onChange={(e) => { setEditForm((p) => ({ ...p, state_territory: e.target.value })); }}
-                        placeholder="State/Territory (optional)"
-                        aria-label="Organisation state/territory"
-                        className={inputClass}
-                      />
-                      <input
-                        type="text"
-                        value={editForm.website}
-                        onChange={(e) => { setEditForm((p) => ({ ...p, website: e.target.value })); }}
-                        placeholder="Website (optional)"
-                        aria-label="Organisation website"
-                        className={inputClass}
-                      />
-                      <input
-                        type="text"
-                        value={editForm.abn}
-                        onChange={(e) => { setEditForm((p) => ({ ...p, abn: e.target.value })); }}
-                        placeholder="ABN (optional)"
-                        aria-label="Organisation ABN"
-                        className={inputClass}
-                      />
-                      <textarea
-                        value={editForm.notes}
-                        onChange={(e) => { setEditForm((p) => ({ ...p, notes: e.target.value })); }}
-                        placeholder="Notes (optional)"
-                        aria-label="Organisation notes"
-                        className={`${inputClass} resize-none`}
-                        rows={2}
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => { void saveEdit(org) }}
-                          disabled={!editForm.name.trim()}
-                          className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
+              {orgs.map((org) =>
+                editingId === org.id ? (
+                  <tr key={org.id} className="bg-navy-50/50">
+                    <td colSpan={5} className="px-4 py-3">
+                      <div className="space-y-2">
+                        <input
+                          type="text"
+                          value={editForm.name}
+                          onChange={(e) => {
+                            setEditForm((p) => ({
+                              ...p,
+                              name: e.target.value,
+                            }));
+                          }}
+                          placeholder="Organisation name (required)"
+                          aria-label="Organisation name"
+                          className={inputClass}
+                        />
+                        <select
+                          value={editForm.org_type}
+                          onChange={(e) => {
+                            setEditForm((p) => ({
+                              ...p,
+                              org_type: e.target.value,
+                            }));
+                          }}
+                          aria-label="Organisation type"
+                          className={inputClass}
                         >
-                          Save
-                        </button>
-                        <button
-                          onClick={cancelEdit}
-                          className="text-xs border border-navy-200 text-navy-600 px-3 py-1.5 rounded-lg"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                <tr key={org.id} className="hover:bg-navy-50/50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-navy-900">{org.name}</td>
-                  <td className="px-4 py-3 text-navy-500 capitalize">{org.org_type?.replace('_', ' ') ?? '-'}</td>
-                  <td className="px-4 py-3 text-navy-500">{org.sector ?? '-'}</td>
-                  <td className="px-4 py-3 text-navy-500">{org.state_territory ?? '-'}</td>
-                  {(canEdit || canRemove) && (
-                    <td className="px-4 py-3 text-right">
-                      {confirmingId === org.id ? (
-                        <span className="inline-flex gap-2">
+                          <option value="">Type (optional)</option>
+                          {ORG_TYPES.map((type) => (
+                            <option key={type} value={type}>
+                              {type.replace(/_/g, " ")}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          value={editForm.sector}
+                          onChange={(e) => {
+                            setEditForm((p) => ({
+                              ...p,
+                              sector: e.target.value,
+                            }));
+                          }}
+                          placeholder="Sector (optional)"
+                          aria-label="Organisation sector"
+                          className={inputClass}
+                        />
+                        <input
+                          type="text"
+                          value={editForm.state_territory}
+                          onChange={(e) => {
+                            setEditForm((p) => ({
+                              ...p,
+                              state_territory: e.target.value,
+                            }));
+                          }}
+                          placeholder="State/Territory (optional)"
+                          aria-label="Organisation state/territory"
+                          className={inputClass}
+                        />
+                        <input
+                          type="text"
+                          value={editForm.website}
+                          onChange={(e) => {
+                            setEditForm((p) => ({
+                              ...p,
+                              website: e.target.value,
+                            }));
+                          }}
+                          placeholder="Website (optional)"
+                          aria-label="Organisation website"
+                          className={inputClass}
+                        />
+                        <input
+                          type="text"
+                          value={editForm.abn}
+                          onChange={(e) => {
+                            setEditForm((p) => ({ ...p, abn: e.target.value }));
+                          }}
+                          placeholder="ABN (optional)"
+                          aria-label="Organisation ABN"
+                          className={inputClass}
+                        />
+                        <textarea
+                          value={editForm.notes}
+                          onChange={(e) => {
+                            setEditForm((p) => ({
+                              ...p,
+                              notes: e.target.value,
+                            }));
+                          }}
+                          placeholder="Notes (optional)"
+                          aria-label="Organisation notes"
+                          className={`${inputClass} resize-none`}
+                          rows={2}
+                        />
+                        <div className="flex gap-2">
                           <button
-                            onClick={() => { void removeOrg(org.id) }}
-                            className="text-xs text-red-600 hover:text-red-800 font-medium"
+                            onClick={() => {
+                              void saveEdit(org);
+                            }}
+                            disabled={!editForm.name.trim()}
+                            className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
                           >
-                            Confirm
+                            Save
                           </button>
                           <button
-                            onClick={() => { setConfirmingId(null); }}
-                            className="text-xs text-navy-500 hover:text-navy-700"
+                            onClick={cancelEdit}
+                            className="text-xs border border-navy-200 text-navy-600 px-3 py-1.5 rounded-lg"
                           >
                             Cancel
                           </button>
-                        </span>
-                      ) : (
-                        <span className="inline-flex gap-3">
-                          {canEdit && (
-                            <button
-                              onClick={() => { startEdit(org); }}
-                              className="text-xs text-navy-600 hover:text-navy-900"
-                            >
-                              Edit
-                            </button>
-                          )}
-                          {canRemove && (
-                            <button
-                              onClick={() => { setConfirmingId(org.id); setError('') }}
-                              className="text-xs text-red-500 hover:text-red-700"
-                            >
-                              Remove
-                            </button>
-                          )}
-                        </span>
-                      )}
+                        </div>
+                      </div>
                     </td>
-                  )}
-                </tr>
-              ))}
+                  </tr>
+                ) : (
+                  <tr
+                    key={org.id}
+                    className="hover:bg-navy-50/50 transition-colors"
+                  >
+                    <td className="px-4 py-3 font-medium text-navy-900">
+                      {org.name}
+                    </td>
+                    <td className="px-4 py-3 text-navy-500 capitalize">
+                      {org.org_type?.replace("_", " ") ?? "-"}
+                    </td>
+                    <td className="px-4 py-3 text-navy-500">
+                      {org.sector ?? "-"}
+                    </td>
+                    <td className="px-4 py-3 text-navy-500">
+                      {org.state_territory ?? "-"}
+                    </td>
+                    {(canEdit || canRemove) && (
+                      <td className="px-4 py-3 text-right">
+                        {confirmingId === org.id ? (
+                          <span className="inline-flex gap-2">
+                            <button
+                              onClick={() => {
+                                void removeOrg(org.id);
+                              }}
+                              className="text-xs text-red-600 hover:text-red-800 font-medium"
+                            >
+                              Confirm
+                            </button>
+                            <button
+                              onClick={() => {
+                                setConfirmingId(null);
+                              }}
+                              className="text-xs text-navy-500 hover:text-navy-700"
+                            >
+                              Cancel
+                            </button>
+                          </span>
+                        ) : (
+                          <span className="inline-flex gap-3">
+                            {canEdit && (
+                              <button
+                                onClick={() => {
+                                  startEdit(org);
+                                }}
+                                className="text-xs text-navy-600 hover:text-navy-900"
+                              >
+                                Edit
+                              </button>
+                            )}
+                            {canRemove && (
+                              <button
+                                onClick={() => {
+                                  setConfirmingId(org.id);
+                                  setError("");
+                                }}
+                                className="text-xs text-red-500 hover:text-red-700"
+                              >
+                                Remove
+                              </button>
+                            )}
+                          </span>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                ),
+              )}
             </tbody>
           </table>
         </div>
       )}
     </Layout>
-  )
+  );
 }

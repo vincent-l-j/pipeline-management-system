@@ -3,23 +3,23 @@ import { render, screen } from "@testing-library/react";
 import KanbanColumn from "../KanbanColumn";
 
 interface DroppableProvided {
-  innerRef: () => void
-  droppableProps: Record<string, unknown>
-  placeholder: null
+  innerRef: () => void;
+  droppableProps: Record<string, unknown>;
+  placeholder: null;
 }
 
 interface DroppableSnapshot {
-  isDraggingOver: boolean
+  isDraggingOver: boolean;
 }
 
 interface DraggableProvided {
-  innerRef: () => void
-  draggableProps: Record<string, unknown>
-  dragHandleProps: Record<string, unknown>
+  innerRef: () => void;
+  draggableProps: Record<string, unknown>;
+  dragHandleProps: Record<string, unknown>;
 }
 
 interface DraggableSnapshot {
-  isDragging: boolean
+  isDragging: boolean;
 }
 
 // Mock the drag-and-drop library
@@ -27,19 +27,37 @@ vi.mock("@hello-pangea/dnd", () => ({
   Droppable: ({
     children,
   }: {
-    children: (provided: DroppableProvided, snapshot: DroppableSnapshot) => React.ReactNode
+    children: (
+      provided: DroppableProvided,
+      snapshot: DroppableSnapshot,
+    ) => React.ReactNode;
   }) =>
     children(
-      { innerRef: () => { /* ref not needed in test */ }, droppableProps: {}, placeholder: null },
+      {
+        innerRef: () => {
+          /* ref not needed in test */
+        },
+        droppableProps: {},
+        placeholder: null,
+      },
       { isDraggingOver: false },
     ),
   Draggable: ({
     children,
   }: {
-    children: (provided: DraggableProvided, snapshot: DraggableSnapshot) => React.ReactNode
+    children: (
+      provided: DraggableProvided,
+      snapshot: DraggableSnapshot,
+    ) => React.ReactNode;
   }) =>
     children(
-      { innerRef: () => { /* ref not needed in test */ }, draggableProps: {}, dragHandleProps: {} },
+      {
+        innerRef: () => {
+          /* ref not needed in test */
+        },
+        draggableProps: {},
+        dragHandleProps: {},
+      },
       { isDragging: false },
     ),
 }));

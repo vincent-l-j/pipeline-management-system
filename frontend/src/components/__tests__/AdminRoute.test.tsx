@@ -1,49 +1,69 @@
-import { render, screen } from '@testing-library/react'
-import AdminRoute from '../AdminRoute'
+import { render, screen } from "@testing-library/react";
+import AdminRoute from "../AdminRoute";
 
-vi.mock('react-router-dom', async (importOriginal) => {
-  const mod = await (importOriginal as () => Promise<Record<string, unknown>>)()
+vi.mock("react-router-dom", async (importOriginal) => {
+  const mod = await (
+    importOriginal as () => Promise<Record<string, unknown>>
+  )();
   return {
     ...mod,
-    Navigate: ({ to }: { to: string }) => <div data-testid="redirect">redirect:{to}</div>,
-  }
-})
+    Navigate: ({ to }: { to: string }) => (
+      <div data-testid="redirect">redirect:{to}</div>
+    ),
+  };
+});
 
-let mockAuth = { user: { role: 'admin' }, loading: false }
-vi.mock('../../contexts/AuthContext', () => ({
+let mockAuth = { user: { role: "admin" }, loading: false };
+vi.mock("../../contexts/AuthContext", () => ({
   useAuth: () => mockAuth,
-}))
+}));
 
 function Protected() {
-  return <div data-testid="protected">Admin content</div>
+  return <div data-testid="protected">Admin content</div>;
 }
 
-describe('AdminRoute', () => {
-  it('renders children for an admin', () => {
-    mockAuth = { user: { role: 'admin' }, loading: false }
-    render(<AdminRoute><Protected /></AdminRoute>)
-    expect(screen.getByTestId('protected')).toBeInTheDocument()
-    expect(screen.queryByTestId('redirect')).not.toBeInTheDocument()
-  })
+describe("AdminRoute", () => {
+  it("renders children for an admin", () => {
+    mockAuth = { user: { role: "admin" }, loading: false };
+    render(
+      <AdminRoute>
+        <Protected />
+      </AdminRoute>,
+    );
+    expect(screen.getByTestId("protected")).toBeInTheDocument();
+    expect(screen.queryByTestId("redirect")).not.toBeInTheDocument();
+  });
 
-  it('redirects an assessor away without rendering children', () => {
-    mockAuth = { user: { role: 'assessor' }, loading: false }
-    render(<AdminRoute><Protected /></AdminRoute>)
-    expect(screen.queryByTestId('protected')).not.toBeInTheDocument()
-    expect(screen.getByTestId('redirect')).toBeInTheDocument()
-  })
+  it("redirects an assessor away without rendering children", () => {
+    mockAuth = { user: { role: "assessor" }, loading: false };
+    render(
+      <AdminRoute>
+        <Protected />
+      </AdminRoute>,
+    );
+    expect(screen.queryByTestId("protected")).not.toBeInTheDocument();
+    expect(screen.getByTestId("redirect")).toBeInTheDocument();
+  });
 
-  it('redirects a viewer away without rendering children', () => {
-    mockAuth = { user: { role: 'viewer' }, loading: false }
-    render(<AdminRoute><Protected /></AdminRoute>)
-    expect(screen.queryByTestId('protected')).not.toBeInTheDocument()
-    expect(screen.getByTestId('redirect')).toBeInTheDocument()
-  })
+  it("redirects a viewer away without rendering children", () => {
+    mockAuth = { user: { role: "viewer" }, loading: false };
+    render(
+      <AdminRoute>
+        <Protected />
+      </AdminRoute>,
+    );
+    expect(screen.queryByTestId("protected")).not.toBeInTheDocument();
+    expect(screen.getByTestId("redirect")).toBeInTheDocument();
+  });
 
-  it('renders nothing while auth is still loading', () => {
-    mockAuth = { user: null, loading: true }
-    render(<AdminRoute><Protected /></AdminRoute>)
-    expect(screen.queryByTestId('protected')).not.toBeInTheDocument()
-    expect(screen.queryByTestId('redirect')).not.toBeInTheDocument()
-  })
-})
+  it("renders nothing while auth is still loading", () => {
+    mockAuth = { user: null, loading: true };
+    render(
+      <AdminRoute>
+        <Protected />
+      </AdminRoute>,
+    );
+    expect(screen.queryByTestId("protected")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("redirect")).not.toBeInTheDocument();
+  });
+});

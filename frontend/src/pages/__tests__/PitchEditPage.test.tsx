@@ -1,138 +1,150 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import PitchEditPage from '../PitchEditPage'
-import { createApiMocks } from '../../test/mocks/api'
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import PitchEditPage from "../PitchEditPage";
+import { createApiMocks } from "../../test/mocks/api";
 
 interface Pitch {
-  id: string
-  title: string
-  short_description: string
-  submission_date: string | null
-  source: string | null
-  funding_pathway: string | null
-  domain_tags: string | null
-  masterplan_alignment: string | null
-  is_confidential: boolean
-  organisation_id: string | null
-  lead_id: string | null
-  current_stage: string
+  id: string;
+  title: string;
+  short_description: string;
+  submission_date: string | null;
+  source: string | null;
+  funding_pathway: string | null;
+  domain_tags: string | null;
+  masterplan_alignment: string | null;
+  is_confidential: boolean;
+  organisation_id: string | null;
+  lead_id: string | null;
+  current_stage: string;
 }
 
 interface MockUser {
-  role: string
+  role: string;
 }
 
-const mockNavigate = vi.fn()
-vi.mock('react-router-dom', async (importOriginal) => {
-  const mod = await importOriginal()
+const mockNavigate = vi.fn();
+vi.mock("react-router-dom", async (importOriginal) => {
+  const mod = await importOriginal();
   return {
     ...mod,
-    useParams: () => ({ pitchId: '42' }),
+    useParams: () => ({ pitchId: "42" }),
     useNavigate: () => mockNavigate,
-    Navigate: ({ to }: { to: string }) => <div data-testid="redirect">redirect:{to}</div>,
-  } as unknown
-})
+    Navigate: ({ to }: { to: string }) => (
+      <div data-testid="redirect">redirect:{to}</div>
+    ),
+  } as unknown;
+});
 
-vi.mock('../../services/api', () => ({
+vi.mock("../../services/api", () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
-}))
+}));
 
-const apiMocks = createApiMocks()
+const apiMocks = createApiMocks();
 
-let mockUser: MockUser = { role: 'admin' }
-vi.mock('../../contexts/AuthContext', () => ({
+let mockUser: MockUser = { role: "admin" };
+vi.mock("../../contexts/AuthContext", () => ({
   useAuth: () => ({ user: mockUser }),
-}))
+}));
 
-vi.mock('../../components/Layout', () => ({
-  default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}))
+vi.mock("../../components/Layout", () => ({
+  default: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+}));
 
 const PITCH: Pitch = {
-  id: '42',
-  title: 'Original Title',
-  short_description: 'Original description',
-  submission_date: '2026-01-01',
-  source: 'referral',
-  funding_pathway: 'rdti',
-  domain_tags: 'climate,health',
-  masterplan_alignment: 'Aligned',
+  id: "42",
+  title: "Original Title",
+  short_description: "Original description",
+  submission_date: "2026-01-01",
+  source: "referral",
+  funding_pathway: "rdti",
+  domain_tags: "climate,health",
+  masterplan_alignment: "Aligned",
   is_confidential: false,
-  organisation_id: '',
-  lead_id: '',
-  current_stage: 'initial_screen',
-}
+  organisation_id: "",
+  lead_id: "",
+  current_stage: "initial_screen",
+};
 
 function setupGet() {
   apiMocks.get.mockImplementation((url: string) => {
-    if (url === '/pitches/42') return Promise.resolve({ data: PITCH })
-    if (url === '/organisations') return Promise.resolve({ data: [] })
-    if (url === '/users') return Promise.resolve({ data: [] })
-    return Promise.resolve({ data: [] })
-  })
+    if (url === "/pitches/42") return Promise.resolve({ data: PITCH });
+    if (url === "/organisations") return Promise.resolve({ data: [] });
+    if (url === "/users") return Promise.resolve({ data: [] });
+    return Promise.resolve({ data: [] });
+  });
 }
 
-describe('PitchEditPage', () => {
+describe("PitchEditPage", () => {
   beforeEach(() => {
-    mockUser = { role: 'admin' }
-  })
+    mockUser = { role: "admin" };
+  });
 
-  it('fetches the pitch and pre-fills the form', async () => {
-    setupGet()
-    render(<PitchEditPage />)
-    await waitFor(() =>
-      { expect(screen.getByDisplayValue('Original Title')).toBeInTheDocument() },
-    )
-    expect(screen.getByDisplayValue('Original description')).toBeInTheDocument()
-  })
+  it("fetches the pitch and pre-fills the form", async () => {
+    setupGet();
+    render(<PitchEditPage />);
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("Original Title")).toBeInTheDocument();
+    });
+    expect(
+      screen.getByDisplayValue("Original description"),
+    ).toBeInTheDocument();
+  });
 
-  it('does not offer a pipeline-stage selector', async () => {
-    setupGet()
-    render(<PitchEditPage />)
-    await waitFor(() => screen.getByDisplayValue('Original Title'))
-    expect(screen.queryByLabelText(/stage/i)).not.toBeInTheDocument()
-  })
+  it("does not offer a pipeline-stage selector", async () => {
+    setupGet();
+    render(<PitchEditPage />);
+    await waitFor(() => screen.getByDisplayValue("Original Title"));
+    expect(screen.queryByLabelText(/stage/i)).not.toBeInTheDocument();
+  });
 
-  it('saving PATCHes the pitch then navigates to the detail route', async () => {
-    const user = userEvent.setup()
-    setupGet()
-    apiMocks.patch.mockResolvedValue({ data: { ...PITCH, title: 'New Title' } })
-    render(<PitchEditPage />)
-    await waitFor(() => screen.getByDisplayValue('Original Title'))
+  it("saving PATCHes the pitch then navigates to the detail route", async () => {
+    const user = userEvent.setup();
+    setupGet();
+    apiMocks.patch.mockResolvedValue({
+      data: { ...PITCH, title: "New Title" },
+    });
+    render(<PitchEditPage />);
+    await waitFor(() => screen.getByDisplayValue("Original Title"));
 
-    const titleInput = screen.getByDisplayValue('Original Title')
-    await user.clear(titleInput)
-    await user.type(titleInput, 'New Title')
-    await user.click(screen.getByRole('button', { name: /save/i }))
+    const titleInput = screen.getByDisplayValue("Original Title");
+    await user.clear(titleInput);
+    await user.type(titleInput, "New Title");
+    await user.click(screen.getByRole("button", { name: /save/i }));
 
     expect(apiMocks.patch.mock).toHaveBeenCalledWith(
-      '/pitches/42',
-      expect.objectContaining({ title: 'New Title' }),
-    )
+      "/pitches/42",
+      expect.objectContaining({ title: "New Title" }),
+    );
     // Stage is never sent from the edit form.
-    const patchCalls = apiMocks.patch.mock.mock.calls as unknown[][]
-    expect(patchCalls[0][1]).not.toHaveProperty('current_stage')
-    await waitFor(() => { expect(mockNavigate).toHaveBeenCalledWith('/pitches/42') })
-  })
+    const patchCalls = apiMocks.patch.mock.mock.calls as unknown[][];
+    expect(patchCalls[0][1]).not.toHaveProperty("current_stage");
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith("/pitches/42");
+    });
+  });
 
-  it('Cancel returns to the detail route without calling the API', async () => {
-    const user = userEvent.setup()
-    setupGet()
-    render(<PitchEditPage />)
-    await waitFor(() => screen.getByDisplayValue('Original Title'))
+  it("Cancel returns to the detail route without calling the API", async () => {
+    const user = userEvent.setup();
+    setupGet();
+    render(<PitchEditPage />);
+    await waitFor(() => screen.getByDisplayValue("Original Title"));
 
-    await user.click(screen.getByRole('button', { name: /cancel/i }))
-    expect(apiMocks.patch.mock).not.toHaveBeenCalled()
-    expect(mockNavigate).toHaveBeenCalledWith('/pitches/42')
-  })
+    await user.click(screen.getByRole("button", { name: /cancel/i }));
+    expect(apiMocks.patch.mock).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith("/pitches/42");
+  });
 
-  it('redirects a viewer away from the edit route without rendering the form', async () => {
-    mockUser = { role: 'viewer' }
-    setupGet()
-    render(<PitchEditPage />)
-    await waitFor(() => screen.getByTestId('redirect'))
-    expect(screen.getByTestId('redirect')).toHaveTextContent('/pitches/42')
-    expect(screen.queryByDisplayValue('Original Title')).not.toBeInTheDocument()
-  })
-})
+  it("redirects a viewer away from the edit route without rendering the form", async () => {
+    mockUser = { role: "viewer" };
+    setupGet();
+    render(<PitchEditPage />);
+    await waitFor(() => screen.getByTestId("redirect"));
+    expect(screen.getByTestId("redirect")).toHaveTextContent("/pitches/42");
+    expect(
+      screen.queryByDisplayValue("Original Title"),
+    ).not.toBeInTheDocument();
+  });
+});

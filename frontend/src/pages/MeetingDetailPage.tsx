@@ -3,146 +3,163 @@
  * Shows meeting info, attendees, and provides the AI notetaker import.
  */
 
-import { useState, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
-import Layout from '../components/Layout'
-import PageHeader from '../components/PageHeader'
-import MeetingAttendees from '../components/meetings/MeetingAttendees'
-import AINoteImporter from '../components/meetings/AINoteImporter'
-import api from '../services/api'
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import Layout from "../components/Layout";
+import PageHeader from "../components/PageHeader";
+import MeetingAttendees from "../components/meetings/MeetingAttendees";
+import AINoteImporter from "../components/meetings/AINoteImporter";
+import api from "../services/api";
 
 const PLATFORM_LABELS: Record<string, string> = {
-  teams: 'Microsoft Teams',
-  zoom: 'Zoom',
-  in_person: 'In Person',
-  phone: 'Phone',
-  other: 'Other',
-}
+  teams: "Microsoft Teams",
+  zoom: "Zoom",
+  in_person: "In Person",
+  phone: "Phone",
+  other: "Other",
+};
 
 interface Meeting {
-  id: string
-  title: string
-  meeting_date: string
-  meeting_time: string | null
-  platform: string | null
-  summary: string | null
-  key_points: string | null
-  action_items: string | null
-  follow_up_date: string | null
-  recording_link: string | null
-  transcript_path: string | null
-  ai_import_status: string | null
-  pitch_id: string
-  created_at: string
+  id: string;
+  title: string;
+  meeting_date: string;
+  meeting_time: string | null;
+  platform: string | null;
+  summary: string | null;
+  key_points: string | null;
+  action_items: string | null;
+  follow_up_date: string | null;
+  recording_link: string | null;
+  transcript_path: string | null;
+  ai_import_status: string | null;
+  pitch_id: string;
+  created_at: string;
 }
 
 interface ParsedNote {
-  summary: string | null
-  key_points: string[] | string | null
-  action_items: string[] | string | null
-  follow_up_date: string | null
-  attendees: string[]
-  ai_parsed: boolean
-  notice: string | null
+  summary: string | null;
+  key_points: string[] | string | null;
+  action_items: string[] | string | null;
+  follow_up_date: string | null;
+  attendees: string[];
+  ai_parsed: boolean;
+  notice: string | null;
 }
 
 interface EditForm {
-  title: string
-  summary: string
-  key_points: string
-  action_items: string
-  follow_up_date: string
-  recording_link: string
+  title: string;
+  summary: string;
+  key_points: string;
+  action_items: string;
+  follow_up_date: string;
+  recording_link: string;
 }
 
 interface RouteParams {
-  meetingId?: string
+  meetingId?: string;
 }
 
 function MeetingDetailPage(): React.JSX.Element {
-  const { meetingId } = useParams<RouteParams>()
-  const navigate = useNavigate()
-  const [meeting, setMeeting] = useState<Meeting | null>(null)
-  const [loading, setLoading] = useState<boolean>(true)
-  const [editing, setEditing] = useState<boolean>(false)
-  const [editForm, setEditForm] = useState<EditForm>({} as EditForm)
-  const [saving, setSaving] = useState<boolean>(false)
+  const { meetingId } = useParams<RouteParams>();
+  const navigate = useNavigate();
+  const [meeting, setMeeting] = useState<Meeting | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [editing, setEditing] = useState<boolean>(false);
+  const [editForm, setEditForm] = useState<EditForm>({} as EditForm);
+  const [saving, setSaving] = useState<boolean>(false);
 
   useEffect((): void => {
     if (!meetingId) {
-      void navigate('/meetings')
-      return
+      void navigate("/meetings");
+      return;
     }
-    api.get<Meeting>(`/meetings/${meetingId}`)
+    api
+      .get<Meeting>(`/meetings/${meetingId}`)
       .then(({ data }) => {
-        setMeeting(data)
-        setLoading(false)
+        setMeeting(data);
+        setLoading(false);
       })
       .catch(() => {
-        void navigate('/meetings')
-      })
-  }, [meetingId, navigate])
+        void navigate("/meetings");
+      });
+  }, [meetingId, navigate]);
 
   function startEditing(): void {
-    if (!meeting) return
+    if (!meeting) return;
     setEditForm({
       title: meeting.title,
-      summary: meeting.summary ?? '',
-      key_points: meeting.key_points ?? '',
-      action_items: meeting.action_items ?? '',
-      follow_up_date: meeting.follow_up_date ?? '',
-      recording_link: meeting.recording_link ?? '',
-    })
-    setEditing(true)
+      summary: meeting.summary ?? "",
+      key_points: meeting.key_points ?? "",
+      action_items: meeting.action_items ?? "",
+      follow_up_date: meeting.follow_up_date ?? "",
+      recording_link: meeting.recording_link ?? "",
+    });
+    setEditing(true);
   }
 
   async function saveEdits(): Promise<void> {
-    if (!meetingId) return
-    setSaving(true)
+    if (!meetingId) return;
+    setSaving(true);
     try {
       const payload = {
         ...editForm,
         follow_up_date: editForm.follow_up_date || null,
         recording_link: editForm.recording_link || null,
-      }
-      const { data } = await api.patch<Meeting>(`/meetings/${meetingId}`, payload)
-      setMeeting(data)
-      setEditing(false)
+      };
+      const { data } = await api.patch<Meeting>(
+        `/meetings/${meetingId}`,
+        payload,
+      );
+      setMeeting(data);
+      setEditing(false);
     } catch (err) {
-      console.error('Failed to save:', err)
+      console.error("Failed to save:", err);
     }
-    setSaving(false)
+    setSaving(false);
   }
 
   function handleNoteImport(parsed: ParsedNote): void {
-    if (!meeting) return
+    if (!meeting) return;
     setEditForm({
       title: meeting.title,
-      summary: parsed.summary ?? '',
-      key_points: Array.isArray(parsed.key_points) ? parsed.key_points.join('\n') : parsed.key_points ?? '',
-      action_items: Array.isArray(parsed.action_items) ? parsed.action_items.join('\n') : parsed.action_items ?? '',
-      follow_up_date: parsed.follow_up_date ?? '',
-      recording_link: meeting.recording_link ?? '',
-    })
-    setEditing(true)
+      summary: parsed.summary ?? "",
+      key_points: Array.isArray(parsed.key_points)
+        ? parsed.key_points.join("\n")
+        : (parsed.key_points ?? ""),
+      action_items: Array.isArray(parsed.action_items)
+        ? parsed.action_items.join("\n")
+        : (parsed.action_items ?? ""),
+      follow_up_date: parsed.follow_up_date ?? "",
+      recording_link: meeting.recording_link ?? "",
+    });
+    setEditing(true);
   }
 
   if (loading) {
-    return <Layout><p className="text-navy-400">Loading meeting...</p></Layout>
+    return (
+      <Layout>
+        <p className="text-navy-400">Loading meeting...</p>
+      </Layout>
+    );
   }
 
   if (!meeting) {
-    return <Layout><p className="text-navy-400">Meeting not found.</p></Layout>
+    return (
+      <Layout>
+        <p className="text-navy-400">Meeting not found.</p>
+      </Layout>
+    );
   }
 
-  const inputClass = "w-full border border-navy-200 rounded-lg px-3 py-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300"
-  const labelClass = "block text-sm font-medium text-navy-700 mb-1"
+  const inputClass =
+    "w-full border border-navy-200 rounded-lg px-3 py-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300";
+  const labelClass = "block text-sm font-medium text-navy-700 mb-1";
 
   return (
     <Layout>
       <PageHeader
         title={meeting.title}
-        description={`${meeting.meeting_date} · ${meeting.platform ? (PLATFORM_LABELS[meeting.platform] ?? meeting.platform) : 'Unknown platform'}`}
+        description={`${meeting.meeting_date} · ${meeting.platform ? (PLATFORM_LABELS[meeting.platform] ?? meeting.platform) : "Unknown platform"}`}
         action={
           <div className="flex gap-2">
             {!editing && (
@@ -169,14 +186,18 @@ function MeetingDetailPage(): React.JSX.Element {
           {editing ? (
             /* Edit mode */
             <div className="bg-white rounded-xl border border-navy-100 p-6 space-y-4">
-              <h2 className="text-lg font-semibold text-navy-900">Edit Meeting Details</h2>
+              <h2 className="text-lg font-semibold text-navy-900">
+                Edit Meeting Details
+              </h2>
 
               <div>
                 <label className={labelClass}>Title</label>
                 <input
                   type="text"
                   value={editForm.title}
-                  onChange={e => { setEditForm(prev => ({ ...prev, title: e.target.value })); }}
+                  onChange={(e) => {
+                    setEditForm((prev) => ({ ...prev, title: e.target.value }));
+                  }}
                   className={inputClass}
                 />
               </div>
@@ -186,7 +207,12 @@ function MeetingDetailPage(): React.JSX.Element {
                 <textarea
                   rows={4}
                   value={editForm.summary}
-                  onChange={e => { setEditForm(prev => ({ ...prev, summary: e.target.value })); }}
+                  onChange={(e) => {
+                    setEditForm((prev) => ({
+                      ...prev,
+                      summary: e.target.value,
+                    }));
+                  }}
                   className={inputClass}
                 />
               </div>
@@ -196,7 +222,12 @@ function MeetingDetailPage(): React.JSX.Element {
                 <textarea
                   rows={4}
                   value={editForm.key_points}
-                  onChange={e => { setEditForm(prev => ({ ...prev, key_points: e.target.value })); }}
+                  onChange={(e) => {
+                    setEditForm((prev) => ({
+                      ...prev,
+                      key_points: e.target.value,
+                    }));
+                  }}
                   placeholder="One point per line..."
                   className={inputClass}
                 />
@@ -207,7 +238,12 @@ function MeetingDetailPage(): React.JSX.Element {
                 <textarea
                   rows={4}
                   value={editForm.action_items}
-                  onChange={e => { setEditForm(prev => ({ ...prev, action_items: e.target.value })); }}
+                  onChange={(e) => {
+                    setEditForm((prev) => ({
+                      ...prev,
+                      action_items: e.target.value,
+                    }));
+                  }}
                   placeholder="One item per line..."
                   className={inputClass}
                 />
@@ -219,7 +255,12 @@ function MeetingDetailPage(): React.JSX.Element {
                   <input
                     type="date"
                     value={editForm.follow_up_date}
-                    onChange={e => { setEditForm(prev => ({ ...prev, follow_up_date: e.target.value })); }}
+                    onChange={(e) => {
+                      setEditForm((prev) => ({
+                        ...prev,
+                        follow_up_date: e.target.value,
+                      }));
+                    }}
                     className={inputClass}
                   />
                 </div>
@@ -228,7 +269,12 @@ function MeetingDetailPage(): React.JSX.Element {
                   <input
                     type="text"
                     value={editForm.recording_link}
-                    onChange={e => { setEditForm(prev => ({ ...prev, recording_link: e.target.value })); }}
+                    onChange={(e) => {
+                      setEditForm((prev) => ({
+                        ...prev,
+                        recording_link: e.target.value,
+                      }));
+                    }}
                     className={inputClass}
                   />
                 </div>
@@ -236,14 +282,18 @@ function MeetingDetailPage(): React.JSX.Element {
 
               <div className="flex gap-3 pt-2">
                 <button
-                  onClick={() => { void saveEdits() }}
+                  onClick={() => {
+                    void saveEdits();
+                  }}
                   disabled={saving}
                   className="bg-navy-900 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-navy-800 transition-colors disabled:opacity-50"
                 >
-                  {saving ? 'Saving...' : 'Save Changes'}
+                  {saving ? "Saving..." : "Save Changes"}
                 </button>
                 <button
-                  onClick={() => { setEditing(false); }}
+                  onClick={() => {
+                    setEditing(false);
+                  }}
                   className="border border-navy-200 text-navy-600 px-5 py-2 rounded-lg text-sm font-medium hover:border-navy-400 transition-colors"
                 >
                   Cancel
@@ -255,29 +305,43 @@ function MeetingDetailPage(): React.JSX.Element {
             <>
               {/* Summary */}
               <div className="bg-white rounded-xl border border-navy-100 p-6">
-                <h2 className="text-sm font-semibold text-navy-500 uppercase tracking-wide mb-3">Summary</h2>
+                <h2 className="text-sm font-semibold text-navy-500 uppercase tracking-wide mb-3">
+                  Summary
+                </h2>
                 <p className="text-sm text-navy-800 whitespace-pre-wrap">
-                  {meeting.summary ?? 'No summary recorded.'}
+                  {meeting.summary ?? "No summary recorded."}
                 </p>
               </div>
 
               {/* Key Points */}
               <div className="bg-white rounded-xl border border-navy-100 p-6">
-                <h2 className="text-sm font-semibold text-navy-500 uppercase tracking-wide mb-3">Key Points</h2>
+                <h2 className="text-sm font-semibold text-navy-500 uppercase tracking-wide mb-3">
+                  Key Points
+                </h2>
                 {meeting.key_points ? (
-                  <div className="text-sm text-navy-800 whitespace-pre-wrap">{meeting.key_points}</div>
+                  <div className="text-sm text-navy-800 whitespace-pre-wrap">
+                    {meeting.key_points}
+                  </div>
                 ) : (
-                  <p className="text-sm text-navy-400">No key points recorded.</p>
+                  <p className="text-sm text-navy-400">
+                    No key points recorded.
+                  </p>
                 )}
               </div>
 
               {/* Action Items */}
               <div className="bg-white rounded-xl border border-navy-100 p-6">
-                <h2 className="text-sm font-semibold text-navy-500 uppercase tracking-wide mb-3">Action Items</h2>
+                <h2 className="text-sm font-semibold text-navy-500 uppercase tracking-wide mb-3">
+                  Action Items
+                </h2>
                 {meeting.action_items ? (
-                  <div className="text-sm text-navy-800 whitespace-pre-wrap">{meeting.action_items}</div>
+                  <div className="text-sm text-navy-800 whitespace-pre-wrap">
+                    {meeting.action_items}
+                  </div>
                 ) : (
-                  <p className="text-sm text-navy-400">No action items recorded.</p>
+                  <p className="text-sm text-navy-400">
+                    No action items recorded.
+                  </p>
                 )}
               </div>
             </>
@@ -291,11 +355,15 @@ function MeetingDetailPage(): React.JSX.Element {
         <div className="space-y-6">
           {/* Meeting details card */}
           <div className="bg-white rounded-xl border border-navy-100 p-6">
-            <h2 className="text-sm font-semibold text-navy-500 uppercase tracking-wide mb-3">Details</h2>
+            <h2 className="text-sm font-semibold text-navy-500 uppercase tracking-wide mb-3">
+              Details
+            </h2>
             <dl className="space-y-3 text-sm">
               <div>
                 <dt className="text-navy-400">Date</dt>
-                <dd className="text-navy-900 font-medium">{meeting.meeting_date}</dd>
+                <dd className="text-navy-900 font-medium">
+                  {meeting.meeting_date}
+                </dd>
               </div>
               {meeting.meeting_time && (
                 <div>
@@ -305,20 +373,28 @@ function MeetingDetailPage(): React.JSX.Element {
               )}
               <div>
                 <dt className="text-navy-400">Platform</dt>
-                <dd className="text-navy-900">{PLATFORM_LABELS[meeting.platform] ?? '-'}</dd>
+                <dd className="text-navy-900">
+                  {PLATFORM_LABELS[meeting.platform] ?? "-"}
+                </dd>
               </div>
               {meeting.follow_up_date && (
                 <div>
                   <dt className="text-navy-400">Follow-up Date</dt>
-                  <dd className="text-navy-900 font-medium">{meeting.follow_up_date}</dd>
+                  <dd className="text-navy-900 font-medium">
+                    {meeting.follow_up_date}
+                  </dd>
                 </div>
               )}
               {meeting.recording_link && (
                 <div>
                   <dt className="text-navy-400">Recording</dt>
                   <dd>
-                    <a href={meeting.recording_link} target="_blank" rel="noopener noreferrer"
-                       className="text-navy-600 underline hover:text-navy-900">
+                    <a
+                      href={meeting.recording_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-navy-600 underline hover:text-navy-900"
+                    >
                       View recording
                     </a>
                   </dd>
@@ -327,18 +403,20 @@ function MeetingDetailPage(): React.JSX.Element {
               {meeting.ai_import_status && (
                 <div>
                   <dt className="text-navy-400">AI Import</dt>
-                  <dd className="text-navy-900 capitalize">{meeting.ai_import_status}</dd>
+                  <dd className="text-navy-900 capitalize">
+                    {meeting.ai_import_status}
+                  </dd>
                 </div>
               )}
             </dl>
           </div>
 
           {/* Attendees */}
-          <MeetingAttendees meetingId={meetingId ?? ''} />
+          <MeetingAttendees meetingId={meetingId ?? ""} />
         </div>
       </div>
     </Layout>
-  )
+  );
 }
 
-export default MeetingDetailPage
+export default MeetingDetailPage;

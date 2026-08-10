@@ -1,7 +1,4 @@
-import axios, {
-  AxiosInstance,
-  InternalAxiosRequestConfig,
-} from "axios";
+import axios, { AxiosInstance, InternalAxiosRequestConfig } from "axios";
 
 const api: AxiosInstance = axios.create({
   baseURL: "/api",
@@ -25,7 +22,9 @@ api.interceptors.response.use(
       localStorage.removeItem("user");
       window.location.href = "/login";
     }
-    return Promise.reject(error instanceof Error ? error : new Error(String(error)));
+    return Promise.reject(
+      error instanceof Error ? error : new Error(String(error)),
+    );
   },
 );
 

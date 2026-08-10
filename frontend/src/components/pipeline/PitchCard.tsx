@@ -6,82 +6,96 @@
  * optimistic-move + stage-API path via onStageSelect.
  */
 
-import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { DraggableProvidedDraggableProps, DraggableProvidedDragHandleProps } from '@hello-pangea/dnd'
-import { SOURCE_LABELS, FUNDING_LABELS, PIPELINE_STAGES } from './PipelineConfig'
-import { useAuth } from '../../contexts/AuthContext'
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  DraggableProvidedDraggableProps,
+  DraggableProvidedDragHandleProps,
+} from "@hello-pangea/dnd";
+import {
+  SOURCE_LABELS,
+  FUNDING_LABELS,
+  PIPELINE_STAGES,
+} from "./PipelineConfig";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface Pitch {
-  id: number
-  title: string
-  short_description?: string
-  source?: string
-  funding_pathway?: string
-  domain_tags?: string
-  is_confidential?: boolean
-  submission_date?: string
-  current_stage: string
+  id: number;
+  title: string;
+  short_description?: string;
+  source?: string;
+  funding_pathway?: string;
+  domain_tags?: string;
+  is_confidential?: boolean;
+  submission_date?: string;
+  current_stage: string;
 }
 
 interface MenuPos {
-  x: number
-  y: number
+  x: number;
+  y: number;
 }
 
 interface PitchCardProps {
-  pitch: Pitch
-  innerRef: React.Ref<HTMLDivElement>
-  draggableProps: DraggableProvidedDraggableProps
-  dragHandleProps: DraggableProvidedDragHandleProps | null
-  onStageSelect?: (pitchId: number, fromStage: string, toStage: string) => void
+  pitch: Pitch;
+  innerRef: React.Ref<HTMLDivElement>;
+  draggableProps: DraggableProvidedDraggableProps;
+  dragHandleProps: DraggableProvidedDragHandleProps | null;
+  onStageSelect?: (pitchId: number, fromStage: string, toStage: string) => void;
 }
 
-export default function PitchCard({ pitch, innerRef, draggableProps, dragHandleProps, onStageSelect }: PitchCardProps) {
-  const navigate = useNavigate()
-  const { user } = useAuth()
-  const canMoveStage = user?.role === 'admin' || user?.role === 'assessor'
+export default function PitchCard({
+  pitch,
+  innerRef,
+  draggableProps,
+  dragHandleProps,
+  onStageSelect,
+}: PitchCardProps) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const canMoveStage = user?.role === "admin" || user?.role === "assessor";
 
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [menuPos, setMenuPos] = useState<MenuPos>({ x: 0, y: 0 })
-  const menuRef = useRef<HTMLDivElement>(null)
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState<MenuPos>({ x: 0, y: 0 });
+  const menuRef = useRef<HTMLDivElement>(null);
 
   function handleTitleClick(e: React.MouseEvent): void {
-    e.stopPropagation()
-    void navigate(`/pitches/${String(pitch.id)}`)
+    e.stopPropagation();
+    void navigate(`/pitches/${String(pitch.id)}`);
   }
 
   function handleContextMenu(e: React.MouseEvent): void {
     // Viewers get the browser's native menu; only privileged roles get the app menu.
-    if (!canMoveStage) return
-    e.preventDefault()
-    setMenuPos({ x: e.clientX, y: e.clientY })
-    setMenuOpen(true)
+    if (!canMoveStage) return;
+    e.preventDefault();
+    setMenuPos({ x: e.clientX, y: e.clientY });
+    setMenuOpen(true);
   }
 
   function selectStage(toStage: string): void {
-    setMenuOpen(false)
+    setMenuOpen(false);
     if (toStage !== pitch.current_stage && onStageSelect) {
-      onStageSelect(pitch.id, pitch.current_stage, toStage)
+      onStageSelect(pitch.id, pitch.current_stage, toStage);
     }
   }
 
   // Close on outside click or Escape while the menu is open.
   useEffect(() => {
-    if (!menuOpen) return
+    if (!menuOpen) return;
     function onDocMouseDown(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+      if (menuRef.current && !menuRef.current.contains(e.target as Node))
+        setMenuOpen(false);
     }
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') setMenuOpen(false)
+      if (e.key === "Escape") setMenuOpen(false);
     }
-    document.addEventListener('mousedown', onDocMouseDown)
-    document.addEventListener('keydown', onKeyDown)
+    document.addEventListener("mousedown", onDocMouseDown);
+    document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.removeEventListener('mousedown', onDocMouseDown)
-      document.removeEventListener('keydown', onKeyDown)
-    }
-  }, [menuOpen])
+      document.removeEventListener("mousedown", onDocMouseDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [menuOpen]);
 
   return (
     <div
@@ -122,8 +136,11 @@ export default function PitchCard({ pitch, innerRef, draggableProps, dragHandleP
             {FUNDING_LABELS[pitch.funding_pathway] || pitch.funding_pathway}
           </span>
         )}
-        {pitch.domain_tags?.split(',').map((tag) => (
-          <span key={tag} className="text-[10px] bg-teal-50 text-teal-700 px-1.5 py-0.5 rounded capitalize">
+        {pitch.domain_tags?.split(",").map((tag) => (
+          <span
+            key={tag}
+            className="text-[10px] bg-teal-50 text-teal-700 px-1.5 py-0.5 rounded capitalize"
+          >
             {tag.trim()}
           </span>
         ))}
@@ -143,7 +160,7 @@ export default function PitchCard({ pitch, innerRef, draggableProps, dragHandleP
           style={{ top: menuPos.y, left: menuPos.x }}
           className="fixed z-50 min-w-[180px] bg-white rounded-lg border border-navy-200 shadow-lg py-1"
           onClick={(e) => {
-            e.stopPropagation()
+            e.stopPropagation();
           }}
         >
           <p className="px-3 py-1 text-[10px] font-semibold text-navy-400 uppercase tracking-wide">
@@ -166,17 +183,17 @@ export default function PitchCard({ pitch, innerRef, draggableProps, dragHandleP
                 key={stage.key}
                 type="button"
                 onClick={() => {
-                  selectStage(stage.key)
+                  selectStage(stage.key);
                 }}
                 className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-navy-700 hover:bg-navy-50 text-left"
               >
                 <span className={`w-2 h-2 rounded-full ${stage.color}`} />
                 {stage.label}
               </button>
-            )
+            ),
           )}
         </div>
       )}
     </div>
-  )
+  );
 }

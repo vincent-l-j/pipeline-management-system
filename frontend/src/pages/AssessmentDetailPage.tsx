@@ -169,7 +169,9 @@ export default function AssessmentDetailPage(): React.JSX.Element {
                 return (
                   <button
                     key={v.id}
-                    onClick={() => { void navigate(`/assessments/${v.id}`) }}
+                    onClick={() => {
+                      void navigate(`/assessments/${v.id}`);
+                    }}
                     className={`
                       w-full text-left p-3 rounded-lg border transition-colors
                       ${

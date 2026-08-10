@@ -4,73 +4,79 @@
  * Each event has a coloured icon, timestamp, title, description, and actor.
  */
 
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import api from '../../services/api'
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../../services/api";
 
 interface TimelineEvent {
-  type: 'created' | 'stage_change' | 'meeting' | 'assessment'
-  title: string
-  description?: string
-  date: string
-  actor?: string
-  meeting_id?: number
-  assessment_id?: number
+  type: "created" | "stage_change" | "meeting" | "assessment";
+  title: string;
+  description?: string;
+  date: string;
+  actor?: string;
+  meeting_id?: number;
+  assessment_id?: number;
 }
 
 interface TimelineResponse {
-  events: TimelineEvent[]
+  events: TimelineEvent[];
 }
 
 const EVENT_CONFIG = {
-  created: { color: 'bg-navy-500', icon: '+' },
-  stage_change: { color: 'bg-blue-500', icon: '>' },
-  meeting: { color: 'bg-amber-500', icon: 'M' },
-  assessment: { color: 'bg-green-500', icon: 'A' },
-}
+  created: { color: "bg-navy-500", icon: "+" },
+  stage_change: { color: "bg-blue-500", icon: ">" },
+  meeting: { color: "bg-amber-500", icon: "M" },
+  assessment: { color: "bg-green-500", icon: "A" },
+};
 
 interface ActivityTimelineProps {
-  pitchId: string | number
+  pitchId: string | number;
 }
 
-export default function ActivityTimeline({ pitchId }: ActivityTimelineProps): React.JSX.Element {
-  const navigate = useNavigate()
-  const [events, setEvents] = useState<TimelineEvent[]>([])
-  const [loading, setLoading] = useState(true)
+export default function ActivityTimeline({
+  pitchId,
+}: ActivityTimelineProps): React.JSX.Element {
+  const navigate = useNavigate();
+  const [events, setEvents] = useState<TimelineEvent[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get<TimelineResponse>(`/pitches/${String(pitchId)}/timeline`)
+    api
+      .get<TimelineResponse>(`/pitches/${String(pitchId)}/timeline`)
       .then(({ data }) => {
-        setEvents(data.events)
-        setLoading(false)
+        setEvents(data.events);
+        setLoading(false);
       })
       .catch(() => {
-        setLoading(false)
-      })
-  }, [pitchId])
+        setLoading(false);
+      });
+  }, [pitchId]);
 
   function formatDate(isoDate: string): string {
-    const d = new Date(isoDate)
-    return d.toLocaleDateString('en-AU', {
-      day: 'numeric', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
-    })
+    const d = new Date(isoDate);
+    return d.toLocaleDateString("en-AU", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
 
   function handleClick(event: TimelineEvent): void {
-    if (event.type === 'meeting' && event.meeting_id) {
-      void navigate(`/meetings/${String(event.meeting_id)}`)
-    } else if (event.type === 'assessment' && event.assessment_id) {
-      void navigate(`/assessments/${String(event.assessment_id)}`)
+    if (event.type === "meeting" && event.meeting_id) {
+      void navigate(`/meetings/${String(event.meeting_id)}`);
+    } else if (event.type === "assessment" && event.assessment_id) {
+      void navigate(`/assessments/${String(event.assessment_id)}`);
     }
   }
 
   if (loading) {
-    return <p className="text-sm text-navy-400">Loading timeline...</p>
+    return <p className="text-sm text-navy-400">Loading timeline...</p>;
   }
 
   if (events.length === 0) {
-    return <p className="text-sm text-navy-400">No activity recorded yet.</p>
+    return <p className="text-sm text-navy-400">No activity recorded yet.</p>;
   }
 
   return (
@@ -80,44 +86,57 @@ export default function ActivityTimeline({ pitchId }: ActivityTimelineProps): Re
 
       <div className="space-y-0">
         {events.map((event, i) => {
-          const config = EVENT_CONFIG[event.type]
-          const clickable = event.type === 'meeting' || event.type === 'assessment'
+          const config = EVENT_CONFIG[event.type];
+          const clickable =
+            event.type === "meeting" || event.type === "assessment";
 
           return (
             <div
               key={i}
               onClick={() => {
-                if (clickable) handleClick(event)
+                if (clickable) handleClick(event);
               }}
-              className={`relative flex gap-4 py-3 pl-1 ${clickable ? 'cursor-pointer hover:bg-navy-50/50 rounded-lg' : ''}`}
+              className={`relative flex gap-4 py-3 pl-1 ${clickable ? "cursor-pointer hover:bg-navy-50/50 rounded-lg" : ""}`}
             >
               {/* Icon dot */}
-              <div className={`relative z-10 w-7 h-7 rounded-full ${config.color} text-white flex items-center justify-center text-[10px] font-bold shrink-0`}>
+              <div
+                className={`relative z-10 w-7 h-7 rounded-full ${config.color} text-white flex items-center justify-center text-[10px] font-bold shrink-0`}
+              >
                 {config.icon}
               </div>
 
               {/* Content */}
               <div className="flex-1 min-w-0 pt-0.5">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h4 className="text-sm font-semibold text-navy-900">{event.title}</h4>
+                  <h4 className="text-sm font-semibold text-navy-900">
+                    {event.title}
+                  </h4>
                   {clickable && (
-                    <span className="text-[10px] text-navy-400">click to view</span>
+                    <span className="text-[10px] text-navy-400">
+                      click to view
+                    </span>
                   )}
                 </div>
                 {event.description && (
-                  <p className="text-xs text-navy-500 mt-0.5 line-clamp-2">{event.description}</p>
+                  <p className="text-xs text-navy-500 mt-0.5 line-clamp-2">
+                    {event.description}
+                  </p>
                 )}
                 <div className="flex items-center gap-3 mt-1">
-                  <span className="text-[10px] text-navy-400">{formatDate(event.date)}</span>
+                  <span className="text-[10px] text-navy-400">
+                    {formatDate(event.date)}
+                  </span>
                   {event.actor && (
-                    <span className="text-[10px] text-navy-400">by {event.actor}</span>
+                    <span className="text-[10px] text-navy-400">
+                      by {event.actor}
+                    </span>
                   )}
                 </div>
               </div>
             </div>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }

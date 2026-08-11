@@ -22,23 +22,4 @@ export default defineConfig(
       },
     },
   },
-  {
-    files: [
-      "**/*.test.{ts,tsx}",
-      "**/__tests__/**/*.{ts,tsx}",
-      "**/mocks/**/*.{ts,tsx}",
-    ],
-    languageOptions: {
-      globals: {
-        describe: "readonly",
-        it: "readonly",
-        expect: "readonly",
-        beforeEach: "readonly",
-        afterEach: "readonly",
-        beforeAll: "readonly",
-        afterAll: "readonly",
-        vi: "readonly",
-      },
-    },
-  },
 );

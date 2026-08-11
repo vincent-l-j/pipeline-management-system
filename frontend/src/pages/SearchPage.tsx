@@ -90,7 +90,7 @@ export default function SearchPage(): React.JSX.Element {
   const handleInput = (value: string): void => {
     setQuery(value);
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-    debounceTimerRef.current = setTimeout(() => doSearch(value), 400);
+    debounceTimerRef.current = setTimeout(() => void doSearch(value), 400);
   };
 
   const handleResultClick = (item: SearchResult): void => {

@@ -9,7 +9,7 @@
     "typescript-eslint": "^8.66.0"
   },
   "scripts": {
-    "format": "prettier --write . && ruff format",
+    "format": "prettier --write . && ruff format backend/",
     "format:check": "prettier --check . && ruff format --check backend/",
     "lint:frontend": "eslint frontend/src/",
     "lint:backend": "ruff check backend/",

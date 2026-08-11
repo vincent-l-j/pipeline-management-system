@@ -8,7 +8,7 @@ import api from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 
 interface FileLink {
-  id: number;
+  id: string;
   file_path: string;
   label?: string;
   description?: string;
@@ -21,7 +21,7 @@ interface FileLinkFormState {
 }
 
 interface FileLinksProps {
-  pitchId: string | number;
+  pitchId: string;
 }
 
 export default function FileLinks({
@@ -43,16 +43,14 @@ export default function FileLinks({
   }, [pitchId]);
 
   function loadFiles(): void {
-    void api
-      .get<FileLink[]>(`/pitches/${String(pitchId)}/files`)
-      .then(({ data }) => {
-        setFiles(data);
-      });
+    void api.get<FileLink[]>(`/pitches/${pitchId}/files`).then(({ data }) => {
+      setFiles(data);
+    });
   }
 
   async function addFile(): Promise<void> {
     if (!newFile.file_path.trim()) return;
-    await api.post(`/pitches/${String(pitchId)}/files`, newFile);
+    await api.post(`/pitches/${pitchId}/files`, newFile);
     setNewFile({ file_path: "", label: "", description: "" });
     setShowAdd(false);
     loadFiles();

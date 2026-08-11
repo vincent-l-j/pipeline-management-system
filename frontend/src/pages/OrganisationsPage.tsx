@@ -97,7 +97,7 @@ export default function OrganisationsPage(): React.JSX.Element {
       setShowAdd(false);
     } catch (err) {
       const apiError = err as ApiError;
-      setError(apiError.response?.data.detail ?? "Failed to add organisation");
+      setError(apiError.response?.data?.detail ?? "Failed to add organisation");
     }
   }
 
@@ -152,7 +152,7 @@ export default function OrganisationsPage(): React.JSX.Element {
     } catch (err) {
       const apiError = err as ApiError;
       setError(
-        apiError.response?.data.detail ?? "Failed to update organisation",
+        apiError.response?.data?.detail ?? "Failed to update organisation",
       );
     }
   }
@@ -165,7 +165,7 @@ export default function OrganisationsPage(): React.JSX.Element {
     } catch (err) {
       const apiError = err as ApiError;
       setError(
-        apiError.response?.data.detail ?? "Failed to remove organisation",
+        apiError.response?.data?.detail ?? "Failed to remove organisation",
       );
     } finally {
       setConfirmingId(null);

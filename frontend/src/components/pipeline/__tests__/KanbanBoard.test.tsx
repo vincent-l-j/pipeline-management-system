@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import KanbanBoard from "../KanbanBoard";
 import { PIPELINE_STAGES } from "../PipelineConfig";
 import { createApiMocks } from "../../../test/mocks/api";
+import type { Pitch } from "../../../types";
 
 vi.mock("../../../services/api", () => ({
   default: { post: vi.fn() },
@@ -50,12 +51,6 @@ vi.mock("../KanbanColumn", () => ({
     </div>
   ),
 }));
-
-interface Pitch {
-  id: string;
-  title: string;
-  current_stage: string;
-}
 
 const pitches: Pitch[] = [
   { id: "a", title: "Alpha", current_stage: "received" },

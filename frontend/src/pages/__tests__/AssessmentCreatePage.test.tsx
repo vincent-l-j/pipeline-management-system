@@ -21,12 +21,12 @@ interface Assessment {
 const mockNavigate = vi.fn();
 let mockSearch = "pitch_id=p1&from=a2";
 vi.mock("react-router-dom", async (importOriginal) => {
-  const mod = await importOriginal();
+  const mod = await importOriginal<typeof import("react-router-dom")>();
   return {
     ...mod,
     useNavigate: () => mockNavigate,
     useSearchParams: () => [new URLSearchParams(mockSearch)],
-  } as unknown;
+  };
 });
 
 vi.mock("../../services/api", () => ({

@@ -160,7 +160,7 @@ export default function PitchEditPage(): React.JSX.Element {
       void navigate(`/pitches/${pitchId}`);
     } catch (err) {
       const apiError = err as ApiError;
-      setError(apiError.response?.data.detail ?? "Failed to save pitch");
+      setError(apiError.response?.data?.detail ?? "Failed to save pitch");
       setSaving(false);
     }
   }

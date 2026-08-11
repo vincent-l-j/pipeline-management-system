@@ -16,7 +16,7 @@ import { useState } from "react";
 import api from "../../services/api";
 import { useAuth } from "../../contexts/AuthContext";
 
-interface ParsedNotes {
+export interface ParsedNotes {
   ai_parsed?: boolean;
   summary: string;
   notice?: string;

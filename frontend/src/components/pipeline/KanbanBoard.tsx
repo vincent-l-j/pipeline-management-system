@@ -8,22 +8,11 @@ import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import KanbanColumn from "./KanbanColumn";
 import { PIPELINE_STAGES } from "./PipelineConfig";
 import api from "../../services/api";
-
-interface Pitch {
-  id: number;
-  title: string;
-  short_description?: string;
-  source?: string;
-  funding_pathway?: string;
-  domain_tags?: string;
-  is_confidential?: boolean;
-  submission_date?: string;
-  current_stage: string;
-}
+import type { Pitch } from "../../types";
 
 interface KanbanBoardProps {
   pitches: Pitch[];
-  onPitchMoved: (pitchId: number, newStage: string) => void;
+  onPitchMoved: (pitchId: string, newStage: string) => void;
 }
 
 export default function KanbanBoard({
@@ -41,7 +30,7 @@ export default function KanbanBoard({
   // Shared optimistic-move path used by both drag-and-drop and the right-click
   // stage menu: move the card immediately, persist the change, revert on failure.
   async function moveStage(
-    pitchId: number,
+    pitchId: string,
     fromStage: string,
     toStage: string,
   ): Promise<void> {
@@ -50,7 +39,7 @@ export default function KanbanBoard({
     onPitchMoved(pitchId, toStage);
 
     try {
-      await api.post(`/pitches/${String(pitchId)}/stage`, {
+      await api.post(`/pitches/${pitchId}/stage`, {
         new_stage: toStage,
         note: `Moved from ${fromStage.replace("_", " ")} to ${toStage.replace("_", " ")}`,
       });
@@ -72,11 +61,7 @@ export default function KanbanBoard({
     )
       return;
 
-    void moveStage(
-      parseInt(draggableId),
-      source.droppableId,
-      destination.droppableId,
-    );
+    void moveStage(draggableId, source.droppableId, destination.droppableId);
   }
 
   return (

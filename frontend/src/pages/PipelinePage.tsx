@@ -44,7 +44,7 @@ export default function PipelinePage(): React.JSX.Element {
   }, []);
 
   const handlePitchMoved = useCallback(
-    (pitchId: number, newStage: string): void => {
+    (pitchId: string, newStage: string): void => {
       setPitches((prev) =>
         prev.map((p) =>
           p.id === pitchId ? { ...p, current_stage: newStage } : p,

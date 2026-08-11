@@ -1,6 +1,7 @@
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { AuthProvider, useAuth } from "../AuthContext";
 import { ReactNode } from "react";
+import type { User } from "../../types";
 
 const wrapper = ({ children }: { children: ReactNode }) => (
   <AuthProvider>{children}</AuthProvider>
@@ -38,24 +39,22 @@ describe("AuthContext", () => {
       expect(result.current.loading).toBe(false);
     });
 
-    const user = { id: 1, name: "Grace", role: "admin" };
+    const user: User = {
+      id: "u1",
+      email: "grace@example.com",
+      display_name: "Grace",
+      role: "admin",
+      is_active: true,
+    };
     act(() => {
       result.current.login("new-token", user);
     });
 
     expect(result.current.token).toBe("new-token");
-    expect(result.current.user).toEqual({
-      id: 1,
-      name: "Grace",
-      role: "admin",
-    });
+    expect(result.current.user).toEqual(user);
     expect(localStorage.getItem("token")).toBe("new-token");
     const userString = localStorage.getItem("user");
-    expect(userString ? JSON.parse(userString) : null).toEqual({
-      id: 1,
-      name: "Grace",
-      role: "admin",
-    });
+    expect(userString ? JSON.parse(userString) : null).toEqual(user);
   });
 
   it("logout() clears token, user, and storage", async () => {

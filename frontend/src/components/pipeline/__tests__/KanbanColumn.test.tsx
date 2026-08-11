@@ -84,14 +84,26 @@ vi.mock("../PipelineConfig", () => ({
 
 describe("KanbanColumn", () => {
   it("renders column with title", () => {
-    const stage = { key: "received", label: "Received", color: "bg-blue-400" };
+    const stage = {
+      key: "received",
+      label: "Received",
+      color: "bg-blue-400",
+      lightColor: "bg-blue-100 text-blue-700",
+    };
     render(<KanbanColumn stage={stage} pitches={[]} />);
     expect(screen.getByText("Received")).toBeInTheDocument();
   });
 
   it("renders pitch cards", () => {
-    const stage = { key: "received", label: "Received", color: "bg-blue-400" };
-    const pitches = [{ id: 1, title: "Test Pitch", current_stage: "received" }];
+    const stage = {
+      key: "received",
+      label: "Received",
+      color: "bg-blue-400",
+      lightColor: "bg-blue-100 text-blue-700",
+    };
+    const pitches = [
+      { id: "p1", title: "Test Pitch", current_stage: "received" },
+    ];
     render(<KanbanColumn stage={stage} pitches={pitches} />);
     expect(screen.getByText("Test Pitch")).toBeInTheDocument();
   });

@@ -100,7 +100,7 @@ export default function PitchesPage(): React.JSX.Element {
                 <tr
                   key={pitch.id}
                   onClick={() => {
-                    void navigate(`/pitches/${String(pitch.id)}`);
+                    void navigate(`/pitches/${pitch.id}`);
                   }}
                   className="hover:bg-navy-50/50 transition-colors cursor-pointer"
                 >

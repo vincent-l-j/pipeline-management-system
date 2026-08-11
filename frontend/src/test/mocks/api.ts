@@ -22,7 +22,7 @@ export function createApiMocks() {
     get: {
       mockResolvedValue: (value: unknown) => get.mockResolvedValue(value),
       mockRejectedValue: (error: unknown) => get.mockRejectedValue(error),
-      mockReturnValue: (value: unknown) => get.mockReturnValue(value),
+      mockReturnValue: (value: Promise<unknown>) => get.mockReturnValue(value),
       mockImplementation: (fn: (url: string) => Promise<unknown>) =>
         get.mockImplementation(fn),
       get mock() {
@@ -32,7 +32,7 @@ export function createApiMocks() {
     post: {
       mockResolvedValue: (value: unknown) => post.mockResolvedValue(value),
       mockRejectedValue: (error: unknown) => post.mockRejectedValue(error),
-      mockReturnValue: (value: unknown) => post.mockReturnValue(value),
+      mockReturnValue: (value: Promise<unknown>) => post.mockReturnValue(value),
       mockImplementation: (
         fn: (url: string, data: unknown) => Promise<unknown>,
       ) => post.mockImplementation(fn),
@@ -43,7 +43,8 @@ export function createApiMocks() {
     patch: {
       mockResolvedValue: (value: unknown) => patch.mockResolvedValue(value),
       mockRejectedValue: (error: unknown) => patch.mockRejectedValue(error),
-      mockReturnValue: (value: unknown) => patch.mockReturnValue(value),
+      mockReturnValue: (value: Promise<unknown>) =>
+        patch.mockReturnValue(value),
       mockImplementation: (
         fn: (url: string, data: unknown) => Promise<unknown>,
       ) => patch.mockImplementation(fn),
@@ -54,7 +55,8 @@ export function createApiMocks() {
     delete: {
       mockResolvedValue: (value: unknown) => delete_.mockResolvedValue(value),
       mockRejectedValue: (error: unknown) => delete_.mockRejectedValue(error),
-      mockReturnValue: (value: unknown) => delete_.mockReturnValue(value),
+      mockReturnValue: (value: Promise<unknown>) =>
+        delete_.mockReturnValue(value),
       mockImplementation: (fn: (url: string) => Promise<unknown>) =>
         delete_.mockImplementation(fn),
       get mock() {

@@ -1,7 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import ScoringCard from "../ScoringCard";
+import type { ScoringCardAssessment } from "../ScoringCard";
 
-const baseAssessment = {
+const baseAssessment: ScoringCardAssessment = {
   national_impact: 4,
   translation_readiness: 3,
   team_capability: 5,

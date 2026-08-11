@@ -11,21 +11,20 @@ import PageHeader from "../components/PageHeader";
 import api from "../services/api";
 
 interface SearchResult {
-  id: number;
+  id: string;
   type: string;
   title: string;
   subtitle?: string;
   badge?: string;
 }
 
-interface SearchResults {
+/** The result buckets in a /search response — every key holds an array. */
+type SearchCategory =
+  "pitches" | "organisations" | "contacts" | "meetings" | "assessments";
+
+type SearchResults = Record<SearchCategory, SearchResult[]> & {
   total: number;
-  pitches: SearchResult[];
-  organisations: SearchResult[];
-  contacts: SearchResult[];
-  meetings: SearchResult[];
-  assessments: SearchResult[];
-}
+};
 
 interface CategoryConfig {
   label: string;
@@ -33,7 +32,7 @@ interface CategoryConfig {
   basePath: string;
 }
 
-const CATEGORY_CONFIG: Record<string, CategoryConfig> = {
+const CATEGORY_CONFIG: Record<SearchCategory, CategoryConfig> = {
   pitches: { label: "Pitches", icon: "◈", basePath: "/pitches" },
   organisations: {
     label: "Organisations",
@@ -96,15 +95,13 @@ export default function SearchPage(): React.JSX.Element {
   const handleResultClick = (item: SearchResult): void => {
     const basePath = TYPE_BASE_PATH[item.type];
     if (!basePath) return;
-    void navigate(`${basePath}/${String(item.id)}`);
+    void navigate(`${basePath}/${item.id}`);
   };
 
   const categories = results
-    ? Object.entries(CATEGORY_CONFIG).filter(
-        ([key]) =>
-          ((results[key as keyof SearchResults] as SearchResult[] | undefined)
-            ?.length ?? 0) > 0,
-      )
+    ? (
+        Object.entries(CATEGORY_CONFIG) as [SearchCategory, CategoryConfig][]
+      ).filter(([key]) => results[key].length > 0)
     : [];
 
   return (
@@ -155,51 +152,47 @@ export default function SearchPage(): React.JSX.Element {
                 {results.total} result{results.total !== 1 ? "s" : ""} found
               </p>
 
-              {categories.map(
-                ([catKey, catConfig]: [string, CategoryConfig]) => (
-                  <div key={catKey}>
-                    <h3 className="text-xs font-semibold text-navy-500 uppercase tracking-wide mb-2 flex items-center gap-2">
-                      <span>{catConfig.icon}</span>
-                      {catConfig.label}
-                      <span className="text-navy-300">
-                        ({results[catKey as keyof SearchResults].length})
-                      </span>
-                    </h3>
+              {categories.map(([catKey, catConfig]) => (
+                <div key={catKey}>
+                  <h3 className="text-xs font-semibold text-navy-500 uppercase tracking-wide mb-2 flex items-center gap-2">
+                    <span>{catConfig.icon}</span>
+                    {catConfig.label}
+                    <span className="text-navy-300">
+                      ({results[catKey].length})
+                    </span>
+                  </h3>
 
-                    <div className="bg-white rounded-xl border border-navy-100 divide-y divide-navy-50 overflow-hidden">
-                      {(
-                        results[catKey as keyof SearchResults] as SearchResult[]
-                      ).map((item: SearchResult) => (
-                        <button
-                          key={item.id}
-                          onClick={() => {
-                            handleResultClick(item);
-                          }}
-                          className="w-full text-left px-4 py-3 hover:bg-navy-50/50 transition-colors flex items-center justify-between"
-                        >
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-navy-900 truncate">
-                              {item.title}
+                  <div className="bg-white rounded-xl border border-navy-100 divide-y divide-navy-50 overflow-hidden">
+                    {results[catKey].map((item: SearchResult) => (
+                      <button
+                        key={item.id}
+                        onClick={() => {
+                          handleResultClick(item);
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-navy-50/50 transition-colors flex items-center justify-between"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-navy-900 truncate">
+                            {item.title}
+                          </p>
+                          {item.subtitle && (
+                            <p className="text-xs text-navy-500 truncate">
+                              {item.subtitle}
                             </p>
-                            {item.subtitle && (
-                              <p className="text-xs text-navy-500 truncate">
-                                {item.subtitle}
-                              </p>
-                            )}
-                          </div>
-                          {item.badge && (
-                            <span
-                              className={`shrink-0 ml-3 text-[10px] font-medium px-2 py-0.5 rounded-full ${BADGE_COLORS[item.type] || "bg-gray-100"}`}
-                            >
-                              {item.badge}
-                            </span>
                           )}
-                        </button>
-                      ))}
-                    </div>
+                        </div>
+                        {item.badge && (
+                          <span
+                            className={`shrink-0 ml-3 text-[10px] font-medium px-2 py-0.5 rounded-full ${BADGE_COLORS[item.type] || "bg-gray-100"}`}
+                          >
+                            {item.badge}
+                          </span>
+                        )}
+                      </button>
+                    ))}
                   </div>
-                ),
-              )}
+                </div>
+              ))}
             </div>
           )}
         </div>

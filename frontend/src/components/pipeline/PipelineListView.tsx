@@ -4,22 +4,11 @@
  */
 
 import { STAGE_MAP, SOURCE_LABELS, FUNDING_LABELS } from "./PipelineConfig";
-
-interface Pitch {
-  id: number;
-  title: string;
-  short_description?: string;
-  source?: string;
-  funding_pathway?: string;
-  domain_tags?: string;
-  is_confidential?: boolean;
-  submission_date?: string;
-  current_stage: string;
-}
+import type { Pitch } from "../../types";
 
 interface PipelineListViewProps {
   pitches: Pitch[];
-  onStageClick?: (pitchId: number, stage: string) => void;
+  onStageClick?: (pitchId: string, stage: string) => void;
 }
 
 export default function PipelineListView({ pitches }: PipelineListViewProps) {

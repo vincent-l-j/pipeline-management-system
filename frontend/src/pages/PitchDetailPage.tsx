@@ -19,23 +19,16 @@ import {
 } from "../components/pipeline/PipelineConfig";
 import api from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
-import type { Pitch, User, Organisation } from "../types";
+import type { Assessment, Pitch, User, Organisation } from "../types";
 
 interface Meeting {
-  id: number;
+  id: string;
   title: string;
   meeting_date: string;
 }
 
-interface Assessment {
-  id: number;
-  version: number;
-  assessment_date: string;
-  recommendation: "proceed" | "park" | "decline";
-}
-
 interface ExtendedPitch extends Pitch {
-  organisation_id?: number | string;
+  organisation_id?: string;
   is_confidential?: boolean;
   masterplan_alignment?: string;
 }
@@ -58,7 +51,7 @@ export default function PitchDetailPage(): React.JSX.Element {
       void navigate("/pitches");
       return;
     }
-    Promise.all<[AxiosResponse<ExtendedPitch>, AxiosResponse<User[]>]>([
+    Promise.all([
       api.get<ExtendedPitch>(`/pitches/${pitchId}`),
       api.get<User[]>("/users/directory"),
     ])
@@ -82,9 +75,7 @@ export default function PitchDetailPage(): React.JSX.Element {
           ];
           if (p.organisation_id) {
             promises.push(
-              api.get<Organisation>(
-                `/organisations/${String(p.organisation_id)}`,
-              ),
+              api.get<Organisation>(`/organisations/${p.organisation_id}`),
             );
           }
           return Promise.all(promises) as Promise<
@@ -107,13 +98,13 @@ export default function PitchDetailPage(): React.JSX.Element {
       });
   }, [pitchId, navigate]);
 
-  function getUserName(userId: number | undefined): string | null {
+  function getUserName(userId: string | undefined): string | null {
     if (!userId) return null;
     const u = users.find((u): boolean => u.id === userId);
     return u ? u.display_name : null;
   }
 
-  if (loading || !pitch) {
+  if (loading || !pitch || !pitchId) {
     return (
       <Layout>
         <p className="text-navy-400">Loading pitch...</p>
@@ -134,19 +125,19 @@ export default function PitchDetailPage(): React.JSX.Element {
             {canEdit && (
               <>
                 <Link
-                  to={`/pitches/${String(pitchId)}/edit`}
+                  to={`/pitches/${pitchId}/edit`}
                   className="border border-navy-200 text-navy-600 px-4 py-2 rounded-lg text-sm font-medium hover:border-navy-400 transition-colors"
                 >
                   Edit
                 </Link>
                 <Link
-                  to={`/meetings/new?pitch_id=${String(pitchId)}`}
+                  to={`/meetings/new?pitch_id=${pitchId}`}
                   className="border border-navy-200 text-navy-600 px-4 py-2 rounded-lg text-sm font-medium hover:border-navy-400 transition-colors"
                 >
                   Log Meeting
                 </Link>
                 <Link
-                  to={`/assessments/new?pitch_id=${String(pitchId)}`}
+                  to={`/assessments/new?pitch_id=${pitchId}`}
                   className="bg-navy-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-navy-800 transition-colors"
                 >
                   New Assessment
@@ -256,7 +247,7 @@ export default function PitchDetailPage(): React.JSX.Element {
               </h2>
               {canEdit && (
                 <Link
-                  to={`/meetings/new?pitch_id=${String(pitchId)}`}
+                  to={`/meetings/new?pitch_id=${pitchId}`}
                   className="text-xs text-navy-600 hover:text-navy-900 font-medium"
                 >
                   + Log
@@ -272,7 +263,7 @@ export default function PitchDetailPage(): React.JSX.Element {
                     <button
                       type="button"
                       onClick={() => {
-                        void navigate(`/meetings/${String(m.id)}`);
+                        void navigate(`/meetings/${m.id}`);
                       }}
                       className="w-full text-left p-2 rounded-lg hover:bg-navy-50/50 transition-colors"
                     >
@@ -295,7 +286,7 @@ export default function PitchDetailPage(): React.JSX.Element {
               </h2>
               {canEdit && (
                 <Link
-                  to={`/assessments/new?pitch_id=${String(pitchId)}`}
+                  to={`/assessments/new?pitch_id=${pitchId}`}
                   className="text-xs text-navy-600 hover:text-navy-900 font-medium"
                 >
                   + New
@@ -322,7 +313,7 @@ export default function PitchDetailPage(): React.JSX.Element {
                         <button
                           type="button"
                           onClick={() => {
-                            void navigate(`/assessments/${String(a.id)}`);
+                            void navigate(`/assessments/${a.id}`);
                           }}
                           className="w-full text-left p-2 rounded-lg hover:bg-navy-50/50 transition-colors flex items-center justify-between"
                         >

@@ -11,41 +11,17 @@ import {
   RecommendationOption,
 } from "../components/assessments/AssessmentConfig";
 import api from "../services/api";
-
-interface Pitch {
-  id: number;
-  title: string;
-  current_stage: string;
-}
-
-interface Assessment {
-  id: number;
-  pitch_id: number;
-  recommendation: string;
-  rationale: string;
-  national_impact: number;
-  translation_readiness: number;
-  team_capability: number;
-  ecosystem_fit: number;
-  funding_pathway_clarity: number;
-  masterplan_alignment: number;
-}
+import type { Assessment, AssessmentScores, Pitch } from "../types";
 
 interface CreateAssessmentResponse {
-  id: number;
+  id: string;
 }
 
-interface FormState {
+interface FormState extends AssessmentScores {
   pitch_id: string;
   assessment_date: string;
   recommendation: string;
   rationale: string;
-  national_impact: number;
-  translation_readiness: number;
-  team_capability: number;
-  ecosystem_fit: number;
-  funding_pathway_clarity: number;
-  masterplan_alignment: number;
 }
 
 export default function AssessmentCreatePage(): React.JSX.Element {
@@ -80,9 +56,9 @@ export default function AssessmentCreatePage(): React.JSX.Element {
     void api.get<Assessment>(`/assessments/${amendFromId}`).then(({ data }) => {
       setForm((prev) => ({
         ...prev,
-        pitch_id: String(data.pitch_id),
+        pitch_id: data.pitch_id,
         recommendation: data.recommendation,
-        rationale: data.rationale,
+        rationale: data.rationale ?? "",
         national_impact: data.national_impact,
         translation_readiness: data.translation_readiness,
         team_capability: data.team_capability,
@@ -98,11 +74,10 @@ export default function AssessmentCreatePage(): React.JSX.Element {
   }
 
   const allScored = CRITERIA.every(
-    (c: Criterion) => form[c.key as keyof FormState] >= 1,
+    (c: Criterion) => form[c.key as keyof AssessmentScores] >= 1,
   );
   const totalScore = CRITERIA.reduce(
-    (sum: number, c: Criterion) =>
-      sum + (form[c.key as keyof FormState] as number),
+    (sum: number, c: Criterion) => sum + form[c.key as keyof AssessmentScores],
     0,
   );
   const avgScore = allScored ? (totalScore / CRITERIA.length).toFixed(1) : "-";
@@ -127,7 +102,7 @@ export default function AssessmentCreatePage(): React.JSX.Element {
         ? `/assessments?amending_from_id=${amendFromId}`
         : "/assessments";
       const { data } = await api.post<CreateAssessmentResponse>(url, form);
-      void navigate(`/assessments/${String(data.id)}`);
+      void navigate(`/assessments/${data.id}`);
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ detail?: string }>;
       setError(

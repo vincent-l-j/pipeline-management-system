@@ -6,28 +6,24 @@
 import { ReactElement } from "react";
 import { CRITERIA, RECOMMENDATION_OPTIONS } from "./AssessmentConfig";
 import ScoreSelector from "./ScoreSelector";
+import type { AssessmentScores, Recommendation } from "../../types";
 
 /**
- * Assessment data structure with all scoring criteria and metadata
+ * The subset of an assessment this card displays — deliberately narrower than
+ * the full API shape so the card doesn't depend on ids it never renders.
  */
-interface Assessment {
+export interface ScoringCardAssessment extends AssessmentScores {
   version: number;
-  recommendation: "proceed" | "park" | "decline" | null;
+  recommendation: Recommendation;
   assessment_date: string;
   rationale?: string;
-  national_impact?: number;
-  translation_readiness?: number;
-  team_capability?: number;
-  ecosystem_fit?: number;
-  funding_pathway_clarity?: number;
-  masterplan_alignment?: number;
 }
 
 /**
  * Props for the ScoringCard component
  */
 interface ScoringCardProps {
-  assessment: Assessment;
+  assessment: ScoringCardAssessment;
   assessorName?: string;
 }
 
@@ -42,7 +38,8 @@ export default function ScoringCard({
   assessorName,
 }: ScoringCardProps): ReactElement {
   const totalScore = CRITERIA.reduce(
-    (sum, c) => sum + ((assessment[c.key as keyof Assessment] as number) || 0),
+    (sum, c) =>
+      sum + ((assessment[c.key as keyof ScoringCardAssessment] as number) || 0),
     0,
   );
   const avgScore = (totalScore / CRITERIA.length).toFixed(1);
@@ -85,7 +82,9 @@ export default function ScoringCard({
           <ScoreSelector
             key={criterion.key}
             criterion={criterion}
-            value={assessment[criterion.key as keyof Assessment] as number}
+            value={
+              assessment[criterion.key as keyof ScoringCardAssessment] as number
+            }
             readOnly
           />
         ))}

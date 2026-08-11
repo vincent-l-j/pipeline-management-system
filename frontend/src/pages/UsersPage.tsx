@@ -16,7 +16,7 @@ const selectClass =
 export default function UsersPage(): React.JSX.Element {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [editRole, setEditRole] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
 
@@ -51,7 +51,7 @@ export default function UsersPage(): React.JSX.Element {
 
     setError("");
     try {
-      const { data } = await api.patch<User>(`/users/${String(user.id)}`, {
+      const { data } = await api.patch<User>(`/users/${user.id}`, {
         role: editRole,
       });
       setUsers((prev) => prev.map((u) => (u.id === user.id ? data : u)));

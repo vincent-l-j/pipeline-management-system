@@ -14,8 +14,8 @@ interface TimelineEvent {
   description?: string;
   date: string;
   actor?: string;
-  meeting_id?: number;
-  assessment_id?: number;
+  meeting_id?: string;
+  assessment_id?: string;
 }
 
 interface TimelineResponse {
@@ -30,7 +30,7 @@ const EVENT_CONFIG = {
 };
 
 interface ActivityTimelineProps {
-  pitchId: string | number;
+  pitchId: string;
 }
 
 export default function ActivityTimeline({
@@ -42,7 +42,7 @@ export default function ActivityTimeline({
 
   useEffect(() => {
     api
-      .get<TimelineResponse>(`/pitches/${String(pitchId)}/timeline`)
+      .get<TimelineResponse>(`/pitches/${pitchId}/timeline`)
       .then(({ data }) => {
         setEvents(data.events);
         setLoading(false);
@@ -65,9 +65,9 @@ export default function ActivityTimeline({
 
   function handleClick(event: TimelineEvent): void {
     if (event.type === "meeting" && event.meeting_id) {
-      void navigate(`/meetings/${String(event.meeting_id)}`);
+      void navigate(`/meetings/${event.meeting_id}`);
     } else if (event.type === "assessment" && event.assessment_id) {
-      void navigate(`/assessments/${String(event.assessment_id)}`);
+      void navigate(`/assessments/${event.assessment_id}`);
     }
   }
 

@@ -6,23 +6,12 @@
 import { Droppable, Draggable } from "@hello-pangea/dnd";
 import PitchCard from "./PitchCard";
 import { PipelineStage } from "./PipelineConfig";
-
-interface Pitch {
-  id: number;
-  title: string;
-  short_description?: string;
-  source?: string;
-  funding_pathway?: string;
-  domain_tags?: string;
-  is_confidential?: boolean;
-  submission_date?: string;
-  current_stage: string;
-}
+import type { Pitch } from "../../types";
 
 interface KanbanColumnProps {
   stage: PipelineStage;
   pitches: Pitch[];
-  onStageSelect?: (pitchId: number, fromStage: string, toStage: string) => void;
+  onStageSelect?: (pitchId: string, fromStage: string, toStage: string) => void;
 }
 
 export default function KanbanColumn({
@@ -54,11 +43,7 @@ export default function KanbanColumn({
             }`}
           >
             {pitches.map((pitch, index) => (
-              <Draggable
-                key={pitch.id}
-                draggableId={pitch.id.toString()}
-                index={index}
-              >
+              <Draggable key={pitch.id} draggableId={pitch.id} index={index}>
                 {(provided) => (
                   <PitchCard
                     pitch={pitch}

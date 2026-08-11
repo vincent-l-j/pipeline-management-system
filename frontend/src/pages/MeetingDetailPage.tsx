@@ -9,6 +9,7 @@ import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import MeetingAttendees from "../components/meetings/MeetingAttendees";
 import AINoteImporter from "../components/meetings/AINoteImporter";
+import type { ParsedNotes } from "../components/meetings/AINoteImporter";
 import api from "../services/api";
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -36,16 +37,6 @@ interface Meeting {
   created_at: string;
 }
 
-interface ParsedNote {
-  summary: string | null;
-  key_points: string[] | string | null;
-  action_items: string[] | string | null;
-  follow_up_date: string | null;
-  attendees: string[];
-  ai_parsed: boolean;
-  notice: string | null;
-}
-
 interface EditForm {
   title: string;
   summary: string;
@@ -55,12 +46,8 @@ interface EditForm {
   recording_link: string;
 }
 
-interface RouteParams {
-  meetingId?: string;
-}
-
 function MeetingDetailPage(): React.JSX.Element {
-  const { meetingId } = useParams<RouteParams>();
+  const { meetingId } = useParams<{ meetingId: string }>();
   const navigate = useNavigate();
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -118,17 +105,13 @@ function MeetingDetailPage(): React.JSX.Element {
     setSaving(false);
   }
 
-  function handleNoteImport(parsed: ParsedNote): void {
+  function handleNoteImport(parsed: ParsedNotes): void {
     if (!meeting) return;
     setEditForm({
       title: meeting.title,
-      summary: parsed.summary ?? "",
-      key_points: Array.isArray(parsed.key_points)
-        ? parsed.key_points.join("\n")
-        : (parsed.key_points ?? ""),
-      action_items: Array.isArray(parsed.action_items)
-        ? parsed.action_items.join("\n")
-        : (parsed.action_items ?? ""),
+      summary: parsed.summary,
+      key_points: parsed.key_points?.join("\n") ?? "",
+      action_items: parsed.action_items?.join("\n") ?? "",
       follow_up_date: parsed.follow_up_date ?? "",
       recording_link: meeting.recording_link ?? "",
     });
@@ -374,7 +357,9 @@ function MeetingDetailPage(): React.JSX.Element {
               <div>
                 <dt className="text-navy-400">Platform</dt>
                 <dd className="text-navy-900">
-                  {PLATFORM_LABELS[meeting.platform] ?? "-"}
+                  {meeting.platform
+                    ? (PLATFORM_LABELS[meeting.platform] ?? "-")
+                    : "-"}
                 </dd>
               </div>
               {meeting.follow_up_date && (

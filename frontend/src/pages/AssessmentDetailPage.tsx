@@ -12,38 +12,14 @@ import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import ScoringCard from "../components/assessments/ScoringCard";
 import { useAuth } from "../contexts/AuthContext";
-import { User } from "../types";
+import { Assessment, Pitch, User } from "../types";
 import api from "../services/api";
-
-interface Assessment {
-  id: string;
-  pitch_id: string;
-  assessor_id: string;
-  assessment_date: string;
-  version: number;
-  recommendation: string;
-  rationale?: string;
-  national_impact?: number;
-  translation_readiness?: number;
-  team_capability?: number;
-  ecosystem_fit?: number;
-  funding_pathway_clarity?: number;
-  masterplan_alignment?: number;
-}
-
-interface Pitch {
-  id: string;
-  title: string;
-  current_stage: string;
-  short_description?: string;
-}
 
 export default function AssessmentDetailPage(): React.JSX.Element {
   const { assessmentId } = useParams<{ assessmentId?: string }>();
   const navigate = useNavigate();
-  const authContext = useAuth();
-  const user = authContext.user;
-  const canAmend = user.role === "admin" || user.role === "assessor";
+  const { user } = useAuth();
+  const canAmend = user?.role === "admin" || user?.role === "assessor";
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [allVersions, setAllVersions] = useState<Assessment[]>([]);
   const [users, setUsers] = useState<User[]>([]);

@@ -18,18 +18,7 @@ import {
   PIPELINE_STAGES,
 } from "./PipelineConfig";
 import { useAuth } from "../../contexts/AuthContext";
-
-interface Pitch {
-  id: number;
-  title: string;
-  short_description?: string;
-  source?: string;
-  funding_pathway?: string;
-  domain_tags?: string;
-  is_confidential?: boolean;
-  submission_date?: string;
-  current_stage: string;
-}
+import type { Pitch } from "../../types";
 
 interface MenuPos {
   x: number;
@@ -41,7 +30,7 @@ interface PitchCardProps {
   innerRef: React.Ref<HTMLDivElement>;
   draggableProps: DraggableProvidedDraggableProps;
   dragHandleProps: DraggableProvidedDragHandleProps | null;
-  onStageSelect?: (pitchId: number, fromStage: string, toStage: string) => void;
+  onStageSelect?: (pitchId: string, fromStage: string, toStage: string) => void;
 }
 
 export default function PitchCard({
@@ -61,7 +50,7 @@ export default function PitchCard({
 
   function handleTitleClick(e: React.MouseEvent): void {
     e.stopPropagation();
-    void navigate(`/pitches/${String(pitch.id)}`);
+    void navigate(`/pitches/${pitch.id}`);
   }
 
   function handleContextMenu(e: React.MouseEvent): void {

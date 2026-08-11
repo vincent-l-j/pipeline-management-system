@@ -8,7 +8,8 @@ import { SCORE_LABELS, Criterion } from "./AssessmentConfig";
 interface ScoreSelectorProps {
   criterion: Criterion;
   value?: number;
-  onChange: (score: number) => void;
+  /** Omitted in read-only mode, where the circles aren't clickable. */
+  onChange?: (score: number) => void;
   readOnly?: boolean;
 }
 
@@ -51,7 +52,7 @@ export default function ScoreSelector({
             type="button"
             disabled={readOnly}
             onClick={() => {
-              if (!readOnly) onChange(score);
+              if (!readOnly) onChange?.(score);
             }}
             className={`
               w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold

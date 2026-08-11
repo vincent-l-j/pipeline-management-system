@@ -12,8 +12,8 @@ const apiMocks = createApiMocks();
 
 const mockNavigate = vi.fn();
 vi.mock("react-router-dom", async (importOriginal) => {
-  const mod = await importOriginal();
-  return { ...mod, useNavigate: () => mockNavigate } as unknown;
+  const mod = await importOriginal<typeof import("react-router-dom")>();
+  return { ...mod, useNavigate: () => mockNavigate };
 });
 
 function renderTimeline(pitchId = "1") {

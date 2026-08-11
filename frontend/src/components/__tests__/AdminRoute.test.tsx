@@ -57,7 +57,7 @@ describe("AdminRoute", () => {
   });
 
   it("renders nothing while auth is still loading", () => {
-    mockAuth = { user: null, loading: true };
+    mockAuth = { user: { role: "" }, loading: true };
     render(
       <AdminRoute>
         <Protected />

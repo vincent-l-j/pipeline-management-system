@@ -24,7 +24,7 @@ interface MockUser {
 
 const mockNavigate = vi.fn();
 vi.mock("react-router-dom", async (importOriginal) => {
-  const mod = await importOriginal();
+  const mod = await importOriginal<typeof import("react-router-dom")>();
   return {
     ...mod,
     useParams: () => ({ pitchId: "42" }),
@@ -42,7 +42,7 @@ vi.mock("react-router-dom", async (importOriginal) => {
         {children}
       </a>
     ),
-  } as unknown;
+  };
 });
 
 vi.mock("../../services/api", () => ({

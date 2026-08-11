@@ -19,7 +19,7 @@ interface MockUser {
 
 const mockNavigate = vi.fn();
 vi.mock("react-router-dom", async (importOriginal) => {
-  const mod = await importOriginal();
+  const mod = await importOriginal<typeof import("react-router-dom")>();
   return {
     ...mod,
     useParams: () => ({ assessmentId: "a2" }),
@@ -27,7 +27,7 @@ vi.mock("react-router-dom", async (importOriginal) => {
     Link: ({ to, children }: { to: string; children: React.ReactNode }) => (
       <a href={to}>{children}</a>
     ),
-  } as unknown;
+  };
 });
 
 vi.mock("../../services/api", () => ({

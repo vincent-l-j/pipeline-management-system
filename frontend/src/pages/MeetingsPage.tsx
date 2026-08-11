@@ -7,7 +7,7 @@ import api from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 
 interface Meeting {
-  id: number;
+  id: string;
   title: string;
   meeting_date: string;
   platform: string | null;
@@ -101,7 +101,7 @@ export default function MeetingsPage(): React.JSX.Element {
                 <tr
                   key={m.id}
                   onClick={() => {
-                    void navigate(`/meetings/${String(m.id)}`);
+                    void navigate(`/meetings/${m.id}`);
                   }}
                   className="hover:bg-navy-50/50 transition-colors cursor-pointer"
                 >
@@ -110,7 +110,9 @@ export default function MeetingsPage(): React.JSX.Element {
                   </td>
                   <td className="px-4 py-3 text-navy-500">{m.meeting_date}</td>
                   <td className="px-4 py-3 text-navy-500">
-                    {PLATFORM_LABELS[m.platform] ?? m.platform ?? "-"}
+                    {m.platform
+                      ? (PLATFORM_LABELS[m.platform] ?? m.platform)
+                      : "-"}
                   </td>
                   <td className="px-4 py-3 text-navy-500">
                     {m.follow_up_date ?? "-"}

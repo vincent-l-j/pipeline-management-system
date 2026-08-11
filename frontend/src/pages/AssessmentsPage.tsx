@@ -5,27 +5,7 @@ import PageHeader from "../components/PageHeader";
 import { CRITERIA } from "../components/assessments/AssessmentConfig";
 import api from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
-import { User } from "../types";
-
-interface Pitch {
-  id: number;
-  title: string;
-}
-
-interface Assessment {
-  id: number;
-  pitch_id: number;
-  assessor_id: number;
-  assessment_date: string;
-  recommendation: "proceed" | "park" | "decline";
-  version: number;
-  national_impact?: number;
-  translation_readiness?: number;
-  team_capability?: number;
-  ecosystem_fit?: number;
-  funding_pathway_clarity?: number;
-  masterplan_alignment?: number;
-}
+import { Assessment, Pitch, User } from "../types";
 
 const recommendationBadge: Record<string, string> = {
   proceed: "bg-green-100 text-green-700",
@@ -61,12 +41,12 @@ export default function AssessmentsPage(): React.JSX.Element {
       });
   }, []);
 
-  function getPitchTitle(pitchId: number): string {
+  function getPitchTitle(pitchId: string): string {
     const p = pitches.find((p: Pitch): boolean => p.id === pitchId);
     return p ? p.title : "Unknown";
   }
 
-  function getAssessorName(assessorId: number): string {
+  function getAssessorName(assessorId: string): string {
     const u = users.find((u: User): boolean => u.id === assessorId);
     return u ? u.display_name : "Unknown";
   }
@@ -141,7 +121,7 @@ export default function AssessmentsPage(): React.JSX.Element {
                 <tr
                   key={assessment.id}
                   onClick={() => {
-                    void navigate(`/assessments/${String(assessment.id)}`);
+                    void navigate(`/assessments/${assessment.id}`);
                   }}
                   className="hover:bg-navy-50/50 transition-colors cursor-pointer"
                 >

@@ -4,13 +4,13 @@ import api from "../api";
 // The interceptors are registered on the shared axios instance at import time.
 // Pull the registered handlers straight off the instance and invoke them
 // directly — no network needed to exercise the token/401 logic.
-const requestFulfilled = api.interceptors.request.handlers[0]?.fulfilled as (
+// Both interceptors are synchronous, so the casts return values rather than promises.
+const requestFulfilled = api.interceptors.request.handlers?.[0]?.fulfilled as (
   config: InternalAxiosRequestConfig,
-) => InternalAxiosRequestConfig | Promise<InternalAxiosRequestConfig>;
-const responseFulfilled = api.interceptors.response.handlers[0]?.fulfilled as (
-  data: unknown,
-) => unknown;
-const responseRejected = api.interceptors.response.handlers[0]?.rejected as (
+) => InternalAxiosRequestConfig;
+const responseFulfilled = api.interceptors.response.handlers?.[0]
+  ?.fulfilled as (data: unknown) => unknown;
+const responseRejected = api.interceptors.response.handlers?.[0]?.rejected as (
   error: unknown,
 ) => Promise<unknown>;
 

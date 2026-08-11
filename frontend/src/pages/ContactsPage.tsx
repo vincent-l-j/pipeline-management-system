@@ -10,17 +10,33 @@ const inputClass =
 
 interface Contact {
   id: number;
-  name: string;
+  first_name: string;
+  last_name: string | null;
   role: string | null;
   email: string | null;
   last_contacted: string | null;
 }
 
 interface ContactForm {
-  name: string;
+  first_name: string;
+  last_name: string;
   role: string;
   email: string;
 }
+
+const EMPTY_FORM: ContactForm = {
+  first_name: "",
+  last_name: "",
+  role: "",
+  email: "",
+};
+
+const EDITABLE_FIELDS: (keyof ContactForm)[] = [
+  "first_name",
+  "last_name",
+  "role",
+  "email",
+];
 
 interface ErrorResponse {
   detail?: string;
@@ -31,17 +47,9 @@ export default function ContactsPage(): React.JSX.Element {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState<ContactForm>({
-    name: "",
-    role: "",
-    email: "",
-  });
+  const [form, setForm] = useState<ContactForm>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [editForm, setEditForm] = useState<ContactForm>({
-    name: "",
-    role: "",
-    email: "",
-  });
+  const [editForm, setEditForm] = useState<ContactForm>(EMPTY_FORM);
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
   const [error, setError] = useState("");
 
@@ -62,16 +70,17 @@ export default function ContactsPage(): React.JSX.Element {
   }, []);
 
   const addContact = async (): Promise<void> => {
-    if (!form.name.trim()) return;
+    if (!form.first_name.trim()) return;
     setError("");
     try {
       const { data } = await api.post<Contact>("/contacts", {
-        name: form.name.trim(),
+        first_name: form.first_name.trim(),
+        last_name: form.last_name.trim() || null,
         role: form.role.trim() || null,
         email: form.email.trim() || null,
       });
       setContacts((prev) => [...prev, data]);
-      setForm({ name: "", role: "", email: "" });
+      setForm(EMPTY_FORM);
       setShowAdd(false);
     } catch (err) {
       const apiError = err as AxiosError<ErrorResponse>;
@@ -83,7 +92,8 @@ export default function ContactsPage(): React.JSX.Element {
     setError("");
     setEditingId(contact.id);
     setEditForm({
-      name: contact.name,
+      first_name: contact.first_name,
+      last_name: contact.last_name ?? "",
       role: contact.role ?? "",
       email: contact.email ?? "",
     });
@@ -95,12 +105,11 @@ export default function ContactsPage(): React.JSX.Element {
 
   const saveEdit = async (contact: Contact): Promise<void> => {
     const changes: Record<string, string | null> = {};
-    for (const field of ["name", "role", "email"]) {
-      const next = editForm[field as keyof ContactForm].trim() || null;
-      if (next !== (contact[field as keyof Contact] ?? null))
-        changes[field] = next;
+    for (const field of EDITABLE_FIELDS) {
+      const next = editForm[field].trim() || null;
+      if (next !== (contact[field] ?? null)) changes[field] = next;
     }
-    if (!editForm.name.trim() || Object.keys(changes).length === 0) {
+    if (!editForm.first_name.trim() || Object.keys(changes).length === 0) {
       setEditingId(null);
       return;
     }
@@ -159,15 +168,26 @@ export default function ContactsPage(): React.JSX.Element {
 
       {showAdd && canAdd && (
         <div className="mb-4 p-4 bg-navy-50 rounded-lg space-y-2">
-          <input
-            type="text"
-            value={form.name}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => {
-              setForm((p) => ({ ...p, name: e.target.value }));
-            }}
-            placeholder="Contact name"
-            className={inputClass}
-          />
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="text"
+              value={form.first_name}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                setForm((p) => ({ ...p, first_name: e.target.value }));
+              }}
+              placeholder="First name"
+              className={inputClass}
+            />
+            <input
+              type="text"
+              value={form.last_name}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                setForm((p) => ({ ...p, last_name: e.target.value }));
+              }}
+              placeholder="Last name (optional)"
+              className={inputClass}
+            />
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <input
               type="text"
@@ -193,7 +213,7 @@ export default function ContactsPage(): React.JSX.Element {
               onClick={() => {
                 void addContact();
               }}
-              disabled={!form.name.trim()}
+              disabled={!form.first_name.trim()}
               className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
             >
               Create
@@ -201,7 +221,7 @@ export default function ContactsPage(): React.JSX.Element {
             <button
               onClick={() => {
                 setShowAdd(false);
-                setForm({ name: "", role: "", email: "" });
+                setForm(EMPTY_FORM);
               }}
               className="text-xs border border-navy-200 text-navy-600 px-3 py-1.5 rounded-lg"
             >
@@ -223,7 +243,10 @@ export default function ContactsPage(): React.JSX.Element {
             <thead className="bg-navy-50 border-b border-navy-100">
               <tr>
                 <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Name
+                  First Name
+                </th>
+                <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                  Last Name
                 </th>
                 <th className="text-left px-4 py-3 font-semibold text-navy-700">
                   Role
@@ -248,11 +271,28 @@ export default function ContactsPage(): React.JSX.Element {
                     <td className="px-4 py-3">
                       <input
                         type="text"
-                        value={editForm.name}
+                        value={editForm.first_name}
                         onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                          setEditForm((p) => ({ ...p, name: e.target.value }));
+                          setEditForm((p) => ({
+                            ...p,
+                            first_name: e.target.value,
+                          }));
                         }}
-                        aria-label="Contact name"
+                        aria-label="Contact first name"
+                        className={inputClass}
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <input
+                        type="text"
+                        value={editForm.last_name}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                          setEditForm((p) => ({
+                            ...p,
+                            last_name: e.target.value,
+                          }));
+                        }}
+                        aria-label="Contact last name"
                         className={inputClass}
                       />
                     </td>
@@ -287,7 +327,7 @@ export default function ContactsPage(): React.JSX.Element {
                           onClick={() => {
                             void saveEdit(c);
                           }}
-                          disabled={!editForm.name.trim()}
+                          disabled={!editForm.first_name.trim()}
                           className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
                         >
                           Save
@@ -307,7 +347,10 @@ export default function ContactsPage(): React.JSX.Element {
                     className="hover:bg-navy-50/50 transition-colors"
                   >
                     <td className="px-4 py-3 font-medium text-navy-900">
-                      {c.name}
+                      {c.first_name}
+                    </td>
+                    <td className="px-4 py-3 font-medium text-navy-900">
+                      {c.last_name ?? "-"}
                     </td>
                     <td className="px-4 py-3 text-navy-500">{c.role ?? "-"}</td>
                     <td className="px-4 py-3 text-navy-500">

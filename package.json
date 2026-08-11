@@ -15,9 +15,10 @@
     "format:prettier:check": "prettier --check .",
     "format:ruff": "ruff format backend/",
     "format:ruff:check": "ruff format --check backend/",
-    "lint:frontend": "eslint frontend/src/",
+    "typecheck": "tsc -b frontend",
+    "lint:frontend": "eslint frontend/",
     "lint:backend": "ruff check backend/",
     "lint": "npm run lint:frontend && npm run lint:backend",
-    "lint:fix": "eslint --fix frontend/src/ && ruff check --fix backend/"
+    "lint:fix": "eslint --fix frontend/ && ruff check --fix backend/"
   }
 }

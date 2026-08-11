@@ -11,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin
 
 
-class MeetingPlatform(str, enum.Enum):
+class MeetingPlatform(enum.StrEnum):
     ZOOM = "zoom"
     TEAMS = "teams"
     IN_PERSON = "in_person"

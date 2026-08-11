@@ -11,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin
 
 
-class Recommendation(str, enum.Enum):
+class Recommendation(enum.StrEnum):
     PROCEED = "proceed"
     PARK = "park"
     DECLINE = "decline"

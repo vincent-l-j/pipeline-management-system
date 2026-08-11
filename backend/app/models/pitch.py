@@ -11,7 +11,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, TimestampMixin
 
 
-class PipelineStage(str, enum.Enum):
+class PipelineStage(enum.StrEnum):
     RECEIVED = "received"
     INITIAL_SCREEN = "initial_screen"
     DISCOVERY_MEETING = "discovery_meeting"
@@ -24,7 +24,7 @@ class PipelineStage(str, enum.Enum):
     COMPLETED = "completed"
 
 
-class PitchSource(str, enum.Enum):
+class PitchSource(enum.StrEnum):
     REFERRAL = "referral"
     WEBSITE = "website"
     EVENT = "event"
@@ -32,7 +32,7 @@ class PitchSource(str, enum.Enum):
     INTERNAL = "internal"
 
 
-class FundingPathway(str, enum.Enum):
+class FundingPathway(enum.StrEnum):
     CRC_BID = "crc_bid"
     RDTI = "rdti"
     PHILANTHROPIC = "philanthropic"

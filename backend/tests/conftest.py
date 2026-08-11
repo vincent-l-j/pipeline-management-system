@@ -5,6 +5,7 @@ database instead (StaticPool keeps a single connection so the schema and data
 persist across sessions). We force DATABASE_URL to SQLite *before* importing the
 app, so the module-level engine and table creation don't try to reach Postgres.
 """
+
 import os
 
 # Must be set before app.core.config / app.core.database are imported.
@@ -80,6 +81,7 @@ def client():
 
 class _AuthenticatedTestClient:
     """Wrapper around TestClient that manages authentication per request."""
+
     def __init__(self, user):
         self.user = user
         app.dependency_overrides[get_db] = _get_test_db

@@ -93,6 +93,7 @@ def delete_meeting(
 
 # --- Attendees ---
 
+
 @router.post("/{meeting_id}/attendees", response_model=MeetingAttendeeOut)
 def add_attendee(
     meeting_id: UUID,
@@ -139,6 +140,7 @@ def remove_attendee(
 
 
 # --- AI Notetaker ---
+
 
 @router.post("/parse-notes", response_model=AINoteParseResponse)
 def parse_notes(

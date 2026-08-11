@@ -73,6 +73,7 @@ back to the user.
 
 ```markdown
 ### VAL-AUTH-001: Successful login
+
 A user with valid credentials submits the login form and is redirected to the dashboard.
 Tool: agent-browser
 Evidence: screenshot, network(POST /api/auth/login -> 200)
@@ -86,7 +87,10 @@ Evidence: screenshot, network(POST /api/auth/login -> 200)
   "id": "auth-login-endpoint",
   "description": "POST /api/auth/login - Validate credentials, issue JWT, set session cookie.",
   "milestone": "authentication",
-  "expectedBehavior": ["Returns 200 with session cookie on valid credentials", "Returns 401 on invalid"],
+  "expectedBehavior": [
+    "Returns 200 with session cookie on valid credentials",
+    "Returns 401 on invalid"
+  ],
   "verificationSteps": ["npm test -- --grep 'auth login'"],
   "fulfills": ["VAL-AUTH-001"],
   "dependsOn": ["user-schema"],

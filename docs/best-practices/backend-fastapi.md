@@ -120,7 +120,7 @@ for field, value in data.model_dump(exclude_unset=True).items():
 - Location: `backend/tests/`, one module per resource. Test-only deps go in
   `requirements-dev.txt`.
 - Tests run against **in-memory SQLite** — `conftest.py` sets `DATABASE_URL=sqlite://`
-  *before* importing the app, and overrides `get_db`. No Postgres needed.
+  _before_ importing the app, and overrides `get_db`. No Postgres needed.
 - Use the ready-made fixtures instead of building auth: `client` (unauthenticated),
   `admin_client`, `assessor_client`, `viewer_client`. They override
   `get_current_user`, so you test authorization logic without minting JWTs.
@@ -143,6 +143,7 @@ def test_viewer_cannot_delete_org(viewer_client):
 ```
 
 Guidelines:
+
 - **One behaviour per test; name it for the behaviour** (`test_<subject>_<expectation>`).
   This applies SRP to tests — each test should have one reason to fail. Don't
   combine multiple roles or states into a single test; write one test per scenario.
@@ -150,7 +151,7 @@ Guidelines:
 - **Cover RBAC as separate tests**, not combined: write `test_admin_can_delete`
   and `test_viewer_cannot_delete` as two distinct tests, not one test that checks
   both roles. This makes debugging easier when a role's behaviour breaks.
-- For data-integrity features (orphan/cascade), assert the *side effects*: the
+- For data-integrity features (orphan/cascade), assert the _side effects_: the
   child survives with a nulled FK, or the join row is gone.
 
 ## Checklist before handoff

@@ -6,7 +6,7 @@ expressive code that documents itself.
 
 ## The principle
 
-**Explain *why* in comments; let the code explain *what*.**
+**Explain _why_ in comments; let the code explain _what_.**
 
 Comments should be rare. When they exist, they protect against categories of
 problems that code cannot:
@@ -18,7 +18,7 @@ problems that code cannot:
   warnings of consequences).
 - **Legal/compliance** notes (licenses, data handling, regulatory constraints).
 
-Comments should *never* repeat what the code already says clearly.
+Comments should _never_ repeat what the code already says clearly.
 
 ## Guidelines
 
@@ -38,6 +38,7 @@ pitch.changed_at = datetime.now(timezone.utc)
 ### Don't: Comment obvious code
 
 ❌ **Bad:**
+
 ```python
 # Initialize an empty list
 items = []
@@ -54,12 +55,14 @@ Good naming and structure already communicate intent.
 ### Don't: Comment out code — delete it
 
 ❌ **Bad:**
+
 ```python
 # old_way_to_do_it(x)
 new_way_to_do_it(x)
 ```
 
 ✅ **Good:**
+
 ```python
 new_way_to_do_it(x)
 ```
@@ -69,6 +72,7 @@ Git history is the archive. Commented code is noise and accumulates rot.
 ### Don't: Use closing-brace or closing-tag comments
 
 ❌ **Bad:**
+
 ```python
 if condition:
     do_something()
@@ -98,12 +102,14 @@ all_pitches = db.query(Pitch).all()
 Instead of a comment that says what a variable does:
 
 ❌ **Bad:**
+
 ```python
 # This is a list of pitch IDs that passed screening
 x = [...]
 ```
 
 ✅ **Good:**
+
 ```python
 screened_pitch_ids = [...]
 ```
@@ -121,6 +127,7 @@ if not db.query(Pitch).filter(Pitch.id == pitch.id).first():
 ### Don't: Use comments to replace good error messages
 
 ❌ **Bad:**
+
 ```python
 # Pitch must exist
 if not pitch:
@@ -128,6 +135,7 @@ if not pitch:
 ```
 
 ✅ **Good:**
+
 ```python
 if not pitch:
     raise HTTPException(status_code=404, detail="Pitch not found")

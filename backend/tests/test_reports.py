@@ -7,6 +7,7 @@ def _create_pitch(client, title="Report Test Pitch"):
 
 # --- Pipeline summary ---
 
+
 def test_pipeline_summary_shape(admin_client):
     _create_pitch(admin_client, "Summary Pitch A")
     resp = admin_client.get("/api/reports/pipeline-summary")
@@ -30,6 +31,7 @@ def test_pipeline_summary_row_fields(admin_client):
 
 # --- Velocity metrics ---
 
+
 def test_velocity_shape(admin_client):
     resp = admin_client.get("/api/reports/velocity")
     assert resp.status_code == 200
@@ -44,8 +46,16 @@ def test_velocity_stage_counts_all_stages(admin_client):
     resp = admin_client.get("/api/reports/velocity")
     stage_counts = resp.json()["stage_counts"]
     expected_stages = [
-        "received", "initial_screen", "discovery_meeting", "deep_assessment",
-        "due_diligence", "decision_pending", "active_support", "parked", "declined", "completed",
+        "received",
+        "initial_screen",
+        "discovery_meeting",
+        "deep_assessment",
+        "due_diligence",
+        "decision_pending",
+        "active_support",
+        "parked",
+        "declined",
+        "completed",
     ]
     for stage in expected_stages:
         assert stage in stage_counts, f"Stage missing from counts: {stage}"
@@ -66,6 +76,7 @@ def test_velocity_recent_activity_fields(admin_client):
 
 
 # --- CSV exports ---
+
 
 def test_export_pitches_csv(admin_client):
     resp = admin_client.get("/api/reports/export/pitches")
@@ -103,6 +114,7 @@ def test_export_assessments_csv(admin_client):
 
 
 # --- Auth ---
+
 
 def test_unauthenticated_cannot_access_reports(client):
     resp = client.get("/api/reports/pipeline-summary")

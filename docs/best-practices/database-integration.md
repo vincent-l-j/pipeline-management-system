@@ -36,7 +36,7 @@ The frontend never talks to the database, and never constructs URLs beyond the
 - One `Session` per request via `get_db`; commit explicitly, then `db.refresh(obj)`
   before returning so the response reflects DB-generated values.
 - **Enforce cross-aggregate integrity in application code, not via DB cascades.**
-  Unit tests run on SQLite with foreign-key enforcement *off*, so `ondelete=` cascades
+  Unit tests run on SQLite with foreign-key enforcement _off_, so `ondelete=` cascades
   never fire there regardless of how the schema is built (and while an app is still on
   the `create_all` scaffolding phase, no DB-level `ON DELETE` is defined at all). So
   behaviours like "nulling `organisation_id` on child rows when an org is deleted" or
@@ -53,7 +53,7 @@ The frontend never talks to the database, and never constructs URLs beyond the
   migrations). Which stage a given app is in — and whether the deploy migrate job is
   live — is tracked in its instance sheet (`sop/instances/<app>.md`), not asserted here.
 - **While still on `create_all`:** tables are auto-created from the models on startup —
-  fine for first run and tests — but a *changed* column is **not** picked up by an
+  fine for first run and tests — but a _changed_ column is **not** picked up by an
   existing database, so local dev may need a volume reset (`docker compose down -v`) and
   there is no deploy-time schema change or rollback. That limitation is the trigger to run
   the `db-bootstrap.md` SOP (see "When to bootstrap" in `migrations.md`).
@@ -89,7 +89,7 @@ The frontend never talks to the database, and never constructs URLs beyond the
 
 - **Backend**: `TestClient` against SQLite exercises the full route → ORM path
   quickly (no live DB). This is where API-shape and integrity assertions live.
-- **Frontend**: mock `services/api` so components are tested against the *contract*
+- **Frontend**: mock `services/api` so components are tested against the _contract_
   (the shapes above), not a live backend. Keep mock payloads faithful to the real
   `*Out` schema — a drifted mock hides integration breaks.
 - **End-to-end**: the validation-contract `VAL-*` assertions are verified black-box

@@ -45,6 +45,7 @@ class Meeting(Base, TimestampMixin):
 
 class MeetingAttendee(Base):
     """Links people to meetings — can be internal (User) or external (Contact)."""
+
     __tablename__ = "meeting_attendees"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)

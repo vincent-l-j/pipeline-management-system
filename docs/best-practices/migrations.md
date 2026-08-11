@@ -7,7 +7,7 @@ Platform spec (`.do/app.yaml`).
 ## Setup lifecycle: `create_all` → Alembic
 
 Every app on this stack moves through two stages once. This section describes the
-*pattern*; **it does not record where any given app currently sits** — that would rot.
+_pattern_; **it does not record where any given app currently sits** — that would rot.
 For an app's live position, see **"Current migration state"** in its instance sheet
 (`sop/instances/<app>.md`); the [`db-bootstrap.md`](../../sop/db-bootstrap.md) SOP is the
 generic cutover procedure, not a per-app status record.
@@ -72,7 +72,7 @@ models in `app/models/`) and `alembic heads` returns a single head.
 
 Catches migrations that corrupt or drop real data.
 
-1. Apply migrations up to the *previous* revision.
+1. Apply migrations up to the _previous_ revision.
 2. Seed representative rows (a pitch with stage history, contacts, an assessment —
    enough to exercise FKs and NOT-NULL columns).
 3. `alembic upgrade head`; assert existing data is preserved / correctly transformed.
@@ -114,7 +114,7 @@ containerised commands (create a scratch DB, generate a migration, run this suit
 the instance sheet's command reference and the [`sop/bin/db.sh`](../../sop/bin/db.sh)
 wrapper; for the one-time `create_all()`→Alembic cutover, follow
 [`db-bootstrap.md`](../../sop/db-bootstrap.md), and for an ongoing schema change,
-[`db-change.md`](../../sop/db-change.md). This doc stays focused on *what* the tests prove.
+[`db-change.md`](../../sop/db-change.md). This doc stays focused on _what_ the tests prove.
 
 ## Deploying migrations on DigitalOcean
 

@@ -52,9 +52,11 @@ app.include_router(reports.router, prefix="/api")
 if settings.ENABLE_DEV_LOGIN:
     try:
         from app.api.routes import dev
+
         app.include_router(dev.router, prefix="/api")
     except ImportError:
         import logging
+
         logging.getLogger("uvicorn.error").warning(
             "ENABLE_DEV_LOGIN is set, but dev routes are not present in this build — ignoring."
         )

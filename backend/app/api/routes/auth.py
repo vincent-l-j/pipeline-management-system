@@ -61,7 +61,9 @@ def callback(code: str, db: Session = Depends(get_db)):
 
     # Restrict to Rozetta domain
     if not email.endswith("@rozettainstitute.com"):
-        raise HTTPException(status_code=403, detail="Access restricted to @rozettainstitute.com accounts")
+        raise HTTPException(
+            status_code=403, detail="Access restricted to @rozettainstitute.com accounts"
+        )
 
     # Find or create user
     user = db.query(User).filter(User.email == email).first()

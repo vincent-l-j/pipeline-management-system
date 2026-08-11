@@ -74,14 +74,14 @@ connects as intended.
 
 **This host has no local `python`, `alembic`, `psql`, or `pg_dump`.** The whole
 toolchain lives in the Docker images. So every DB/Alembic step in the SOPs runs
-*inside a container*, launched with `docker compose` **from the repo root** (the
+_inside a container_, launched with `docker compose` **from the repo root** (the
 directory that contains `docker-compose.yml` — e.g. `.../pipeline-management-system/`).
 Do not `cd backend` on the host and run `alembic` — it isn't installed there.
 
 **Prerequisite — create `.env` first, or every `docker compose` command fails.** The
 `backend` service declares `env_file: - .env` in `docker-compose.yml`, and `.env` is
 **gitignored** (only `.env.example` is committed). On a fresh clone the file is absent, so
-compose aborts with `env file .../.env not found` *before any container starts* — this has
+compose aborts with `env file .../.env not found` _before any container starts_ — this has
 broken a run before. From the repo root:
 
 ```bash
@@ -101,12 +101,14 @@ Two wrapper patterns cover every command the SOPs show:
   which is where the Postgres client tools live — the `backend` image does **not** ship
   `psql`/`pg_dump`). Use `exec` against the already-running container, or `run` when you
   need to bind-mount a file (e.g. a CA cert):
+
   ```bash
   docker compose exec db psql -U rozetta -d <database> -c "<SQL>"
   docker compose exec -T -e U="<url>" db sh -c 'pg_dump --no-owner --no-privileges "$U"' > dump.sql
   ```
+
   `CREATE DATABASE` / `DROP DATABASE` **cannot run inside a transaction block**, so
-  pass them as *separate* `-c` flags (one statement per `-c`), never joined with `;`
+  pass them as _separate_ `-c` flags (one statement per `-c`), never joined with `;`
   in a single `-c`.
 
 - **`alembic` / `python`** → run a one-off `backend` container. Its
@@ -213,7 +215,7 @@ every remaining hunk is one of these — observed, expected, and **not** schema 
 - **`\restrict` / `\unrestrict` lines** — random per-dump session tokens emitted by
   `pg_dump` 16.x. They differ on every dump by design; ignore them.
 - **`alembic_version` table + `alembic_version_pkc` primary key** — Alembic's own version
-  bookkeeping. It exists only on the *migrated* side (genesis-built, or a stamped prod), never
+  bookkeeping. It exists only on the _migrated_ side (genesis-built, or a stamped prod), never
   in a `create_all` dump. Its presence is exactly what you want — it is the table the stamp
   writes to.
 - **Cross-server preamble** when one side is the DO managed cluster — extra `SET` /
@@ -226,7 +228,7 @@ type/value. That must match exactly before stamping.
 
 Production runs on a **DigitalOcean managed Postgres cluster** reached over TLS. Connections
 (for backup/restore) must use `sslmode=verify-full` with DO's CA certificate. Download the CA
-from the DO control panel (Databases → cluster → Connection Details → *Download CA certificate*).
+from the DO control panel (Databases → cluster → Connection Details → _Download CA certificate_).
 It lives on the host, so it must be **mounted into the container**:
 
 ```bash
@@ -248,13 +250,15 @@ commit `712e5d1 feat(backend): timezone pitch.changed_at` changed the model from
 `datetime.utcnow` (naive) to `DateTime(timezone=True)` / `datetime.now(timezone.utc)`, but
 `create_all` never `ALTER`s an existing column, so prod kept the old naive type while staging
 (built fresh) got `timestamptz`. Because the stored values were naive **UTC**, they convert
-losslessly. Reconciled on prod *before* stamping (backup already taken):
+losslessly. Reconciled on prod _before_ stamping (backup already taken):
+
 ```sql
 ALTER TABLE pitch_stage_history
   ALTER COLUMN changed_at TYPE timestamptz USING changed_at AT TIME ZONE 'UTC';
 ```
+
 Re-diff was then clean (only benign hunks), and prod was `alembic stamp head`-ed to
-`a1a27441d35c`. General guidance for *drastic* drift lives in `db-bootstrap.md` — do **not**
+`a1a27441d35c`. General guidance for _drastic_ drift lives in `db-bootstrap.md` — do **not**
 stamp a schema that isn't head; baseline the migration history on prod's real schema and
 migrate forward instead.
 
@@ -366,15 +370,15 @@ There are **7** Postgres enum types (one per `str, enum.Enum` class in the model
 Postgres type name is the lowercased class name; SQLAlchemy persists the member **names**
 (uppercase), so the genesis migration lists e.g. `ADMIN`, `RECEIVED` — not the values.
 
-| Type (`name=`) | Class / defined in | Persisted as | Members |
-|------|-----------|--------------|--------|
-| `pipelinestage` | `PipelineStage` — `models/pitch.py` | `pitches.current_stage`, `pitch_stage_history.from_stage`/`to_stage` | 10: RECEIVED, INITIAL_SCREEN, DISCOVERY_MEETING, DEEP_ASSESSMENT, DUE_DILIGENCE, DECISION_PENDING, ACTIVE_SUPPORT, PARKED, DECLINED, COMPLETED |
-| `pitchsource` | `PitchSource` — `models/pitch.py` | `pitches.source` | REFERRAL, WEBSITE, EVENT, COLD_OUTREACH, INTERNAL |
-| `fundingpathway` | `FundingPathway` — `models/pitch.py` | `pitches.funding_pathway` | CRC_BID, RDTI, PHILANTHROPIC, GOVERNMENT_GRANT, PRIVATE, OTHER |
-| `userrole` | `UserRole` — `models/user.py` | `users.role` | ADMIN, ASSESSOR, VIEWER |
-| `orgtype` | `OrgType` — `models/organisation.py` | `organisations.org_type` | STARTUP, UNIVERSITY, NGO, GOVERNMENT, CONSORTIUM, RESEARCH_CENTRE, OTHER |
-| `meetingplatform` | `MeetingPlatform` — `models/meeting.py` | `meetings.platform` | ZOOM, TEAMS, IN_PERSON, PHONE, OTHER |
-| `recommendation` | `Recommendation` — `models/assessment.py` | `assessments.recommendation` | PROCEED, PARK, DECLINE |
+| Type (`name=`)    | Class / defined in                        | Persisted as                                                         | Members                                                                                                                                        |
+| ----------------- | ----------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pipelinestage`   | `PipelineStage` — `models/pitch.py`       | `pitches.current_stage`, `pitch_stage_history.from_stage`/`to_stage` | 10: RECEIVED, INITIAL_SCREEN, DISCOVERY_MEETING, DEEP_ASSESSMENT, DUE_DILIGENCE, DECISION_PENDING, ACTIVE_SUPPORT, PARKED, DECLINED, COMPLETED |
+| `pitchsource`     | `PitchSource` — `models/pitch.py`         | `pitches.source`                                                     | REFERRAL, WEBSITE, EVENT, COLD_OUTREACH, INTERNAL                                                                                              |
+| `fundingpathway`  | `FundingPathway` — `models/pitch.py`      | `pitches.funding_pathway`                                            | CRC_BID, RDTI, PHILANTHROPIC, GOVERNMENT_GRANT, PRIVATE, OTHER                                                                                 |
+| `userrole`        | `UserRole` — `models/user.py`             | `users.role`                                                         | ADMIN, ASSESSOR, VIEWER                                                                                                                        |
+| `orgtype`         | `OrgType` — `models/organisation.py`      | `organisations.org_type`                                             | STARTUP, UNIVERSITY, NGO, GOVERNMENT, CONSORTIUM, RESEARCH_CENTRE, OTHER                                                                       |
+| `meetingplatform` | `MeetingPlatform` — `models/meeting.py`   | `meetings.platform`                                                  | ZOOM, TEAMS, IN_PERSON, PHONE, OTHER                                                                                                           |
+| `recommendation`  | `Recommendation` — `models/assessment.py` | `assessments.recommendation`                                         | PROCEED, PARK, DECLINE                                                                                                                         |
 
 The **6 assessment criteria** are **not** an enum and not reference rows — they are six
 integer columns on the `assessments` table (`national_impact`, `translation_readiness`,

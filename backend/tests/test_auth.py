@@ -1,4 +1,5 @@
 """Tests for authentication — protected endpoints reject unauthenticated requests."""
+
 import pytest
 
 PROTECTED_ENDPOINTS = [

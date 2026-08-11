@@ -5,14 +5,14 @@ are language-agnostic — they apply to the FastAPI backend and the React fronte
 alike. This doc states each principle and shows how it already shows up (or should
 show up) in Rozetta PMS, so new code stays consistent with the grain of the repo.
 
-The backend and frontend best-practices docs describe the *conventions*; this doc
-explains the *why* behind them.
+The backend and frontend best-practices docs describe the _conventions_; this doc
+explains the _why_ behind them.
 
 ---
 
 ## S — Single Responsibility Principle
 
-*A module should have one reason to change.*
+_A module should have one reason to change._
 
 This is the backbone of the layering already in place:
 
@@ -28,11 +28,11 @@ This is the backbone of the layering already in place:
   (see golden rule 10).
 
 Smell: a function that changes for two unrelated reasons (e.g. "the delete rule
-changed" *and* "the response fields changed") wants splitting.
+changed" _and_ "the response fields changed") wants splitting.
 
 ## O — Open/Closed Principle
 
-*Open for extension, closed for modification.*
+_Open for extension, closed for modification._
 
 Prefer adding data/implementations over editing existing branching logic:
 
@@ -50,12 +50,12 @@ when a lookup map keyed by the enum value would let you just add a key.
 
 ## L — Liskov Substitution Principle
 
-*Subtypes must be usable wherever the base type is expected — without surprises.*
+_Subtypes must be usable wherever the base type is expected — without surprises._
 
 - The clearest example here is the **database session**: routes depend on a
   SQLAlchemy `Session` from `get_db`, and the test suite substitutes a SQLite
   session for the Postgres one with no code change. That only works because both
-  honour the same `Session` contract. (The corollary — SQLite *not* enforcing FKs
+  honour the same `Session` contract. (The corollary — SQLite _not_ enforcing FKs
   — is exactly where substitution leaks, which is why integrity lives in app code;
   see the integration doc.)
 - The three auth fixtures (`admin_client`, `assessor_client`, `viewer_client`) are
@@ -67,7 +67,7 @@ narrower schema that silently drops a field a caller relied on).
 
 ## I — Interface Segregation Principle
 
-*Don't force a client to depend on things it doesn't use.*
+_Don't force a client to depend on things it doesn't use._
 
 This is the design rule behind **least-privilege responses**:
 
@@ -76,7 +76,7 @@ This is the design rule behind **least-privilege responses**:
   `GET /users/directory`) is a
   worked example: name-resolution callers get exactly the interface they need and
   nothing sensitive. Widening one shared schema to serve both would violate ISP
-  *and* leak data. `UserOut` itself already applies ISP today.
+  _and_ leak data. `UserOut` itself already applies ISP today.
 - Components take only the props they use — `PitchCard` receives a `pitch` plus
   drag props, not the whole board's state.
 - Depend on the narrowest dependency: use `get_current_user` when you only need
@@ -88,7 +88,7 @@ slice — split it.
 
 ## D — Dependency Inversion Principle
 
-*Depend on abstractions, not concretions; wire the concretion in at the edge.*
+_Depend on abstractions, not concretions; wire the concretion in at the edge._
 
 - **Backend:** routes never construct a `SessionLocal()` or decode a JWT inline —
   they declare `Depends(get_db)` / `Depends(get_current_user)`. FastAPI injects the

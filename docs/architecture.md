@@ -5,17 +5,17 @@ with Microsoft Azure AD for auth and the Anthropic Claude API powering the AI No
 The **same application code** runs in both environments — only the way it's built, served,
 and wired together differs.
 
-| Concern | Development | Production |
-|---------|-------------|------------|
-| Orchestration | `docker-compose.yml` (local) | DigitalOcean App Platform (`.do/app.yaml`) |
-| Frontend | Vite dev server (hot reload) | Static site (buildpack: `npm run build` → `dist/`, served from the edge) |
-| Backend | uvicorn `--reload`, `backend/Dockerfile` target `dev` | uvicorn (no reload), `backend/Dockerfile` final stage `prod` |
-| Database | `postgres:16` container + `pgdata` volume | Managed PostgreSQL 16 (`DATABASE_URL` injected) |
-| `/api` routing | Vite proxy → `backend:8000` | Same-origin route (`/api` → backend service) |
-| TLS | none (plain HTTP) | Terminated by App Platform |
-| Dev login | enabled (`ENABLE_DEV_LOGIN=true`) | disabled; `dev.py` route stripped from the `prod` image |
-| Config source | `.env` file | `.do/app.yaml` + DO control panel (secrets) |
-| Deploy | `docker compose up --build` | CI GitOps: push to `main` → `deploy-production.yml` applies `.do/app.yaml` (`deploy_on_push: false`) |
+| Concern        | Development                                           | Production                                                                                           |
+| -------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Orchestration  | `docker-compose.yml` (local)                          | DigitalOcean App Platform (`.do/app.yaml`)                                                           |
+| Frontend       | Vite dev server (hot reload)                          | Static site (buildpack: `npm run build` → `dist/`, served from the edge)                             |
+| Backend        | uvicorn `--reload`, `backend/Dockerfile` target `dev` | uvicorn (no reload), `backend/Dockerfile` final stage `prod`                                         |
+| Database       | `postgres:16` container + `pgdata` volume             | Managed PostgreSQL 16 (`DATABASE_URL` injected)                                                      |
+| `/api` routing | Vite proxy → `backend:8000`                           | Same-origin route (`/api` → backend service)                                                         |
+| TLS            | none (plain HTTP)                                     | Terminated by App Platform                                                                           |
+| Dev login      | enabled (`ENABLE_DEV_LOGIN=true`)                     | disabled; `dev.py` route stripped from the `prod` image                                              |
+| Config source  | `.env` file                                           | `.do/app.yaml` + DO control panel (secrets)                                                          |
+| Deploy         | `docker compose up --build`                           | CI GitOps: push to `main` → `deploy-production.yml` applies `.do/app.yaml` (`deploy_on_push: false`) |
 
 ---
 

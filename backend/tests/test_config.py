@@ -4,6 +4,7 @@ If they had defaults, a misconfigured production would boot on a known key
 (forgeable JWTs) instead of failing loudly. These tests pin that the app refuses
 to construct its settings when either is absent.
 """
+
 import pytest
 from pydantic import ValidationError
 

@@ -185,7 +185,9 @@ def test_patch_contact_is_partial_update_preserving_omitted_fields(admin_client)
 
 
 def test_assessor_can_patch_contact_rbac(assessor_client):
-    contact_id = assessor_client.post("/api/contacts", json={"name": "Assessor Editable"}).json()["id"]
+    contact_id = assessor_client.post("/api/contacts", json={"name": "Assessor Editable"}).json()[
+        "id"
+    ]
     resp = assessor_client.patch(f"/api/contacts/{contact_id}", json={"role": "Advisor"})
     assert resp.status_code == 200
     assert resp.json()["role"] == "Advisor"
@@ -203,9 +205,7 @@ def test_viewer_cannot_patch_contact_rbac(admin_client, viewer_client):
 def test_unauthenticated_patch_contact_is_rejected(client):
     # Missing credentials -> 403 from HTTPBearer; an invalid token -> 401. Either
     # way the edit is refused without a valid session.
-    resp = client.patch(
-        "/api/contacts/00000000-0000-0000-0000-000000000099", json={"name": "Nope"}
-    )
+    resp = client.patch("/api/contacts/00000000-0000-0000-0000-000000000099", json={"name": "Nope"})
     assert resp.status_code in (401, 403)
 
 

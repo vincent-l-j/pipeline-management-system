@@ -1,9 +1,11 @@
 """Unit tests for the ai_notetaker service — mock parser and Claude path."""
+
 from unittest.mock import MagicMock, patch
 
 from app.services.ai_notetaker import _normalize_parsed, _parse_mock, parse_meeting_notes
 
 # --- Mock parser (no API key) ---
+
 
 def test_mock_parser_returns_required_fields():
     result = _parse_mock("Some meeting notes here.")
@@ -68,6 +70,7 @@ def test_parse_meeting_notes_uses_mock_when_no_key(monkeypatch):
 
 # --- Normalize helper ---
 
+
 def test_normalize_parsed_fills_missing_fields():
     sparse = {"summary": "Hello"}
     result = _normalize_parsed(sparse)
@@ -79,6 +82,7 @@ def test_normalize_parsed_fills_missing_fields():
 
 
 # --- Claude path (monkeypatched) ---
+
 
 def test_parse_with_claude_path(monkeypatch):
     """Verify Claude path is taken when API key is set and SDK is available."""

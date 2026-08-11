@@ -1,10 +1,10 @@
 """Tests for /api/pitches CRUD, stage transitions, file links, and RBAC."""
 
-
 PITCH_PAYLOAD = {"title": "Green Hydrogen Initiative"}
 
 
 # --- CRUD ---
+
 
 def test_create_pitch(admin_client):
     resp = admin_client.post("/api/pitches", json=PITCH_PAYLOAD)
@@ -128,6 +128,7 @@ def test_get_nonexistent_pitch(admin_client):
 
 # --- Stage transitions ---
 
+
 def test_stage_transition(admin_client):
     create = admin_client.post("/api/pitches", json={"title": "Stage Test Pitch"})
     pitch_id = create.json()["id"]
@@ -216,6 +217,7 @@ def test_unauthenticated_stage_change_is_rejected(client):
 
 # --- Filters ---
 
+
 def test_filter_by_stage(admin_client):
     admin_client.post("/api/pitches", json={"title": "Declined Pitch"})
     pitches = admin_client.get("/api/pitches").json()
@@ -232,6 +234,7 @@ def test_filter_by_stage(admin_client):
 
 
 # --- File links ---
+
 
 def test_add_file_link(admin_client):
     create = admin_client.post("/api/pitches", json={"title": "File Link Pitch"})
@@ -267,6 +270,7 @@ def test_list_file_links(admin_client):
 
 # --- Timeline ---
 
+
 def test_timeline_returns_events(admin_client):
     create = admin_client.post("/api/pitches", json={"title": "Timeline Pitch"})
     pitch_id = create.json()["id"]
@@ -280,6 +284,7 @@ def test_timeline_returns_events(admin_client):
 
 
 # --- RBAC ---
+
 
 def test_assessor_can_create_pitch(assessor_client):
     resp = assessor_client.post("/api/pitches", json={"title": "Assessor Pitch"})

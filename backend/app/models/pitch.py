@@ -58,19 +58,21 @@ class Pitch(Base, TimestampMixin):
     is_confidential: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Foreign keys
-    organisation_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("organisations.id")
-    )
+    organisation_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("organisations.id"))
     lead_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
 
     # Relationships
     organisation = relationship("Organisation", back_populates="pitches")
     lead = relationship("User", back_populates="led_pitches", foreign_keys=[lead_id])
     stage_history = relationship(
-        "PitchStageHistory", back_populates="pitch",
-        order_by="PitchStageHistory.changed_at", cascade="all, delete-orphan"
+        "PitchStageHistory",
+        back_populates="pitch",
+        order_by="PitchStageHistory.changed_at",
+        cascade="all, delete-orphan",
     )
-    contact_links = relationship("PitchContact", back_populates="pitch", cascade="all, delete-orphan")
+    contact_links = relationship(
+        "PitchContact", back_populates="pitch", cascade="all, delete-orphan"
+    )
     file_links = relationship("PitchFileLink", back_populates="pitch", cascade="all, delete-orphan")
     meetings = relationship("Meeting", back_populates="pitch", cascade="all, delete-orphan")
     assessments = relationship("Assessment", back_populates="pitch", cascade="all, delete-orphan")
@@ -78,6 +80,7 @@ class Pitch(Base, TimestampMixin):
 
 class PitchStageHistory(Base):
     """Records every stage transition for a pitch."""
+
     __tablename__ = "pitch_stage_history"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -97,6 +100,7 @@ class PitchStageHistory(Base):
 
 class PitchContact(Base):
     """Links contacts to pitches (many-to-many)."""
+
     __tablename__ = "pitch_contacts"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -110,6 +114,7 @@ class PitchContact(Base):
 
 class PitchFileLink(Base, TimestampMixin):
     """Local file path references attached to a pitch (no file storage in DB)."""
+
     __tablename__ = "pitch_file_links"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)

@@ -22,12 +22,8 @@ class Contact(Base, TimestampMixin):
     last_contacted: Mapped[date | None] = mapped_column(Date)
 
     # Foreign keys
-    organisation_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("organisations.id")
-    )
-    relationship_owner_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("users.id")
-    )
+    organisation_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("organisations.id"))
+    relationship_owner_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
 
     # Relationships
     organisation = relationship("Organisation", back_populates="contacts")

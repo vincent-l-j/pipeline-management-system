@@ -12,6 +12,7 @@ Per-migration data-*preservation* assertions (Level 2, full form) belong in
 dedicated tests added alongside each data-migrating revision; a generic harness
 can only prove downgrades execute cleanly against populated tables.
 """
+
 import datetime as dt
 
 import pytest
@@ -20,6 +21,7 @@ pytestmark = pytest.mark.migrations
 
 
 # --- Level 1: reversibility -------------------------------------------------
+
 
 def test_round_trip_is_reversible(alembic, clean_db):
     """upgrade head → downgrade base → upgrade head, all clean.
@@ -41,6 +43,7 @@ def test_single_head(alembic):
 
 # --- Level 1 (cont.): model / migration parity ------------------------------
 
+
 def test_migrations_match_models(alembic, clean_db):
     """`alembic check` finds no drift between the models and migrations at head.
 
@@ -57,6 +60,7 @@ def test_migrations_match_models(alembic, clean_db):
 
 
 # --- Level 2: downgrade tolerates real data ---------------------------------
+
 
 def _seed_connected_graph(url: str) -> None:
     """Insert a small FK-connected graph so downgrades are exercised against
@@ -94,24 +98,33 @@ def _seed_connected_graph(url: str) -> None:
         s.add(pitch)
         s.flush()
 
-        s.add_all([
-            PitchStageHistory(
-                pitch_id=pitch.id,
-                to_stage=PipelineStage.INITIAL_SCREEN,
-                changed_by_id=user.id,
-            ),
-            PitchContact(pitch_id=pitch.id, contact_id=contact.id, role_in_pitch="founder"),
-            Assessment(
-                national_impact=4, translation_readiness=3, team_capability=5,
-                ecosystem_fit=3, funding_pathway_clarity=2, masterplan_alignment=4,
-                recommendation=Recommendation.PROCEED,
-                assessment_date=dt.date(2026, 1, 1),
-                pitch_id=pitch.id, assessor_id=user.id,
-            ),
-        ])
+        s.add_all(
+            [
+                PitchStageHistory(
+                    pitch_id=pitch.id,
+                    to_stage=PipelineStage.INITIAL_SCREEN,
+                    changed_by_id=user.id,
+                ),
+                PitchContact(pitch_id=pitch.id, contact_id=contact.id, role_in_pitch="founder"),
+                Assessment(
+                    national_impact=4,
+                    translation_readiness=3,
+                    team_capability=5,
+                    ecosystem_fit=3,
+                    funding_pathway_clarity=2,
+                    masterplan_alignment=4,
+                    recommendation=Recommendation.PROCEED,
+                    assessment_date=dt.date(2026, 1, 1),
+                    pitch_id=pitch.id,
+                    assessor_id=user.id,
+                ),
+            ]
+        )
         meeting = Meeting(
-            title="Kickoff", meeting_date=dt.date(2026, 1, 2),
-            platform=MeetingPlatform.TEAMS, pitch_id=pitch.id,
+            title="Kickoff",
+            meeting_date=dt.date(2026, 1, 2),
+            platform=MeetingPlatform.TEAMS,
+            pitch_id=pitch.id,
         )
         s.add(meeting)
         s.flush()

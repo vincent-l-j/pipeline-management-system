@@ -8,7 +8,7 @@ import alembic_postgresql_enum  # noqa: F401
 from alembic import context
 from sqlalchemy import create_engine, pool
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from app.models import Base
 

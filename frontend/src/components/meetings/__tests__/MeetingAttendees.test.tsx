@@ -25,14 +25,18 @@ interface User {
 
 interface Contact {
   id: string;
-  name: string;
+  first_name: string;
+  last_name: string | null;
 }
 
 const mockUsers: User[] = [
   { id: "u1", display_name: "Alice Staff" },
   { id: "u2", display_name: "Bob Staff" },
 ];
-const mockContacts: Contact[] = [{ id: "c1", name: "External Contact" }];
+const mockContacts: Contact[] = [
+  { id: "c1", first_name: "External", last_name: "Contact" },
+  { id: "c2", first_name: "Mononym", last_name: null },
+];
 
 interface Attendee {
   id: string;
@@ -72,6 +76,14 @@ describe("MeetingAttendees", () => {
     await waitFor(() => {
       expect(screen.getByText("Alice Staff")).toBeInTheDocument();
       expect(screen.getByText("External Contact")).toBeInTheDocument();
+    });
+  });
+
+  it("renders a contact with no last name as the first name alone", async () => {
+    setupApiMocks([{ id: "a3", contact_id: "c2", is_internal: false }]);
+    render(<MeetingAttendees meetingId="1" />);
+    await waitFor(() => {
+      expect(screen.getByText("Mononym")).toBeInTheDocument();
     });
   });
 

@@ -14,16 +14,27 @@ on DigitalOcean App Platform. See `README.md` for the product overview and
 
 Canonical commands live in `services.yaml`. In short:
 
-| Task | Command |
-|------|---------|
-| Run the whole stack | `docker compose up --build` |
-| Backend tests | `cd backend && pytest` |
-| Frontend tests | `cd frontend && npm test` |
-| Frontend build | `cd frontend && npm run build` |
-| Backend health | `curl -sf http://localhost:8000/api/health` |
-| API docs (Swagger) | http://localhost:8000/docs |
+| Task                 | Command                                     |
+| -------------------- | ------------------------------------------- |
+| Run the whole stack  | `docker compose up --build`                 |
+| Backend tests        | `cd backend && pytest`                      |
+| Frontend tests       | `cd frontend && npm test`                   |
+| Frontend build       | `cd frontend && npm run build`              |
+| Backend health       | `curl -sf http://localhost:8000/api/health` |
+| API docs (Swagger)   | http://localhost:8000/docs                  |
+| Lint (both sides)    | `npm run lint`                              |
+| Lint, autofix        | `npm run lint:fix`                          |
+| Typecheck (frontend) | `npm run typecheck -- --force`              |
+| Format               | `npm run format` / `npm run format:check`   |
 
-There is no lint/typecheck tooling configured — don't assume one exists.
+Lint, typecheck, and format run from the **repo root** (`npm install` there first) —
+eslint + prettier + typescript come from the root `package.json`, ruff from
+`backend/requirements-dev.txt`. Frontend lint/typecheck cover `frontend/`; ruff
+covers `backend/`. There is no backend type checker (no mypy) — don't assume one.
+
+**Always pass `--force` to the typecheck.** `tsc -b` doesn't replay stored errors
+for unchanged files, so an incremental run over stale build info can print nothing
+while real errors remain. A green plain `npm run typecheck` is not trustworthy.
 
 ## Repository map
 

@@ -3,8 +3,10 @@
 # command keys below also work on a host with Python 3.12 + Node installed.
 
 commands:
-  # Install backend (incl. test deps) and frontend dependencies for host runs.
-  install: (cd backend && pip install -r requirements-dev.txt) && (cd frontend && npm install)
+  # Install backend (incl. test deps), frontend, and the root lint/format/typecheck
+  # toolchain (eslint, prettier, typescript live in the root package.json; ruff comes
+  # from backend/requirements-dev.txt).
+  install: npm install && (cd backend && pip install -r requirements-dev.txt) && (cd frontend && npm install)
 
   # Production build of the SPA (also the frontend "does it compile" check).
   build: cd frontend && npm run build
@@ -16,10 +18,23 @@ commands:
   test-backend: cd backend && pytest
   test-frontend: cd frontend && npm test
 
-  # No lint or typecheck tooling is configured in this repo (no eslint/ruff/mypy).
-  # Do not invent one; add tooling as its own feature if required.
-  lint: "true"
-  typecheck: "true"
+  # Lint: eslint over frontend/ + ruff over backend/. Config lives at the repo
+  # root (eslint.config.mjs, [tool.ruff] in pyproject.toml). Run from the root.
+  lint: npm run lint
+  lint-frontend: npm run lint:frontend
+  lint-backend: npm run lint:backend
+  # Autofixes the mechanical subset; anything left needs a real edit.
+  lint-fix: npm run lint:fix
+
+  # Typecheck: tsc over frontend/ (the backend has no type checker configured).
+  # --force is deliberate: `tsc -b` does not replay stored errors for unchanged
+  # files, so an incremental run over stale build info can report success while
+  # real errors remain. Always pass it in automation.
+  typecheck: npm run typecheck -- --force
+
+  # Format: prettier over the whole repo + ruff format over backend/.
+  format: npm run format
+  format-check: npm run format:check
 
 services:
   db:

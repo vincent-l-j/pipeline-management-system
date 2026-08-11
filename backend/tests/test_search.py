@@ -32,13 +32,46 @@ def test_search_finds_organisation_by_name(admin_client):
     assert any("SearchableOrgName2026" in o["title"] for o in orgs)
 
 
-def test_search_finds_contact_by_name(admin_client):
-    admin_client.post("/api/contacts", json={"name": "SearchableContactName2026"})
+def test_search_finds_contact_by_first_name(admin_client):
+    admin_client.post(
+        "/api/contacts", json={"first_name": "SearchableFirst2026", "last_name": "Nomatchsurname"}
+    )
 
-    resp = admin_client.get("/api/search?q=SearchableContactName2026")
+    resp = admin_client.get("/api/search?q=SearchableFirst2026")
     assert resp.status_code == 200
     contacts = resp.json()["contacts"]
-    assert any("SearchableContactName2026" in c["title"] for c in contacts)
+    assert any("SearchableFirst2026" in c["title"] for c in contacts)
+
+
+def test_search_finds_contact_by_last_name(admin_client):
+    admin_client.post(
+        "/api/contacts", json={"first_name": "Nomatchgiven", "last_name": "SearchableLast2026"}
+    )
+
+    resp = admin_client.get("/api/search?q=SearchableLast2026")
+    assert resp.status_code == 200
+    contacts = resp.json()["contacts"]
+    assert any("SearchableLast2026" in c["title"] for c in contacts)
+
+
+def test_search_finds_contact_by_full_name(admin_client):
+    """A query spanning both columns ("Given Family") still matches."""
+    admin_client.post("/api/contacts", json={"first_name": "Fullname2026", "last_name": "Match"})
+
+    resp = admin_client.get("/api/search?q=Fullname2026 Match")
+    assert resp.status_code == 200
+    contacts = resp.json()["contacts"]
+    assert any(c["title"] == "Fullname2026 Match" for c in contacts)
+
+
+def test_search_contact_title_omits_missing_last_name(admin_client):
+    """A contact with no last name has no trailing space in its search title."""
+    admin_client.post("/api/contacts", json={"first_name": "Mononym2026"})
+
+    resp = admin_client.get("/api/search?q=Mononym2026")
+    assert resp.status_code == 200
+    contacts = resp.json()["contacts"]
+    assert any(c["title"] == "Mononym2026" for c in contacts)
 
 
 def test_search_total_matches_sum(admin_client):

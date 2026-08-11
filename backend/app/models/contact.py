@@ -13,7 +13,8 @@ class Contact(Base, TimestampMixin):
     __tablename__ = "contacts"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    name: Mapped[str] = mapped_column(String(255), index=True)
+    first_name: Mapped[str] = mapped_column(String(255), index=True)
+    last_name: Mapped[str | None] = mapped_column(String(255), index=True)
     role: Mapped[str | None] = mapped_column(String(255))
     email: Mapped[str | None] = mapped_column(String(255))
     phone: Mapped[str | None] = mapped_column(String(50))
@@ -30,3 +31,7 @@ class Contact(Base, TimestampMixin):
     relationship_owner = relationship("User")
     pitch_links = relationship("PitchContact", back_populates="contact")
     meeting_attendances = relationship("MeetingAttendee", back_populates="contact")
+
+    @property
+    def full_name(self) -> str:
+        return " ".join(part for part in (self.first_name, self.last_name) if part)

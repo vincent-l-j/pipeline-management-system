@@ -221,11 +221,12 @@ def export_contacts(
 ):
     users = {str(u.id): u.display_name for u in db.query(User).all()}
     orgs = {str(o.id): o.name for o in db.query(Organisation).all()}
-    contacts = db.query(Contact).order_by(Contact.name).all()
+    contacts = db.query(Contact).order_by(Contact.first_name, Contact.last_name).all()
 
     rows = [
         {
-            "Name": c.name,
+            "First Name": c.first_name,
+            "Last Name": c.last_name or "",
             "Role": c.role or "",
             "Email": c.email or "",
             "Phone": c.phone or "",

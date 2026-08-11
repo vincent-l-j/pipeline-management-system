@@ -21,7 +21,7 @@ def list_contacts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return db.query(Contact).order_by(Contact.name).all()
+    return db.query(Contact).order_by(Contact.first_name, Contact.last_name).all()
 
 
 @router.get("/{contact_id}", response_model=ContactOut)

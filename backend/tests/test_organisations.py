@@ -8,7 +8,8 @@ def test_delete_organisation_orphans_children_not_deletes_them(admin_client):
     but leaves those records in place."""
     org_id = admin_client.post("/api/organisations", json={"name": "Parent Org"}).json()["id"]
     contact_id = admin_client.post(
-        "/api/contacts", json={"name": "Linked Contact", "organisation_id": org_id}
+        "/api/contacts",
+        json={"first_name": "Linked", "last_name": "Contact", "organisation_id": org_id},
     ).json()["id"]
     pitch_id = admin_client.post(
         "/api/pitches", json={"title": "Linked Pitch", "organisation_id": org_id}

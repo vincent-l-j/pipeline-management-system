@@ -3,9 +3,9 @@
 # command keys below also work on a host with Python 3.12 + Node installed.
 
 commands:
-  # Install backend (incl. test deps), frontend, and the root lint/format/typecheck
-  # toolchain (eslint, prettier, typescript live in the root package.json; ruff comes
-  # from backend/requirements-dev.txt).
+  # Install backend (incl. test deps), frontend, and the root format toolchain.
+  # Only prettier lives in the root package.json; eslint + typescript are frontend
+  # devDependencies, and ruff comes from backend/requirements-dev.txt.
   install: npm install && (cd backend && pip install -r requirements-dev.txt) && (cd frontend && npm install)
 
   # Production build of the SPA (also the frontend "does it compile" check).
@@ -18,8 +18,9 @@ commands:
   test-backend: cd backend && pytest
   test-frontend: cd frontend && npm test
 
-  # Lint: eslint over frontend/ + ruff over backend/. Config lives at the repo
-  # root (eslint.config.mjs, [tool.ruff] in pyproject.toml). Run from the root.
+  # Lint: eslint over frontend/ + ruff over backend/. The root scripts delegate,
+  # so eslint config sits with the code it lints (frontend/eslint.config.mjs) and
+  # ruff config stays in [tool.ruff] in pyproject.toml.
   lint: npm run lint
   lint-frontend: npm run lint:frontend
   lint-backend: npm run lint:backend
@@ -27,10 +28,11 @@ commands:
   lint-fix: npm run lint:fix
 
   # Typecheck: tsc over frontend/ (the backend has no type checker configured).
-  # --force is deliberate: `tsc -b` does not replay stored errors for unchanged
-  # files, so an incremental run over stale build info can report success while
-  # real errors remain. Always pass it in automation.
-  typecheck: npm run typecheck -- --force
+  # The script bakes in `--force`: `tsc -b` does not replay stored errors for
+  # unchanged files, so an incremental run over stale build info can report
+  # success while real errors remain. Do not add -- --force here; npm swallows
+  # --force as its own flag instead of forwarding it to tsc.
+  typecheck: npm run typecheck
 
   # Format: prettier over the whole repo + ruff format over backend/.
   format: npm run format

@@ -1,8 +1,6 @@
 {
   "type": "module",
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "eslint": "^10.8.0",
     "prettier": "3.9.6"
   },
   "scripts": {
@@ -13,9 +11,9 @@
     "format:ruff": "ruff format backend/",
     "format:ruff:check": "ruff format --check backend/",
     "typecheck": "npm run typecheck --prefix frontend",
-    "lint:frontend": "eslint frontend/",
+    "lint:frontend": "npm run lint --prefix frontend",
     "lint:backend": "ruff check backend/",
     "lint": "npm run lint:frontend && npm run lint:backend",
-    "lint:fix": "eslint --fix frontend/ && ruff check --fix backend/"
+    "lint:fix": "npm run lint:fix --prefix frontend && ruff check --fix backend/"
   }
 }

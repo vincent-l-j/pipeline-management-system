@@ -24,17 +24,21 @@ Canonical commands live in `services.yaml`. In short:
 | API docs (Swagger)   | http://localhost:8000/docs                  |
 | Lint (both sides)    | `npm run lint`                              |
 | Lint, autofix        | `npm run lint:fix`                          |
-| Typecheck (frontend) | `npm run typecheck -- --force`              |
+| Typecheck (frontend) | `npm run typecheck`                         |
 | Format               | `npm run format` / `npm run format:check`   |
 
-Lint, typecheck, and format run from the **repo root** (`npm install` there first) —
-eslint + prettier + typescript come from the root `package.json`, ruff from
-`backend/requirements-dev.txt`. Frontend lint/typecheck cover `frontend/`; ruff
-covers `backend/`. There is no backend type checker (no mypy) — don't assume one.
+All of these run from the **repo root**, but only prettier lives there — the root
+`package.json` is a thin delegator. eslint + typescript are `frontend/`
+devDependencies (with `frontend/eslint.config.mjs`), and ruff comes from
+`backend/requirements-dev.txt`. So `npm install` at the root is enough for format,
+while lint and typecheck need `npm install --prefix frontend`. There is no backend
+type checker (no mypy) — don't assume one.
 
-**Always pass `--force` to the typecheck.** `tsc -b` doesn't replay stored errors
-for unchanged files, so an incremental run over stale build info can print nothing
-while real errors remain. A green plain `npm run typecheck` is not trustworthy.
+The typecheck bakes in `tsc -b --force`. It has to: `tsc -b` doesn't replay stored
+errors for unchanged files, so an incremental run over stale build info can print
+nothing while real errors remain. **Don't write `npm run typecheck -- --force`** —
+npm treats `--force` as its own flag and never forwards it to tsc, so that spelling
+silently doesn't force.
 
 ## Repository map
 

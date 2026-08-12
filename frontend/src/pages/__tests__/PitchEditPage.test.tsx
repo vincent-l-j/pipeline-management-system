@@ -137,6 +137,34 @@ describe("PitchEditPage", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/pitches/42");
   });
 
+  it("offers exactly the three current domains as pills", async () => {
+    setupGet();
+    render(<PitchEditPage />);
+    await waitFor(() => screen.getByDisplayValue("Original Title"));
+
+    for (const domain of ["AI Energy Transition", "Health", "Semiconductors"]) {
+      expect(screen.getByRole("button", { name: domain })).toBeInTheDocument();
+    }
+  });
+
+  it("no longer offers the retired domains", async () => {
+    setupGet();
+    render(<PitchEditPage />);
+    await waitFor(() => screen.getByDisplayValue("Original Title"));
+
+    for (const retired of [
+      "Climate",
+      "Digital",
+      "Forestry",
+      "Agri",
+      "Education",
+    ]) {
+      expect(
+        screen.queryByRole("button", { name: retired }),
+      ).not.toBeInTheDocument();
+    }
+  });
+
   it("redirects a viewer away from the edit route without rendering the form", async () => {
     mockUser = { role: "viewer" };
     setupGet();

@@ -28,6 +28,28 @@ describe("PipelineFilters", () => {
     expect(screen.getByDisplayValue("All domains")).toBeInTheDocument();
   });
 
+  it("lists exactly the three current domains, and none of the retired ones", () => {
+    render(
+      <PipelineFilters
+        filters={{ sort: "newest" }}
+        onChange={vi.fn()}
+        users={[]}
+      />,
+    );
+
+    const domainSelect = screen.getByDisplayValue("All domains");
+    const options = Array.from(domainSelect.querySelectorAll("option")).map(
+      (o) => o.textContent,
+    );
+
+    expect(options).toEqual([
+      "All domains",
+      "AI Energy Transition",
+      "Health",
+      "Semiconductors",
+    ]);
+  });
+
   it("calls onChange when stage filter changes", async () => {
     const onChange = vi.fn();
     const user = userEvent.setup();

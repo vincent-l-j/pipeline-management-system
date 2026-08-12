@@ -35,13 +35,9 @@ const FUNDING_PATHWAYS: SelectOption[] = [
 ];
 
 const DOMAIN_OPTIONS: string[] = [
-  "climate",
-  "health",
-  "digital",
-  "forestry",
-  "agri",
-  "education",
-  "other",
+  "AI Energy Transition",
+  "Health",
+  "Semiconductors",
 ];
 
 interface PitchForm {

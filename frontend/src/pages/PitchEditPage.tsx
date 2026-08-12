@@ -30,15 +30,7 @@ const FUNDING_PATHWAYS = [
   { value: "other", label: "Other" },
 ];
 
-const DOMAIN_OPTIONS = [
-  "climate",
-  "health",
-  "digital",
-  "forestry",
-  "agri",
-  "education",
-  "other",
-];
+const DOMAIN_OPTIONS = ["AI Energy Transition", "Health", "Semiconductors"];
 
 interface Pitch {
   title: string;

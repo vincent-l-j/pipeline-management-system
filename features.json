@@ -93,7 +93,7 @@
       "VAL-DOMAIN-OPTS-004"
     ],
     "dependsOn": [],
-    "status": "pending"
+    "status": "complete"
   },
   {
     "id": "pitch-submission-date-null-handling",

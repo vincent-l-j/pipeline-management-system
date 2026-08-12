@@ -3,8 +3,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.8.0",
-    "prettier": "3.9.6",
-    "prettier-plugin-yaml": "1.2.0"
+    "prettier": "3.9.6"
   },
   "scripts": {
     "format": "npm run format:prettier && npm run format:ruff",

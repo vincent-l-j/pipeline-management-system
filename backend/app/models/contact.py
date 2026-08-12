@@ -13,7 +13,7 @@ class Contact(Base, TimestampMixin):
     __tablename__ = "contacts"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    first_name: Mapped[str] = mapped_column(String(255), index=True)
+    first_name: Mapped[str | None] = mapped_column(String(255), index=True)
     last_name: Mapped[str | None] = mapped_column(String(255), index=True)
     role: Mapped[str | None] = mapped_column(String(255))
     email: Mapped[str | None] = mapped_column(String(255))

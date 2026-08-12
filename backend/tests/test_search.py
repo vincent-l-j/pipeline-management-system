@@ -74,6 +74,26 @@ def test_search_contact_title_omits_missing_last_name(admin_client):
     assert any(c["title"] == "Mononym2026" for c in contacts)
 
 
+def test_search_contact_title_omits_missing_first_name(admin_client):
+    """Same for a surname-only contact — no leading space."""
+    admin_client.post("/api/contacts", json={"last_name": "Surnameonly2026"})
+
+    resp = admin_client.get("/api/search?q=Surnameonly2026")
+    assert resp.status_code == 200
+    contacts = resp.json()["contacts"]
+    assert any(c["title"] == "Surnameonly2026" for c in contacts)
+
+
+def test_search_nameless_contact_falls_back_to_a_label(admin_client):
+    """A contact with no name at all still yields a clickable, labelled result."""
+    admin_client.post("/api/contacts", json={"role": "Namelessrole2026"})
+
+    resp = admin_client.get("/api/search?q=Namelessrole2026")
+    assert resp.status_code == 200
+    contacts = resp.json()["contacts"]
+    assert any(c["title"] == "Unnamed contact" for c in contacts)
+
+
 def test_search_total_matches_sum(admin_client):
     resp = admin_client.get("/api/search?q=test")
     body = resp.json()

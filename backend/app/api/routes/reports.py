@@ -225,7 +225,7 @@ def export_contacts(
 
     rows = [
         {
-            "First Name": c.first_name,
+            "First Name": c.first_name or "",
             "Last Name": c.last_name or "",
             "Role": c.role or "",
             "Email": c.email or "",

@@ -5,7 +5,7 @@ from pydantic import BaseModel, EmailStr
 
 
 class ContactCreate(BaseModel):
-    first_name: str
+    first_name: str | None = None
     last_name: str | None = None
     role: str | None = None
     email: EmailStr | None = None
@@ -32,7 +32,7 @@ class ContactUpdate(BaseModel):
 
 class ContactOut(BaseModel):
     id: UUID
-    first_name: str
+    first_name: str | None
     last_name: str | None
     role: str | None
     email: str | None

@@ -94,7 +94,7 @@ def test_create_contact_minimal(admin_client):
 
 
 def test_create_contact_without_last_name(admin_client):
-    """Only first_name is required — mononymous contacts are storable."""
+    """Both name parts are optional — a mononymous contact is storable."""
     resp = admin_client.post("/api/contacts", json={"first_name": "Prince"})
     assert resp.status_code == 200
     body = resp.json()
@@ -102,17 +102,27 @@ def test_create_contact_without_last_name(admin_client):
     assert body["last_name"] is None
 
 
-def test_create_contact_requires_first_name(admin_client):
-    resp = admin_client.post("/api/contacts", json={"last_name": "Nameless"})
-    assert resp.status_code == 422
+def test_create_contact_without_first_name(admin_client):
+    """A contact known only by surname is storable too."""
+    resp = admin_client.post("/api/contacts", json={"last_name": "Ashworth"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["first_name"] is None
+    assert body["last_name"] == "Ashworth"
 
 
-def test_create_contact_rejects_legacy_name_field(admin_client):
-    """`name` is gone from the schema: a legacy payload is dropped, so the
-    required first_name is missing and the request fails rather than silently
-    creating a blank contact."""
-    resp = admin_client.post("/api/contacts", json={"name": "Legacy Payload"})
-    assert resp.status_code == 422
+def test_create_contact_drops_legacy_name_field(admin_client):
+    """`name` is gone from the schema — the allowlist drops it rather than
+    persisting it under either new column."""
+    resp = admin_client.post(
+        "/api/contacts", json={"name": "Legacy Payload", "email": "legacy@example.com"}
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "name" not in body
+    assert body["first_name"] is None
+    assert body["last_name"] is None
+    assert body["email"] == "legacy@example.com"
 
 
 def test_create_contact_with_email(admin_client):
@@ -249,7 +259,7 @@ def test_patch_last_name_only_preserves_first_name(admin_client):
     assert body["last_name"] == "Smith"
 
 
-def test_patch_can_clear_last_name(admin_client):
+def test_patch_can_clear_either_name_part(admin_client):
     created = admin_client.post(
         "/api/contacts", json={"first_name": "Jane", "last_name": "Doe"}
     ).json()
@@ -257,6 +267,10 @@ def test_patch_can_clear_last_name(admin_client):
     resp = admin_client.patch(f"/api/contacts/{created['id']}", json={"last_name": None})
     assert resp.status_code == 200
     assert resp.json()["last_name"] is None
+
+    resp = admin_client.patch(f"/api/contacts/{created['id']}", json={"first_name": None})
+    assert resp.status_code == 200
+    assert resp.json()["first_name"] is None
 
 
 def test_assessor_can_patch_contact_rbac(assessor_client):

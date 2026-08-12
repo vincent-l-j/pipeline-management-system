@@ -7,6 +7,9 @@ Create Date: 2026-08-11 00:00:00.000000
 Data-migrating revision: `name` is split on its first whitespace run — everything
 before it becomes `first_name`, the remainder `last_name` (NULL for a single-token
 name). Autogenerate would have emitted this as drop + add, destroying the names.
+
+Both columns are nullable; a blank `name` yields two NULLs rather than empty
+strings, so "no name recorded" has one representation.
 """
 from collections.abc import Sequence
 
@@ -26,7 +29,7 @@ def upgrade() -> None:
     op.execute(
         """
         UPDATE contacts
-           SET first_name = split_part(btrim(name), ' ', 1),
+           SET first_name = NULLIF(split_part(btrim(name), ' ', 1), ''),
                last_name = NULLIF(
                    btrim(
                        substr(btrim(name), length(split_part(btrim(name), ' ', 1)) + 1)
@@ -36,7 +39,6 @@ def upgrade() -> None:
         """
     )
 
-    op.alter_column('contacts', 'first_name', nullable=False)
     op.create_index(op.f('ix_contacts_first_name'), 'contacts', ['first_name'], unique=False)
     op.create_index(op.f('ix_contacts_last_name'), 'contacts', ['last_name'], unique=False)
     op.drop_index(op.f('ix_contacts_name'), table_name='contacts')
@@ -48,7 +50,10 @@ def downgrade() -> None:
     # re-applied upgrade would split it at a different point.
     op.add_column('contacts', sa.Column('name', sa.String(length=255), nullable=True))
     op.execute(
-        "UPDATE contacts SET name = btrim(first_name || ' ' || coalesce(last_name, ''))"
+        """
+        UPDATE contacts
+           SET name = btrim(coalesce(first_name, '') || ' ' || coalesce(last_name, ''))
+        """
     )
     op.alter_column('contacts', 'name', nullable=False)
     op.create_index(op.f('ix_contacts_name'), 'contacts', ['name'], unique=False)

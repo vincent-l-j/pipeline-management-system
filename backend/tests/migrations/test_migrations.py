@@ -153,6 +153,7 @@ _SPLIT_CASES = [
     ("Prince", "Prince", None),
     ("Mary Jane van Doe", "Mary", "Jane van Doe"),
     ("  Padded  Name  ", "Padded", "Name"),
+    ("", None, None),
 ]
 
 

@@ -6,7 +6,7 @@ import { createApiMocks } from "../../test/mocks/api";
 
 interface Contact {
   id: string;
-  first_name: string;
+  first_name: string | null;
   last_name: string | null;
   role: string | null;
   email: string | null;
@@ -129,10 +129,7 @@ describe("ContactsPage", () => {
     await waitFor(() => screen.getByRole("button", { name: /Add Contact/i }));
     await user.click(screen.getByRole("button", { name: /Add Contact/i }));
     await user.type(screen.getByPlaceholderText("First name"), "New");
-    await user.type(
-      screen.getByPlaceholderText("Last name (optional)"),
-      "Person",
-    );
+    await user.type(screen.getByPlaceholderText("Last name"), "Person");
     await user.click(screen.getByRole("button", { name: "Create" }));
     expect(apiMocks.post.mock).toHaveBeenCalledWith(
       "/contacts",
@@ -144,20 +141,42 @@ describe("ContactsPage", () => {
     expect(screen.getByText("Person")).toBeInTheDocument();
   });
 
-  it("Create stays disabled until a first name is entered", async () => {
+  it("Create stays disabled until one of the name parts is entered", async () => {
     const user = userEvent.setup();
     setupGet([]);
     render(<ContactsPage />);
     await waitFor(() => screen.getByRole("button", { name: /Add Contact/i }));
     await user.click(screen.getByRole("button", { name: /Add Contact/i }));
     expect(screen.getByRole("button", { name: "Create" })).toBeDisabled();
-    await user.type(
-      screen.getByPlaceholderText("Last name (optional)"),
-      "Only",
-    );
-    expect(screen.getByRole("button", { name: "Create" })).toBeDisabled();
-    await user.type(screen.getByPlaceholderText("First name"), "Given");
+    await user.type(screen.getByPlaceholderText("Last name"), "Surnameonly");
     expect(screen.getByRole("button", { name: "Create" })).toBeEnabled();
+  });
+
+  it("a contact with no first name posts first_name as null", async () => {
+    const user = userEvent.setup();
+    setupGet([]);
+    apiMocks.post.mockResolvedValue({
+      data: {
+        id: "c4",
+        first_name: null,
+        last_name: "Ashworth",
+        role: null,
+        email: null,
+        last_contacted: null,
+      },
+    });
+    render(<ContactsPage />);
+    await waitFor(() => screen.getByRole("button", { name: /Add Contact/i }));
+    await user.click(screen.getByRole("button", { name: /Add Contact/i }));
+    await user.type(screen.getByPlaceholderText("Last name"), "Ashworth");
+    await user.click(screen.getByRole("button", { name: "Create" }));
+    expect(apiMocks.post.mock).toHaveBeenCalledWith(
+      "/contacts",
+      expect.objectContaining({ first_name: null, last_name: "Ashworth" }),
+    );
+    await waitFor(() => {
+      expect(screen.getByText("Ashworth")).toBeInTheDocument();
+    });
   });
 
   it("a contact with no last name posts last_name as null", async () => {
@@ -300,13 +319,30 @@ describe("ContactsPage", () => {
     });
   });
 
-  it("an emptied first name blocks the save", async () => {
+  it("clearing the first name alone still saves", async () => {
+    const user = userEvent.setup();
+    setupGet();
+    apiMocks.patch.mockResolvedValue({
+      data: { ...CONTACTS[0], first_name: null },
+    });
+    render(<ContactsPage />);
+    await waitFor(() => screen.getByText("Jane"));
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+    await user.clear(screen.getByLabelText("Contact first name"));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(apiMocks.patch.mock).toHaveBeenCalledWith("/contacts/c1", {
+      first_name: null,
+    });
+  });
+
+  it("emptying both name parts blocks the save", async () => {
     const user = userEvent.setup();
     setupGet();
     render(<ContactsPage />);
     await waitFor(() => screen.getByText("Jane"));
     await user.click(screen.getByRole("button", { name: "Edit" }));
     await user.clear(screen.getByLabelText("Contact first name"));
+    await user.clear(screen.getByLabelText("Contact last name"));
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
     expect(apiMocks.patch.mock).not.toHaveBeenCalled();
   });

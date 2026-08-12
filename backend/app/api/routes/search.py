@@ -80,7 +80,9 @@ def search_all(
     ]
 
     # Contacts — search first/last name (and the two combined), role, email, notes
-    full_name = func.trim(Contact.first_name + " " + func.coalesce(Contact.last_name, ""))
+    full_name = func.trim(
+        func.coalesce(Contact.first_name, "") + " " + func.coalesce(Contact.last_name, "")
+    )
     contacts = (
         db.query(Contact)
         .filter(
@@ -99,7 +101,7 @@ def search_all(
     results["contacts"] = [
         {
             "id": str(c.id),
-            "title": c.full_name,
+            "title": c.full_name or "Unnamed contact",
             "subtitle": c.role or c.email or "",
             "badge": "",
             "type": "contact",

@@ -10,7 +10,7 @@ const inputClass =
 
 interface Contact {
   id: number;
-  first_name: string;
+  first_name: string | null;
   last_name: string | null;
   role: string | null;
   email: string | null;
@@ -37,6 +37,11 @@ const EDITABLE_FIELDS: (keyof ContactForm)[] = [
   "role",
   "email",
 ];
+
+/** Both name parts are optional, but a contact with neither is unidentifiable. */
+function hasName(form: ContactForm): boolean {
+  return Boolean(form.first_name.trim() || form.last_name.trim());
+}
 
 interface ErrorResponse {
   detail?: string;
@@ -70,11 +75,11 @@ export default function ContactsPage(): React.JSX.Element {
   }, []);
 
   const addContact = async (): Promise<void> => {
-    if (!form.first_name.trim()) return;
+    if (!hasName(form)) return;
     setError("");
     try {
       const { data } = await api.post<Contact>("/contacts", {
-        first_name: form.first_name.trim(),
+        first_name: form.first_name.trim() || null,
         last_name: form.last_name.trim() || null,
         role: form.role.trim() || null,
         email: form.email.trim() || null,
@@ -92,7 +97,7 @@ export default function ContactsPage(): React.JSX.Element {
     setError("");
     setEditingId(contact.id);
     setEditForm({
-      first_name: contact.first_name,
+      first_name: contact.first_name ?? "",
       last_name: contact.last_name ?? "",
       role: contact.role ?? "",
       email: contact.email ?? "",
@@ -109,7 +114,7 @@ export default function ContactsPage(): React.JSX.Element {
       const next = editForm[field].trim() || null;
       if (next !== (contact[field] ?? null)) changes[field] = next;
     }
-    if (!editForm.first_name.trim() || Object.keys(changes).length === 0) {
+    if (!hasName(editForm) || Object.keys(changes).length === 0) {
       setEditingId(null);
       return;
     }
@@ -184,7 +189,7 @@ export default function ContactsPage(): React.JSX.Element {
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
                 setForm((p) => ({ ...p, last_name: e.target.value }));
               }}
-              placeholder="Last name (optional)"
+              placeholder="Last name"
               className={inputClass}
             />
           </div>
@@ -213,7 +218,7 @@ export default function ContactsPage(): React.JSX.Element {
               onClick={() => {
                 void addContact();
               }}
-              disabled={!form.first_name.trim()}
+              disabled={!hasName(form)}
               className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
             >
               Create
@@ -327,7 +332,7 @@ export default function ContactsPage(): React.JSX.Element {
                           onClick={() => {
                             void saveEdit(c);
                           }}
-                          disabled={!editForm.first_name.trim()}
+                          disabled={!hasName(editForm)}
                           className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
                         >
                           Save
@@ -347,7 +352,7 @@ export default function ContactsPage(): React.JSX.Element {
                     className="hover:bg-navy-50/50 transition-colors"
                   >
                     <td className="px-4 py-3 font-medium text-navy-900">
-                      {c.first_name}
+                      {c.first_name ?? "-"}
                     </td>
                     <td className="px-4 py-3 font-medium text-navy-900">
                       {c.last_name ?? "-"}

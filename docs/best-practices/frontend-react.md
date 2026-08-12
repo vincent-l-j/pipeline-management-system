@@ -28,14 +28,15 @@ Tailwind 3, Vitest). Match the existing components.
   component.
 
 ```jsx
-import api from '../services/api'
+import api from "../services/api";
 
 useEffect(() => {
-  api.get('/pitches')
+  api
+    .get("/pitches")
     .then(({ data }) => setPitches(data))
-    .catch(() => setError('Could not load pitches'))
-    .finally(() => setLoading(false))
-}, [])
+    .catch(() => setError("Could not load pitches"))
+    .finally(() => setLoading(false));
+}, []);
 ```
 
 - Always handle three UI states: loading, empty, and error. The existing pages
@@ -82,32 +83,35 @@ useEffect(() => {
 - **Mock the network** by mocking `src/services/api`:
 
 ```jsx
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { vi } from 'vitest'
-import api from '../../services/api'
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { vi } from "vitest";
+import api from "../../services/api";
 
-vi.mock('../../services/api', () => ({
+vi.mock("../../services/api", () => ({
   default: { get: vi.fn(), post: vi.fn(), delete: vi.fn() },
-}))
+}));
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => vi.clearAllMocks());
 
-it('removes a row after confirming delete', async () => {
-  api.get.mockResolvedValue({ data: [{ id: '1', name: 'Acme' }] })
-  api.delete.mockResolvedValue({ data: { detail: 'deleted' } })
-  render(<OrganisationsPage />)          // wrap with providers/router as needed
+it("removes a row after confirming delete", async () => {
+  api.get.mockResolvedValue({ data: [{ id: "1", name: "Acme" }] });
+  api.delete.mockResolvedValue({ data: { detail: "deleted" } });
+  render(<OrganisationsPage />); // wrap with providers/router as needed
 
-  await screen.findByText('Acme')
-  await userEvent.click(screen.getByRole('button', { name: /remove/i }))
-  await userEvent.click(screen.getByRole('button', { name: /confirm/i }))
+  await screen.findByText("Acme");
+  await userEvent.click(screen.getByRole("button", { name: /remove/i }));
+  await userEvent.click(screen.getByRole("button", { name: /confirm/i }));
 
-  expect(api.delete).toHaveBeenCalledWith('/organisations/1')
-  await waitFor(() => expect(screen.queryByText('Acme')).not.toBeInTheDocument())
-})
+  expect(api.delete).toHaveBeenCalledWith("/organisations/1");
+  await waitFor(() =>
+    expect(screen.queryByText("Acme")).not.toBeInTheDocument(),
+  );
+});
 ```
 
 Guidelines:
+
 - Query the way a user perceives the UI: `getByRole`, `getByText`, `getByLabelText`
   — avoid test-ids unless there's no accessible handle.
 - Use `findBy*` / `waitFor` for anything after an async resolve; use
@@ -120,7 +124,7 @@ Guidelines:
   for route-guard tests), or mock `useNavigate` from `react-router-dom` to assert
   navigation.
 - **Drag-and-drop:** `@hello-pangea/dnd` is aliased to a stub (`src/test/mocks/dnd.js`)
-  in `vitest.config.js`; test the stage-change *handler/callback*, not the drag
+  in `vitest.config.js`; test the stage-change _handler/callback_, not the drag
   physics.
 
 ## Checklist before handoff

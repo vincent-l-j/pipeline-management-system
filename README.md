@@ -18,13 +18,13 @@ For end-user documentation, see [`Rozetta_PMS_User_Guide.md`](./Rozetta_PMS_User
 
 ## Tech stack
 
-| Layer    | Technology |
-|----------|------------|
-| Backend  | Python 3.12, FastAPI, SQLAlchemy 2.0, Pydantic, Alembic |
-| Database | PostgreSQL 16 |
-| Auth     | Microsoft Azure AD (MSAL) + JWT, with a dev-login fallback |
-| AI       | Anthropic Claude API (AI Notetaker) |
-| Frontend | React 18, Vite 6, React Router 6, Tailwind CSS, axios, @hello-pangea/dnd |
+| Layer    | Technology                                                                            |
+| -------- | ------------------------------------------------------------------------------------- |
+| Backend  | Python 3.12, FastAPI, SQLAlchemy 2.0, Pydantic, Alembic                               |
+| Database | PostgreSQL 16                                                                         |
+| Auth     | Microsoft Azure AD (MSAL) + JWT, with a dev-login fallback                            |
+| AI       | Anthropic Claude API (AI Notetaker)                                                   |
+| Frontend | React 18, Vite 6, React Router 6, Tailwind CSS, axios, @hello-pangea/dnd              |
 | Infra    | Docker Compose (local dev); DigitalOcean App Platform + Managed Postgres (production) |
 
 ## Architecture
@@ -82,15 +82,15 @@ To stop: `docker compose down` (add `-v` to also drop the database volume).
 
 Copy `.env.example` to `.env` and fill in your values.
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Yes | Postgres credentials used by the `db` service |
-| `DATABASE_URL` | Yes | SQLAlchemy connection string (defaults to the `db` service) |
-| `SECRET_KEY` | Yes | Secret used to sign JWTs. Generate a fresh one with `openssl rand -hex 32` (required — no default; the app refuses to boot without it) |
-| `BACKEND_CORS_ORIGINS` | Yes | Comma-separated allowed origins (e.g. `http://localhost:5173`) |
-| `AZURE_CLIENT_ID` / `AZURE_TENANT_ID` | Optional | Microsoft OAuth (omit to use Dev Login) |
-| `AZURE_CLIENT_SECRET` | Yes | Required for Microsoft OAuth (no default → app won't boot) |
-| `ANTHROPIC_API_KEY` | Optional | Enables AI note parsing; without it, a basic text parser is used |
+| Variable                                              | Required | Description                                                                                                                            |
+| ----------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Yes      | Postgres credentials used by the `db` service                                                                                          |
+| `DATABASE_URL`                                        | Yes      | SQLAlchemy connection string (defaults to the `db` service)                                                                            |
+| `SECRET_KEY`                                          | Yes      | Secret used to sign JWTs. Generate a fresh one with `openssl rand -hex 32` (required — no default; the app refuses to boot without it) |
+| `BACKEND_CORS_ORIGINS`                                | Yes      | Comma-separated allowed origins (e.g. `http://localhost:5173`)                                                                         |
+| `AZURE_CLIENT_ID` / `AZURE_TENANT_ID`                 | Optional | Microsoft OAuth (omit to use Dev Login)                                                                                                |
+| `AZURE_CLIENT_SECRET`                                 | Yes      | Required for Microsoft OAuth (no default → app won't boot)                                                                             |
+| `ANTHROPIC_API_KEY`                                   | Optional | Enables AI note parsing; without it, a basic text parser is used                                                                       |
 
 ## Running locally without Docker
 
@@ -141,12 +141,12 @@ Production runs on **DigitalOcean App Platform**, declared as code in
 reverse proxy to run yourself. Deploys are **GitOps**: CI applies the spec, not App Platform's
 push-to-deploy (see [Shipping updates](#shipping-updates)). The spec defines four things:
 
-| Component | How it's deployed |
-|-----------|-------------------|
-| **Backend** (FastAPI) | A *service* built from `backend/Dockerfile` (App Platform builds the final `prod` stage and overrides its CMD via `run_command`). Routed at `/api`, health check at `/api/health`. |
-| **Frontend** (React SPA) | A *static site* built with App Platform's Node buildpack (`npm run build` → `dist/`), served from the edge at `/`. SPA deep links fall back to `index.html`. Same origin as the backend, so `/api` calls need no CORS. |
-| **Database** (PostgreSQL 16) | A *managed database* (`databases:` block). `DATABASE_URL` is injected automatically — no `db` container in production. |
-| **Migrate job** (Alembic) | A `PRE_DEPLOY` job that runs `alembic upgrade head` against the DB before each release, so schema changes ship atomically with the code that needs them. Needs only `DATABASE_URL`, not the app secrets. |
+| Component                    | How it's deployed                                                                                                                                                                                                      |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Backend** (FastAPI)        | A _service_ built from `backend/Dockerfile` (App Platform builds the final `prod` stage and overrides its CMD via `run_command`). Routed at `/api`, health check at `/api/health`.                                     |
+| **Frontend** (React SPA)     | A _static site_ built with App Platform's Node buildpack (`npm run build` → `dist/`), served from the edge at `/`. SPA deep links fall back to `index.html`. Same origin as the backend, so `/api` calls need no CORS. |
+| **Database** (PostgreSQL 16) | A _managed database_ (`databases:` block). `DATABASE_URL` is injected automatically — no `db` container in production.                                                                                                 |
+| **Migrate job** (Alembic)    | A `PRE_DEPLOY` job that runs `alembic upgrade head` against the DB before each release, so schema changes ship atomically with the code that needs them. Needs only `DATABASE_URL`, not the app secrets.               |
 
 Because the SPA and API share one origin, there is no separate domain juggling and no TLS to
 manage (App Platform terminates HTTPS for you), and the localStorage JWT travels normally.
@@ -185,13 +185,13 @@ These are set in `.do/app.yaml` (and the DO control panel for secrets), **not** 
 file. See the spec for the authoritative list and inline notes.
 
 - `DATABASE_URL` — injected by the managed DB (`${db.DATABASE_URL}`); arrives with `?sslmode=require`
-- `SECRET_KEY` *(secret)* — JWT signing key
-- `AZURE_CLIENT_ID` / `AZURE_TENANT_ID` and `AZURE_CLIENT_SECRET` *(secret)*
+- `SECRET_KEY` _(secret)_ — JWT signing key
+- `AZURE_CLIENT_ID` / `AZURE_TENANT_ID` and `AZURE_CLIENT_SECRET` _(secret)_
 - `AZURE_REDIRECT_URI=https://<app-url>/api/auth/callback` (must match the Azure registration exactly)
 - `FRONTEND_URL=https://<app-url>` and `BACKEND_CORS_ORIGINS=https://<app-url>`
 - `ADMIN_EMAILS` — emails granted Admin on first sign-in
 - `ENABLE_DEV_LOGIN=false` (the test login stays off in production)
-- `ANTHROPIC_API_KEY` *(secret)* — optional, enables the AI Notetaker
+- `ANTHROPIC_API_KEY` _(secret)_ — optional, enables the AI Notetaker
 - `VITE_API_BASE_URL=/api` — **build-time** on the static site (Vite inlines it into the bundle)
 
 ### Shipping updates
@@ -200,10 +200,10 @@ Deploys are **GitOps**, applied by CI — `deploy_on_push: false` is set on ever
 Platform never deploys on its own (that would double-deploy and, more importantly, would ignore
 the repo spec). CI is the single deploy path:
 
-| Branch | Workflow | App | Spec |
-|--------|----------|-----|------|
-| `main` | [`deploy-production.yml`](./.github/workflows/deploy-production.yml) | `production` (prod) | `.do/app.yaml` |
-| `develop` | [`deploy-staging.yml`](./.github/workflows/deploy-staging.yml) | `staging` (UAT) | `.do/staging.yaml` |
+| Branch    | Workflow                                                             | App                 | Spec               |
+| --------- | -------------------------------------------------------------------- | ------------------- | ------------------ |
+| `main`    | [`deploy-production.yml`](./.github/workflows/deploy-production.yml) | `production` (prod) | `.do/app.yaml`     |
+| `develop` | [`deploy-staging.yml`](./.github/workflows/deploy-staging.yml)       | `staging` (UAT)     | `.do/staging.yaml` |
 
 Each workflow runs `digitalocean/app_action/deploy@v2`, which applies **both** the spec and the
 code together — so a field that drifts from reality in the committed spec gets pushed onto the
@@ -217,12 +217,12 @@ A persistent **`staging`** app (spec: [`.do/staging.yaml`](./.do/staging.yaml)) 
 `develop` branch gives a stable URL for user-acceptance testing before anything reaches prod. It
 mirrors the prod spec with two deliberate differences: its database is a **dev-tier** DB
 (`production: false` — cheaper, no HA/backups, adequate for throwaway test data), and it carries
-its own secrets. It is *persistent* (not an ephemeral per-PR preview) precisely so its callback
+its own secrets. It is _persistent_ (not an ephemeral per-PR preview) precisely so its callback
 URL is stable enough to register in Azure once.
 
 Bringing staging up (one-time):
 
-1. **Create the app once, manually.** `app_action/deploy@v2` only *updates* an existing app — it
+1. **Create the app once, manually.** `app_action/deploy@v2` only _updates_ an existing app — it
    fails with `app "staging" does not exist` on a first run — so bootstrap it with `doctl` (then
    the workflow takes over):
    ```bash

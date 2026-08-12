@@ -3,97 +3,112 @@
  * Shows current attendees and allows adding internal (staff) or external (contacts).
  */
 
-import { useState, useEffect, ReactNode } from 'react'
-import api from '../../services/api'
-import { useAuth } from '../../contexts/AuthContext'
+import { useState, useEffect, ReactNode } from "react";
+import api from "../../services/api";
+import { useAuth } from "../../contexts/AuthContext";
 
 interface User {
-  id: string
-  display_name: string
-  role?: string
+  id: string;
+  display_name: string;
+  role?: string;
 }
 
 interface Contact {
-  id: string
-  name: string
+  id: string;
+  name: string;
 }
 
 interface Attendee {
-  id: string
-  user_id?: string
-  contact_id?: string
-  is_internal: boolean
+  id: string;
+  user_id?: string;
+  contact_id?: string;
+  is_internal: boolean;
 }
 
 interface AuthUser {
-  role: string
+  role: string;
 }
 
 interface MeetingAttendeesProps {
-  meetingId: string
+  meetingId: string;
 }
 
-export default function MeetingAttendees({ meetingId }: MeetingAttendeesProps): ReactNode {
-  const { user } = useAuth() as { user: AuthUser | null }
-  const [attendees, setAttendees] = useState<Attendee[]>([])
-  const [users, setUsers] = useState<User[]>([])
-  const [contacts, setContacts] = useState<Contact[]>([])
-  const [showAdd, setShowAdd] = useState(false)
-  const [addType, setAddType] = useState<'internal' | 'external'>('internal')
-  const [selectedId, setSelectedId] = useState('')
+export default function MeetingAttendees({
+  meetingId,
+}: MeetingAttendeesProps): ReactNode {
+  const { user } = useAuth() as { user: AuthUser | null };
+  const [attendees, setAttendees] = useState<Attendee[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [showAdd, setShowAdd] = useState(false);
+  const [addType, setAddType] = useState<"internal" | "external">("internal");
+  const [selectedId, setSelectedId] = useState("");
 
-  const canEdit = user?.role === 'admin' || user?.role === 'assessor'
+  const canEdit = user?.role === "admin" || user?.role === "assessor";
 
   useEffect(() => {
-    loadAttendees()
-    api.get('/users/directory').then(({ data }) => setUsers(data))
-    api.get('/contacts').then(({ data }) => setContacts(data))
-  }, [meetingId])
+    loadAttendees();
+    void api.get("/users/directory").then(({ data }: { data: User[] }) => {
+      setUsers(data);
+    });
+    void api.get("/contacts").then(({ data }: { data: Contact[] }) => {
+      setContacts(data);
+    });
+  }, [meetingId]);
 
   function loadAttendees(): void {
-    api.get(`/meetings/${meetingId}/attendees`).then(({ data }) => setAttendees(data))
+    void api
+      .get(`/meetings/${meetingId}/attendees`)
+      .then(({ data }: { data: Attendee[] }) => {
+        setAttendees(data);
+      });
   }
 
   async function addAttendee(): Promise<void> {
-    if (!selectedId) return
-    const payload = addType === 'internal'
-      ? { user_id: selectedId, is_internal: true }
-      : { contact_id: selectedId, is_internal: false }
+    if (!selectedId) return;
+    const payload =
+      addType === "internal"
+        ? { user_id: selectedId, is_internal: true }
+        : { contact_id: selectedId, is_internal: false };
 
-    await api.post(`/meetings/${meetingId}/attendees`, payload)
-    loadAttendees()
-    setSelectedId('')
-    setShowAdd(false)
+    await api.post(`/meetings/${meetingId}/attendees`, payload);
+    loadAttendees();
+    setSelectedId("");
+    setShowAdd(false);
   }
 
   async function removeAttendee(attendeeId: string): Promise<void> {
-    await api.delete(`/meetings/${meetingId}/attendees/${attendeeId}`)
-    loadAttendees()
+    await api.delete(`/meetings/${meetingId}/attendees/${attendeeId}`);
+    loadAttendees();
   }
 
   // Resolve names for display
   function getAttendeeName(attendee: Attendee): string {
     if (attendee.is_internal && attendee.user_id) {
-      const u = users.find(u => u.id === attendee.user_id)
-      return u ? u.display_name : 'Unknown staff'
+      const u = users.find((u) => u.id === attendee.user_id);
+      return u ? u.display_name : "Unknown staff";
     }
     if (attendee.contact_id) {
-      const c = contacts.find(c => c.id === attendee.contact_id)
-      return c ? c.name : 'Unknown contact'
+      const c = contacts.find((c) => c.id === attendee.contact_id);
+      return c ? c.name : "Unknown contact";
     }
-    return 'Unknown'
+    return "Unknown";
   }
 
   return (
     <div className="bg-white rounded-xl border border-navy-100 p-6">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-navy-500 uppercase tracking-wide">Attendees</h2>
+        <h2 className="text-sm font-semibold text-navy-500 uppercase tracking-wide">
+          Attendees
+        </h2>
         {canEdit && (
           <button
-            onClick={() => setShowAdd(!showAdd)}
+            onClick={() => {
+              setShowAdd(!showAdd);
+            }}
             className="text-xs text-navy-600 hover:text-navy-900 font-medium"
           >
-            {showAdd ? 'Cancel' : '+ Add'}
+            {showAdd ? "Cancel" : "+ Add"}
           </button>
         )}
       </div>
@@ -103,14 +118,20 @@ export default function MeetingAttendees({ meetingId }: MeetingAttendeesProps): 
         <div className="mb-4 p-3 bg-navy-50 rounded-lg space-y-2">
           <div className="flex gap-2">
             <button
-              onClick={() => { setAddType('internal'); setSelectedId('') }}
-              className={`text-xs px-2 py-1 rounded ${addType === 'internal' ? 'bg-navy-900 text-white' : 'bg-white text-navy-600 border border-navy-200'}`}
+              onClick={() => {
+                setAddType("internal");
+                setSelectedId("");
+              }}
+              className={`text-xs px-2 py-1 rounded ${addType === "internal" ? "bg-navy-900 text-white" : "bg-white text-navy-600 border border-navy-200"}`}
             >
               Rozetta Staff
             </button>
             <button
-              onClick={() => { setAddType('external'); setSelectedId('') }}
-              className={`text-xs px-2 py-1 rounded ${addType === 'external' ? 'bg-navy-900 text-white' : 'bg-white text-navy-600 border border-navy-200'}`}
+              onClick={() => {
+                setAddType("external");
+                setSelectedId("");
+              }}
+              className={`text-xs px-2 py-1 rounded ${addType === "external" ? "bg-navy-900 text-white" : "bg-white text-navy-600 border border-navy-200"}`}
             >
               External Contact
             </button>
@@ -118,17 +139,30 @@ export default function MeetingAttendees({ meetingId }: MeetingAttendeesProps): 
           <div className="flex gap-2">
             <select
               value={selectedId}
-              onChange={e => setSelectedId(e.target.value)}
+              onChange={(e) => {
+                setSelectedId(e.target.value);
+              }}
               className="flex-1 text-sm border border-navy-200 rounded-lg px-2 py-1.5 bg-white"
             >
-              <option value="">Select {addType === 'internal' ? 'staff member' : 'contact'}...</option>
-              {addType === 'internal'
-                ? users.map(u => <option key={u.id} value={u.id}>{u.display_name}</option>)
-                : contacts.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
-              }
+              <option value="">
+                Select {addType === "internal" ? "staff member" : "contact"}...
+              </option>
+              {addType === "internal"
+                ? users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.display_name}
+                    </option>
+                  ))
+                : contacts.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
             </select>
             <button
-              onClick={addAttendee}
+              onClick={() => {
+                void addAttendee();
+              }}
               disabled={!selectedId}
               className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
             >
@@ -143,16 +177,25 @@ export default function MeetingAttendees({ meetingId }: MeetingAttendeesProps): 
         <p className="text-sm text-navy-400">No attendees recorded.</p>
       ) : (
         <ul className="space-y-2">
-          {attendees.map(a => (
-            <li key={a.id} className="flex items-center justify-between text-sm">
+          {attendees.map((a) => (
+            <li
+              key={a.id}
+              className="flex items-center justify-between text-sm"
+            >
               <div className="flex items-center gap-2">
-                <span className={`w-1.5 h-1.5 rounded-full ${a.is_internal ? 'bg-navy-500' : 'bg-amber-500'}`} />
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${a.is_internal ? "bg-navy-500" : "bg-amber-500"}`}
+                />
                 <span className="text-navy-800">{getAttendeeName(a)}</span>
-                <span className="text-[10px] text-navy-400">{a.is_internal ? 'Internal' : 'External'}</span>
+                <span className="text-[10px] text-navy-400">
+                  {a.is_internal ? "Internal" : "External"}
+                </span>
               </div>
               {canEdit && (
                 <button
-                  onClick={() => removeAttendee(a.id)}
+                  onClick={() => {
+                    void removeAttendee(a.id);
+                  }}
                   className="text-[10px] text-red-400 hover:text-red-600"
                 >
                   Remove
@@ -163,5 +206,5 @@ export default function MeetingAttendees({ meetingId }: MeetingAttendeesProps): 
         </ul>
       )}
     </div>
-  )
+  );
 }

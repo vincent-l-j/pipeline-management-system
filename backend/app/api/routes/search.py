@@ -1,17 +1,17 @@
 """Full-text search across all record types."""
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.orm import Session
 from sqlalchemy import or_
+from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.user import User
-from app.models.pitch import Pitch
-from app.models.organisation import Organisation
+from app.models.assessment import Assessment
 from app.models.contact import Contact
 from app.models.meeting import Meeting
-from app.models.assessment import Assessment
+from app.models.organisation import Organisation
+from app.models.pitch import Pitch
+from app.models.user import User
 
 router = APIRouter(prefix="/search", tags=["search"])
 
@@ -31,14 +31,19 @@ def search_all(
     results = {}
 
     # Pitches — search title, description, domain tags, masterplan alignment
-    pitches = db.query(Pitch).filter(
-        or_(
-            Pitch.title.ilike(term),
-            Pitch.short_description.ilike(term),
-            Pitch.domain_tags.ilike(term),
-            Pitch.masterplan_alignment.ilike(term),
+    pitches = (
+        db.query(Pitch)
+        .filter(
+            or_(
+                Pitch.title.ilike(term),
+                Pitch.short_description.ilike(term),
+                Pitch.domain_tags.ilike(term),
+                Pitch.masterplan_alignment.ilike(term),
+            )
         )
-    ).limit(20).all()
+        .limit(20)
+        .all()
+    )
     results["pitches"] = [
         {
             "id": str(p.id),
@@ -51,13 +56,18 @@ def search_all(
     ]
 
     # Organisations — search name, sector, notes
-    orgs = db.query(Organisation).filter(
-        or_(
-            Organisation.name.ilike(term),
-            Organisation.sector.ilike(term),
-            Organisation.notes.ilike(term),
+    orgs = (
+        db.query(Organisation)
+        .filter(
+            or_(
+                Organisation.name.ilike(term),
+                Organisation.sector.ilike(term),
+                Organisation.notes.ilike(term),
+            )
         )
-    ).limit(20).all()
+        .limit(20)
+        .all()
+    )
     results["organisations"] = [
         {
             "id": str(o.id),
@@ -70,14 +80,19 @@ def search_all(
     ]
 
     # Contacts — search name, role, email, notes
-    contacts = db.query(Contact).filter(
-        or_(
-            Contact.name.ilike(term),
-            Contact.role.ilike(term),
-            Contact.email.ilike(term),
-            Contact.notes.ilike(term),
+    contacts = (
+        db.query(Contact)
+        .filter(
+            or_(
+                Contact.name.ilike(term),
+                Contact.role.ilike(term),
+                Contact.email.ilike(term),
+                Contact.notes.ilike(term),
+            )
         )
-    ).limit(20).all()
+        .limit(20)
+        .all()
+    )
     results["contacts"] = [
         {
             "id": str(c.id),
@@ -90,14 +105,19 @@ def search_all(
     ]
 
     # Meetings — search title, summary, key points, action items
-    meetings = db.query(Meeting).filter(
-        or_(
-            Meeting.title.ilike(term),
-            Meeting.summary.ilike(term),
-            Meeting.key_points.ilike(term),
-            Meeting.action_items.ilike(term),
+    meetings = (
+        db.query(Meeting)
+        .filter(
+            or_(
+                Meeting.title.ilike(term),
+                Meeting.summary.ilike(term),
+                Meeting.key_points.ilike(term),
+                Meeting.action_items.ilike(term),
+            )
         )
-    ).limit(20).all()
+        .limit(20)
+        .all()
+    )
     results["meetings"] = [
         {
             "id": str(m.id),
@@ -110,9 +130,14 @@ def search_all(
     ]
 
     # Assessments — search rationale
-    assessments = db.query(Assessment).filter(
-        Assessment.rationale.ilike(term),
-    ).limit(20).all()
+    assessments = (
+        db.query(Assessment)
+        .filter(
+            Assessment.rationale.ilike(term),
+        )
+        .limit(20)
+        .all()
+    )
     results["assessments"] = [
         {
             "id": str(a.id),

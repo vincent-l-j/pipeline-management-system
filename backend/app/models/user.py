@@ -1,14 +1,16 @@
 """Rozetta staff users — authenticated via Microsoft Azure AD."""
 
-from sqlalchemy import String, Boolean, Enum as SAEnum
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 import uuid
+
+from sqlalchemy import Boolean, String
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 
 
-class UserRole(str, enum.Enum):
+class UserRole(enum.StrEnum):
     ADMIN = "admin"
     ASSESSOR = "assessor"
     VIEWER = "viewer"

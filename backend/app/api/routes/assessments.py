@@ -1,14 +1,15 @@
 """Assessment CRUD routes — scoring cards linked to pitches."""
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from uuid import UUID
 
 from app.core.database import get_db
 from app.core.security import get_current_user, require_role
-from app.models.user import User, UserRole
 from app.models.assessment import Assessment
+from app.models.user import User, UserRole
 from app.schemas.assessment import AssessmentCreate, AssessmentOut
 
 router = APIRouter(prefix="/assessments", tags=["assessments"])
@@ -22,10 +23,7 @@ def list_assessments(
     """Get the latest assessment version for each pitch (no historical versions)."""
     # Subquery to get the max version for each pitch
     subquery = (
-        db.query(
-            Assessment.pitch_id,
-            func.max(Assessment.version).label("max_version")
-        )
+        db.query(Assessment.pitch_id, func.max(Assessment.version).label("max_version"))
         .group_by(Assessment.pitch_id)
         .subquery()
     )
@@ -35,7 +33,8 @@ def list_assessments(
         db.query(Assessment)
         .join(
             subquery,
-            (Assessment.pitch_id == subquery.c.pitch_id) & (Assessment.version == subquery.c.max_version)
+            (Assessment.pitch_id == subquery.c.pitch_id)
+            & (Assessment.version == subquery.c.max_version),
         )
         .order_by(Assessment.assessment_date.desc())
         .all()
@@ -68,8 +67,7 @@ def create_assessment(
             raise HTTPException(status_code=404, detail="Assessment not found")
         if prior.pitch_id != data.pitch_id:
             raise HTTPException(
-                status_code=422,
-                detail="Cannot change pitch when amending an assessment"
+                status_code=422, detail="Cannot change pitch when amending an assessment"
             )
 
     # Auto-increment version for this pitch

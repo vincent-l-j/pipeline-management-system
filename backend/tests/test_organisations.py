@@ -1,6 +1,5 @@
 """Tests for /api/organisations CRUD and RBAC."""
 
-
 ORG_PAYLOAD = {"name": "Soil Tech Labs", "sector": "Agriculture"}
 
 
@@ -142,15 +141,21 @@ def test_patch_organisation_is_partial_update_preserving_omitted_fields(admin_cl
 
 
 def test_assessor_can_patch_organisation_rbac(assessor_client):
-    org_id = assessor_client.post("/api/organisations", json={"name": "Assessor Editable Org"}).json()["id"]
-    resp = assessor_client.patch(f"/api/organisations/{org_id}", json={"website": "https://x.example"})
+    org_id = assessor_client.post(
+        "/api/organisations", json={"name": "Assessor Editable Org"}
+    ).json()["id"]
+    resp = assessor_client.patch(
+        f"/api/organisations/{org_id}", json={"website": "https://x.example"}
+    )
     assert resp.status_code == 200
     assert resp.json()["website"] == "https://x.example"
 
 
 def test_viewer_cannot_patch_organisation_rbac(admin_client, viewer_client):
     """Edit is admin/assessor only; a viewer is rejected server-side."""
-    org_id = admin_client.post("/api/organisations", json={"name": "Viewer No Edit Org"}).json()["id"]
+    org_id = admin_client.post("/api/organisations", json={"name": "Viewer No Edit Org"}).json()[
+        "id"
+    ]
     resp = viewer_client.patch(f"/api/organisations/{org_id}", json={"name": "Hacked Org"})
     assert resp.status_code == 403
     assert admin_client.get(f"/api/organisations/{org_id}").json()["name"] == "Viewer No Edit Org"

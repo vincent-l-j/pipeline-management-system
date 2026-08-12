@@ -1,14 +1,16 @@
 """Organisations that submit pitches or are linked to contacts."""
 
-from sqlalchemy import String, Text, Enum as SAEnum
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 import enum
 import uuid
+
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy import String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 
 
-class OrgType(str, enum.Enum):
+class OrgType(enum.StrEnum):
     STARTUP = "startup"
     UNIVERSITY = "university"
     NGO = "ngo"

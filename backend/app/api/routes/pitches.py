@@ -1,28 +1,33 @@
 """Pitch CRUD routes with stage transitions and file links."""
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from uuid import UUID
-from typing import Optional
 
 from app.core.database import get_db
 from app.core.security import get_current_user, require_role
-from app.models.user import User, UserRole
-from app.models.pitch import Pitch, PitchStageHistory, PitchFileLink, PipelineStage
 from app.models.assessment import Assessment
-from app.schemas.pitch import (
-    PitchCreate, PitchUpdate, PitchOut, PitchStageUpdate,
-    StageHistoryOut, PitchFileLinkCreate, PitchFileLinkOut,
-)
+from app.models.pitch import PipelineStage, Pitch, PitchFileLink, PitchStageHistory
+from app.models.user import User, UserRole
 from app.schemas.assessment import AssessmentOut
+from app.schemas.pitch import (
+    PitchCreate,
+    PitchFileLinkCreate,
+    PitchFileLinkOut,
+    PitchOut,
+    PitchStageUpdate,
+    PitchUpdate,
+    StageHistoryOut,
+)
 
 router = APIRouter(prefix="/pitches", tags=["pitches"])
 
 
 @router.get("", response_model=list[PitchOut])
 def list_pitches(
-    stage: Optional[PipelineStage] = Query(None),
-    lead_id: Optional[UUID] = Query(None),
+    stage: PipelineStage | None = Query(None),
+    lead_id: UUID | None = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -162,6 +167,7 @@ def delete_pitch(
 
 
 # --- File links ---
+
 
 @router.post("/{pitch_id}/files", response_model=PitchFileLinkOut)
 def add_file_link(

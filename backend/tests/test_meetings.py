@@ -1,5 +1,4 @@
 """Tests for /api/meetings CRUD, attendees, filters, and AI note parsing."""
-from unittest.mock import patch
 
 
 def _create_pitch(client):
@@ -14,6 +13,7 @@ MEETING_PAYLOAD = {
 
 
 # --- CRUD ---
+
 
 def test_create_meeting(admin_client):
     pitch_id = _create_pitch(admin_client)
@@ -81,6 +81,7 @@ def test_get_nonexistent_meeting(admin_client):
 
 # --- Filter by pitch_id ---
 
+
 def test_filter_meetings_by_pitch(admin_client):
     pitch_id = _create_pitch(admin_client)
     admin_client.post(
@@ -96,6 +97,7 @@ def test_filter_meetings_by_pitch(admin_client):
 
 
 # --- Attendees ---
+
 
 def test_add_and_list_attendees(admin_client):
     pitch_id = _create_pitch(admin_client)
@@ -120,7 +122,11 @@ def test_remove_attendee(admin_client):
     pitch_id = _create_pitch(admin_client)
     meeting = admin_client.post(
         "/api/meetings",
-        json={"title": "Remove Attendee Meeting", "meeting_date": "2026-07-02", "pitch_id": pitch_id},
+        json={
+            "title": "Remove Attendee Meeting",
+            "meeting_date": "2026-07-02",
+            "pitch_id": pitch_id,
+        },
     ).json()
     meeting_id = meeting["id"]
 
@@ -138,6 +144,7 @@ def test_remove_attendee(admin_client):
 
 
 # --- AI note parsing ---
+
 
 def test_parse_notes_mock(admin_client):
     """parse-notes returns structured fields (using mock parser — no API key)."""
@@ -165,6 +172,7 @@ def test_parse_notes_empty_rejected(admin_client):
 
 
 # --- RBAC ---
+
 
 def test_viewer_cannot_create_meeting(viewer_client):
     fake_pitch_id = "00000000-0000-0000-0000-000000000099"

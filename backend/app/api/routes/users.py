@@ -1,13 +1,14 @@
 """User management routes — Admin only for create/update."""
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from uuid import UUID
 
 from app.core.database import get_db
 from app.core.security import get_current_user, require_role
 from app.models.user import User, UserRole
-from app.schemas.user import UserCreate, UserUpdate, UserOut, UserDirectoryOut
+from app.schemas.user import UserCreate, UserDirectoryOut, UserOut, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
 

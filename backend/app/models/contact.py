@@ -1,9 +1,10 @@
 """External contacts / people linked to pitches and meetings."""
 
-from sqlalchemy import String, Text, Date, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from datetime import date
 import uuid
+from datetime import date
+
+from sqlalchemy import Date, ForeignKey, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 
@@ -21,12 +22,8 @@ class Contact(Base, TimestampMixin):
     last_contacted: Mapped[date | None] = mapped_column(Date)
 
     # Foreign keys
-    organisation_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("organisations.id")
-    )
-    relationship_owner_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("users.id")
-    )
+    organisation_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("organisations.id"))
+    relationship_owner_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
 
     # Relationships
     organisation = relationship("Organisation", back_populates="contacts")

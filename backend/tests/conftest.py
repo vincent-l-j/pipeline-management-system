@@ -5,6 +5,7 @@ database instead (StaticPool keeps a single connection so the schema and data
 persist across sessions). We force DATABASE_URL to SQLite *before* importing the
 app, so the module-level engine and table creation don't try to reach Postgres.
 """
+
 import os
 
 # Must be set before app.core.config / app.core.database are imported.
@@ -16,20 +17,21 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key")
 os.environ.setdefault("AZURE_CLIENT_SECRET", "test-azure-client-secret")
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.main import app
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.main import app
 from app.models import Base
 from app.models.user import User, UserRole
 
-_NOW = datetime(2026, 1, 1, tzinfo=timezone.utc)
+_NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
 # Fixed UUIDs so test users have non-None IDs without needing a DB insert
 _ADMIN_ID = uuid.UUID("aaaaaaaa-0000-0000-0000-000000000001")
@@ -79,6 +81,7 @@ def client():
 
 class _AuthenticatedTestClient:
     """Wrapper around TestClient that manages authentication per request."""
+
     def __init__(self, user):
         self.user = user
         app.dependency_overrides[get_db] = _get_test_db

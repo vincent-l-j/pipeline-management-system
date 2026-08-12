@@ -4,92 +4,93 @@
  * and optionally summary/key points/action items/follow-up.
  */
 
-import { useState, useEffect, FC, ChangeEvent, FormEvent } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { AxiosError } from 'axios'
-import Layout from '../components/Layout'
-import PageHeader from '../components/PageHeader'
-import api from '../services/api'
+import { useState, useEffect, ChangeEvent, FormEvent } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { AxiosError } from "axios";
+import Layout from "../components/Layout";
+import PageHeader from "../components/PageHeader";
+import api from "../services/api";
 
 interface Pitch {
-  id: string
-  title: string
+  id: string;
+  title: string;
 }
 
 interface MeetingForm {
-  title: string
-  meeting_date: string
-  meeting_time: string
-  platform: string
-  pitch_id: string
-  summary: string
-  key_points: string
-  action_items: string
-  follow_up_date: string
-  recording_link: string
-  transcript_path: string
+  title: string;
+  meeting_date: string;
+  meeting_time: string;
+  platform: string;
+  pitch_id: string;
+  summary: string;
+  key_points: string;
+  action_items: string;
+  follow_up_date: string;
+  recording_link: string;
+  transcript_path: string;
 }
 
 interface MeetingResponse {
-  id: string
-  [key: string]: any
+  id: string;
 }
 
 interface ApiErrorResponse {
-  detail?: string
-  [key: string]: any
+  detail?: string;
 }
 
 interface PlatformOption {
-  value: string
-  label: string
+  value: string;
+  label: string;
 }
 
 const PLATFORMS: PlatformOption[] = [
-  { value: 'teams', label: 'Microsoft Teams' },
-  { value: 'zoom', label: 'Zoom' },
-  { value: 'in_person', label: 'In Person' },
-  { value: 'phone', label: 'Phone' },
-  { value: 'other', label: 'Other' },
-]
+  { value: "teams", label: "Microsoft Teams" },
+  { value: "zoom", label: "Zoom" },
+  { value: "in_person", label: "In Person" },
+  { value: "phone", label: "Phone" },
+  { value: "other", label: "Other" },
+];
 
-const MeetingCreatePage: FC = (): JSX.Element => {
-  const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
-  const [pitches, setPitches] = useState<Pitch[]>([])
-  const [saving, setSaving] = useState<boolean>(false)
-  const [error, setError] = useState<string | null>(null)
+export default function MeetingCreatePage(): React.JSX.Element {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [pitches, setPitches] = useState<Pitch[]>([]);
+  const [saving, setSaving] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState<MeetingForm>({
-    title: '',
-    meeting_date: new Date().toISOString().split('T')[0],
-    meeting_time: '',
-    platform: 'teams',
-    pitch_id: searchParams.get('pitch_id') || '',
-    summary: '',
-    key_points: '',
-    action_items: '',
-    follow_up_date: '',
-    recording_link: '',
-    transcript_path: '',
-  })
+    title: "",
+    meeting_date: new Date().toISOString().split("T")[0],
+    meeting_time: "",
+    platform: "teams",
+    pitch_id: searchParams.get("pitch_id") ?? "",
+    summary: "",
+    key_points: "",
+    action_items: "",
+    follow_up_date: "",
+    recording_link: "",
+    transcript_path: "",
+  });
 
   useEffect((): void => {
-    api.get<Pitch[]>('/pitches')
-      .then(({ data }) => setPitches(data))
+    api
+      .get<Pitch[]>("/pitches")
+      .then(({ data }) => {
+        setPitches(data);
+      })
       .catch(() => {
         // Silently handle error loading pitches
-      })
-  }, [])
+      });
+  }, []);
 
   const update = (field: keyof MeetingForm, value: string): void => {
-    setForm(prev => ({ ...prev, [field]: value }))
-  }
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
-    e.preventDefault()
-    setSaving(true)
-    setError(null)
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
 
     const payload = {
       ...form,
@@ -97,26 +98,35 @@ const MeetingCreatePage: FC = (): JSX.Element => {
       follow_up_date: form.follow_up_date || null,
       recording_link: form.recording_link || null,
       transcript_path: form.transcript_path || null,
-    }
+    };
 
     try {
-      const { data } = await api.post<MeetingResponse>('/meetings', payload)
-      navigate(`/meetings/${data.id}`)
+      const { data } = await api.post<MeetingResponse>("/meetings", payload);
+      void navigate(`/meetings/${data.id}`);
     } catch (err) {
-      const axiosError = err as AxiosError<ApiErrorResponse>
-      setError(axiosError.response?.data?.detail || 'Failed to create meeting')
-      setSaving(false)
+      const axiosError = err as AxiosError<ApiErrorResponse>;
+      setError(axiosError.response?.data.detail ?? "Failed to create meeting");
+      setSaving(false);
     }
-  }
+  };
 
-  const inputClass: string = "w-full border border-navy-200 rounded-lg px-3 py-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300"
-  const labelClass: string = "block text-sm font-medium text-navy-700 mb-1"
+  const inputClass =
+    "w-full border border-navy-200 rounded-lg px-3 py-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300";
+  const labelClass = "block text-sm font-medium text-navy-700 mb-1";
 
   return (
     <Layout>
-      <PageHeader title="Log New Meeting" description="Record a meeting linked to a pitch" />
+      <PageHeader
+        title="Log New Meeting"
+        description="Record a meeting linked to a pitch"
+      />
 
-      <form onSubmit={handleSubmit} className="max-w-2xl space-y-5">
+      <form
+        onSubmit={(e) => {
+          void handleSubmit(e);
+        }}
+        className="max-w-2xl space-y-5"
+      >
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
             {error}
@@ -130,7 +140,9 @@ const MeetingCreatePage: FC = (): JSX.Element => {
             type="text"
             required
             value={form.title}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => update('title', e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+              update("title", e.target.value);
+            }}
             placeholder="e.g. Discovery call with AgriTech Co"
             className={inputClass}
           />
@@ -142,12 +154,16 @@ const MeetingCreatePage: FC = (): JSX.Element => {
           <select
             required
             value={form.pitch_id}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) => update('pitch_id', e.target.value)}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+              update("pitch_id", e.target.value);
+            }}
             className={inputClass}
           >
             <option value="">Select a pitch...</option>
             {pitches.map((p: Pitch) => (
-              <option key={p.id} value={p.id}>{p.title}</option>
+              <option key={p.id} value={p.id}>
+                {p.title}
+              </option>
             ))}
           </select>
         </div>
@@ -160,7 +176,9 @@ const MeetingCreatePage: FC = (): JSX.Element => {
               type="date"
               required
               value={form.meeting_date}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => update('meeting_date', e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                update("meeting_date", e.target.value);
+              }}
               className={inputClass}
             />
           </div>
@@ -169,7 +187,9 @@ const MeetingCreatePage: FC = (): JSX.Element => {
             <input
               type="time"
               value={form.meeting_time}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => update('meeting_time', e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                update("meeting_time", e.target.value);
+              }}
               className={inputClass}
             />
           </div>
@@ -177,11 +197,15 @@ const MeetingCreatePage: FC = (): JSX.Element => {
             <label className={labelClass}>Platform</label>
             <select
               value={form.platform}
-              onChange={(e: ChangeEvent<HTMLSelectElement>) => update('platform', e.target.value)}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                update("platform", e.target.value);
+              }}
               className={inputClass}
             >
               {PLATFORMS.map((p: PlatformOption) => (
-                <option key={p.value} value={p.value}>{p.label}</option>
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
               ))}
             </select>
           </div>
@@ -193,7 +217,9 @@ const MeetingCreatePage: FC = (): JSX.Element => {
           <textarea
             rows={3}
             value={form.summary}
-            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => update('summary', e.target.value)}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => {
+              update("summary", e.target.value);
+            }}
             placeholder="Brief summary of the meeting..."
             className={inputClass}
           />
@@ -205,7 +231,9 @@ const MeetingCreatePage: FC = (): JSX.Element => {
           <textarea
             rows={3}
             value={form.key_points}
-            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => update('key_points', e.target.value)}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => {
+              update("key_points", e.target.value);
+            }}
             placeholder="Main discussion points (one per line)..."
             className={inputClass}
           />
@@ -217,7 +245,9 @@ const MeetingCreatePage: FC = (): JSX.Element => {
           <textarea
             rows={3}
             value={form.action_items}
-            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => update('action_items', e.target.value)}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => {
+              update("action_items", e.target.value);
+            }}
             placeholder="Next steps and tasks (one per line)..."
             className={inputClass}
           />
@@ -230,7 +260,9 @@ const MeetingCreatePage: FC = (): JSX.Element => {
             <input
               type="date"
               value={form.follow_up_date}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => update('follow_up_date', e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                update("follow_up_date", e.target.value);
+              }}
               className={inputClass}
             />
           </div>
@@ -239,7 +271,9 @@ const MeetingCreatePage: FC = (): JSX.Element => {
             <input
               type="text"
               value={form.recording_link}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => update('recording_link', e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                update("recording_link", e.target.value);
+              }}
               placeholder="URL to recording..."
               className={inputClass}
             />
@@ -253,11 +287,13 @@ const MeetingCreatePage: FC = (): JSX.Element => {
             disabled={saving}
             className="bg-navy-900 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-navy-800 transition-colors disabled:opacity-50"
           >
-            {saving ? 'Saving...' : 'Save Meeting'}
+            {saving ? "Saving..." : "Save Meeting"}
           </button>
           <button
             type="button"
-            onClick={() => navigate('/meetings')}
+            onClick={() => {
+              void navigate("/meetings");
+            }}
             className="border border-navy-200 text-navy-600 px-6 py-2.5 rounded-lg text-sm font-medium hover:border-navy-400 transition-colors"
           >
             Cancel
@@ -265,7 +301,5 @@ const MeetingCreatePage: FC = (): JSX.Element => {
         </div>
       </form>
     </Layout>
-  )
+  );
 }
-
-export default MeetingCreatePage

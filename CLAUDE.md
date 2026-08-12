@@ -14,16 +14,32 @@ on DigitalOcean App Platform. See `README.md` for the product overview and
 
 Canonical commands live in `services.yaml`. In short:
 
-| Task | Command |
-|------|---------|
-| Run the whole stack | `docker compose up --build` |
-| Backend tests | `cd backend && pytest` |
-| Frontend tests | `cd frontend && npm test` |
-| Frontend build | `cd frontend && npm run build` |
-| Backend health | `curl -sf http://localhost:8000/api/health` |
-| API docs (Swagger) | http://localhost:8000/docs |
+| Task                 | Command                                     |
+| -------------------- | ------------------------------------------- |
+| Run the whole stack  | `docker compose up --build`                 |
+| Backend tests        | `cd backend && pytest`                      |
+| Frontend tests       | `cd frontend && npm test`                   |
+| Frontend build       | `cd frontend && npm run build`              |
+| Backend health       | `curl -sf http://localhost:8000/api/health` |
+| API docs (Swagger)   | http://localhost:8000/docs                  |
+| Lint (both sides)    | `npm run lint`                              |
+| Lint, autofix        | `npm run lint:fix`                          |
+| Typecheck (frontend) | `npm run typecheck`                         |
+| Format               | `npm run format` / `npm run format:check`   |
 
-There is no lint/typecheck tooling configured — don't assume one exists.
+All of these run from the **repo root**, but only prettier lives there — the root
+`package.json` is a thin delegator. eslint + typescript are `frontend/`
+devDependencies (with `frontend/eslint.config.mjs`), and ruff comes from
+`backend/requirements-dev.txt` (configured in `backend/pyproject.toml`). Each
+linter's config sits with the code it lints. So `npm install` at the root is enough for format,
+while lint and typecheck need `npm install --prefix frontend`. There is no backend
+type checker (no mypy) — don't assume one.
+
+The typecheck bakes in `tsc -b --force`. It has to: `tsc -b` doesn't replay stored
+errors for unchanged files, so an incremental run over stale build info can print
+nothing while real errors remain. **Don't write `npm run typecheck -- --force`** —
+npm treats `--force` as its own flag and never forwards it to tsc, so that spelling
+silently doesn't force.
 
 ## Repository map
 

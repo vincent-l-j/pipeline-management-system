@@ -1,12 +1,19 @@
 {
+  "type": "module",
   "devDependencies": {
-    "prettier": "3.9.6",
-    "prettier-plugin-yaml": "1.2.0"
+    "prettier": "3.9.6"
   },
   "scripts": {
-    "format": "npm run format:do && npm run format:workflows",
-    "format:do": "prettier --write .do/",
-    "format:workflows": "prettier --write .github/workflows",
-    "format:workflows:check": "prettier --check .github/workflows"
+    "format": "npm run format:prettier && npm run format:ruff",
+    "format:check": "npm run format:prettier:check && npm run format:ruff:check",
+    "format:prettier": "prettier --write .",
+    "format:prettier:check": "prettier --check .",
+    "format:ruff": "bash scripts/ruff.sh format",
+    "format:ruff:check": "bash scripts/ruff.sh format --check",
+    "typecheck": "npm run typecheck --prefix frontend",
+    "lint:frontend": "npm run lint --prefix frontend",
+    "lint:backend": "bash scripts/ruff.sh check",
+    "lint": "npm run lint:frontend && npm run lint:backend",
+    "lint:fix": "npm run lint:fix --prefix frontend && bash scripts/ruff.sh check --fix"
   }
 }

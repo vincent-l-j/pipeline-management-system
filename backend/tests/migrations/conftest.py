@@ -13,6 +13,7 @@ They are skipped unless a throwaway Postgres is available. Point them at one wit
 The database is wiped (DROP SCHEMA public CASCADE) between tests, so it MUST be a
 disposable database, never a real one.
 """
+
 import os
 import subprocess
 import sys

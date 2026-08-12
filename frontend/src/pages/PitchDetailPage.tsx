@@ -5,95 +5,121 @@
  * Right column: activity timeline, file links, linked meetings & assessments
  */
 
-import { ReactNode, useState, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
-import type { AxiosResponse } from 'axios'
-import Layout from '../components/Layout'
-import PageHeader from '../components/PageHeader'
-import ActivityTimeline from '../components/pitch/ActivityTimeline'
-import FileLinks from '../components/pitch/FileLinks'
-import { STAGE_MAP, SOURCE_LABELS, FUNDING_LABELS } from '../components/pipeline/PipelineConfig'
-import api from '../services/api'
-import { useAuth } from '../contexts/AuthContext'
-import type { Pitch, User, Organisation } from '../types'
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import type { AxiosResponse } from "axios";
+import Layout from "../components/Layout";
+import PageHeader from "../components/PageHeader";
+import ActivityTimeline from "../components/pitch/ActivityTimeline";
+import FileLinks from "../components/pitch/FileLinks";
+import {
+  STAGE_MAP,
+  SOURCE_LABELS,
+  FUNDING_LABELS,
+} from "../components/pipeline/PipelineConfig";
+import api from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
+import type { Assessment, Pitch, User, Organisation } from "../types";
 
 interface Meeting {
-  id: number
-  title: string
-  meeting_date: string
-}
-
-interface Assessment {
-  id: number
-  version: number
-  assessment_date: string
-  recommendation: 'proceed' | 'park' | 'decline'
+  id: string;
+  title: string;
+  meeting_date: string;
 }
 
 interface ExtendedPitch extends Pitch {
-  organisation_id?: number | string
-  is_confidential?: boolean
-  masterplan_alignment?: string
+  organisation_id?: string;
+  is_confidential?: boolean;
+  masterplan_alignment?: string;
 }
 
-export default function PitchDetailPage(): ReactNode {
-  const { pitchId } = useParams<{ pitchId: string }>()
-  const navigate = useNavigate()
-  const { user } = useAuth()
-  const [pitch, setPitch] = useState<ExtendedPitch | null>(null)
-  const [users, setUsers] = useState<User[]>([])
-  const [org, setOrg] = useState<Organisation | null>(null)
-  const [meetings, setMeetings] = useState<Meeting[]>([])
-  const [assessments, setAssessments] = useState<Assessment[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
+export default function PitchDetailPage(): React.JSX.Element {
+  const { pitchId } = useParams<{ pitchId: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [pitch, setPitch] = useState<ExtendedPitch | null>(null);
+  const [users, setUsers] = useState<User[]>([]);
+  const [org, setOrg] = useState<Organisation | null>(null);
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  const canEdit: boolean = user?.role === 'admin' || user?.role === 'assessor'
+  const canEdit: boolean = user?.role === "admin" || user?.role === "assessor";
 
   useEffect((): void => {
-    Promise.all<[AxiosResponse<ExtendedPitch>, AxiosResponse<User[]>]>([
+    if (!pitchId) {
+      void navigate("/pitches");
+      return;
+    }
+    Promise.all([
       api.get<ExtendedPitch>(`/pitches/${pitchId}`),
-      api.get<User[]>('/users/directory'),
-    ]).then(([pitchRes, usersRes]): Promise<[AxiosResponse<Meeting[]>, AxiosResponse<Assessment[]>, AxiosResponse<Organisation> | undefined]> => {
-      const p = pitchRes.data
-      setPitch(p)
-      setUsers(usersRes.data)
+      api.get<User[]>("/users/directory"),
+    ])
+      .then(
+        ([pitchRes, usersRes]): Promise<
+          [
+            AxiosResponse<Meeting[]>,
+            AxiosResponse<Assessment[]>,
+            AxiosResponse<Organisation> | undefined,
+          ]
+        > => {
+          const p = pitchRes.data;
+          setPitch(p);
+          setUsers(usersRes.data);
 
-      const promises: Array<Promise<AxiosResponse<Meeting[] | Assessment[] | Organisation>>> = [
-        api.get<Meeting[]>(`/meetings?pitch_id=${pitchId}`),
-        api.get<Assessment[]>(`/pitches/${pitchId}/assessments`),
-      ]
-      if (p.organisation_id) {
-        promises.push(api.get<Organisation>(`/organisations/${p.organisation_id}`))
-      }
-      return Promise.all(promises) as Promise<[AxiosResponse<Meeting[]>, AxiosResponse<Assessment[]>, AxiosResponse<Organisation> | undefined]>
-    }).then(([meetingsRes, assessmentsRes, orgRes]): void => {
-      setMeetings(meetingsRes.data)
-      setAssessments(assessmentsRes.data)
-      if (orgRes) setOrg(orgRes.data)
-      setLoading(false)
-    }).catch((): void => {
-      navigate('/pitches')
-    })
-  }, [pitchId, navigate])
+          const promises: Promise<
+            AxiosResponse<Meeting[] | Assessment[] | Organisation>
+          >[] = [
+            api.get<Meeting[]>(`/meetings?pitch_id=${pitchId}`),
+            api.get<Assessment[]>(`/pitches/${pitchId}/assessments`),
+          ];
+          if (p.organisation_id) {
+            promises.push(
+              api.get<Organisation>(`/organisations/${p.organisation_id}`),
+            );
+          }
+          return Promise.all(promises) as Promise<
+            [
+              AxiosResponse<Meeting[]>,
+              AxiosResponse<Assessment[]>,
+              AxiosResponse<Organisation> | undefined,
+            ]
+          >;
+        },
+      )
+      .then(([meetingsRes, assessmentsRes, orgRes]): void => {
+        setMeetings(meetingsRes.data);
+        setAssessments(assessmentsRes.data);
+        if (orgRes) setOrg(orgRes.data);
+        setLoading(false);
+      })
+      .catch((): void => {
+        void navigate("/pitches");
+      });
+  }, [pitchId, navigate]);
 
-  function getUserName(userId: number | undefined): string | null {
-    if (!userId) return null
-    const u = users.find((u): boolean => u.id === userId)
-    return u ? u.display_name : null
+  function getUserName(userId: string | undefined): string | null {
+    if (!userId) return null;
+    const u = users.find((u): boolean => u.id === userId);
+    return u ? u.display_name : null;
   }
 
-  if (loading || !pitch) {
-    return <Layout><p className="text-navy-400">Loading pitch...</p></Layout>
+  if (loading || !pitch || !pitchId) {
+    return (
+      <Layout>
+        <p className="text-navy-400">Loading pitch...</p>
+      </Layout>
+    );
   }
 
-  const stage = STAGE_MAP[pitch.current_stage]
-  const leadName = getUserName(pitch.lead_id)
+  const stage = STAGE_MAP[pitch.current_stage];
+  const leadName = getUserName(pitch.lead_id);
 
   return (
     <Layout>
       <PageHeader
         title={pitch.title}
-        description={pitch.short_description ?? ''}
+        description={pitch.short_description ?? ""}
         action={
           <div className="flex gap-2">
             {canEdit && (
@@ -128,11 +154,11 @@ export default function PitchDetailPage(): ReactNode {
           {/* Pitch details card */}
           <div className="bg-white rounded-xl border border-navy-100 p-6">
             <div className="flex items-center gap-3 mb-4">
-              {stage && (
-                <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${stage.lightColor}`}>
-                  {stage.label}
-                </span>
-              )}
+              <span
+                className={`text-xs font-medium px-2.5 py-1 rounded-full ${stage.lightColor}`}
+              >
+                {stage.label}
+              </span>
               {pitch.is_confidential && (
                 <span className="text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded font-medium">
                   Confidential
@@ -144,13 +170,18 @@ export default function PitchDetailPage(): ReactNode {
               {pitch.source && (
                 <div>
                   <dt className="text-navy-400">Source</dt>
-                  <dd className="text-navy-900">{SOURCE_LABELS[pitch.source as keyof typeof SOURCE_LABELS] || pitch.source}</dd>
+                  <dd className="text-navy-900">
+                    {SOURCE_LABELS[pitch.source] ?? pitch.source}
+                  </dd>
                 </div>
               )}
               {pitch.funding_pathway && (
                 <div>
                   <dt className="text-navy-400">Funding Pathway</dt>
-                  <dd className="text-navy-900">{FUNDING_LABELS[pitch.funding_pathway as keyof typeof FUNDING_LABELS] || pitch.funding_pathway}</dd>
+                  <dd className="text-navy-900">
+                    {FUNDING_LABELS[pitch.funding_pathway] ??
+                      pitch.funding_pathway}
+                  </dd>
                 </div>
               )}
               {leadName && (
@@ -175,8 +206,11 @@ export default function PitchDetailPage(): ReactNode {
                 <div className="col-span-2">
                   <dt className="text-navy-400 mb-1">Domains</dt>
                   <dd className="flex flex-wrap gap-1.5">
-                    {pitch.domain_tags.split(',').map((tag: string): ReactNode => (
-                      <span key={tag} className="text-xs bg-teal-50 text-teal-700 px-2 py-0.5 rounded capitalize">
+                    {pitch.domain_tags.split(",").map((tag: string) => (
+                      <span
+                        key={tag}
+                        className="text-xs bg-teal-50 text-teal-700 px-2 py-0.5 rounded capitalize"
+                      >
                         {tag.trim()}
                       </span>
                     ))}
@@ -186,7 +220,9 @@ export default function PitchDetailPage(): ReactNode {
               {pitch.masterplan_alignment && (
                 <div className="col-span-2">
                   <dt className="text-navy-400">Masterplan Alignment</dt>
-                  <dd className="text-navy-900">{pitch.masterplan_alignment}</dd>
+                  <dd className="text-navy-900">
+                    {pitch.masterplan_alignment}
+                  </dd>
                 </div>
               )}
             </dl>
@@ -207,7 +243,7 @@ export default function PitchDetailPage(): ReactNode {
           <div className="bg-white rounded-xl border border-navy-100 p-6">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold text-navy-500 uppercase tracking-wide">
-                Meetings ({meetings.length})
+                Meetings ({String(meetings.length)})
               </h2>
               {canEdit && (
                 <Link
@@ -222,14 +258,18 @@ export default function PitchDetailPage(): ReactNode {
               <p className="text-sm text-navy-400">No meetings recorded.</p>
             ) : (
               <ul className="space-y-2">
-                {meetings.map((m: Meeting): ReactNode => (
+                {meetings.map((m: Meeting) => (
                   <li key={m.id}>
                     <button
                       type="button"
-                      onClick={(): void => navigate(`/meetings/${m.id}`)}
+                      onClick={() => {
+                        void navigate(`/meetings/${m.id}`);
+                      }}
                       className="w-full text-left p-2 rounded-lg hover:bg-navy-50/50 transition-colors"
                     >
-                      <p className="text-sm font-medium text-navy-900">{m.title}</p>
+                      <p className="text-sm font-medium text-navy-900">
+                        {m.title}
+                      </p>
                       <p className="text-xs text-navy-500">{m.meeting_date}</p>
                     </button>
                   </li>
@@ -257,32 +297,43 @@ export default function PitchDetailPage(): ReactNode {
               <p className="text-sm text-navy-400">No assessments yet.</p>
             ) : (
               <ul className="space-y-2">
-                {assessments.sort((a: Assessment, b: Assessment): number => b.version - a.version).map((a: Assessment): ReactNode => {
-                  const recColorMap: Record<string, string> = {
-                    proceed: 'bg-green-100 text-green-700',
-                    park: 'bg-amber-100 text-amber-700',
-                    decline: 'bg-red-100 text-red-700',
-                  }
-                  const recColor: string = recColorMap[a.recommendation] || 'bg-gray-100'
+                {assessments
+                  .sort((a: Assessment, b: Assessment) => b.version - a.version)
+                  .map((a: Assessment) => {
+                    const recColorMap: Record<string, string> = {
+                      proceed: "bg-green-100 text-green-700",
+                      park: "bg-amber-100 text-amber-700",
+                      decline: "bg-red-100 text-red-700",
+                    };
+                    const recColor: string =
+                      recColorMap[a.recommendation] ?? "bg-gray-100";
 
-                  return (
-                    <li key={a.id}>
-                      <button
-                        type="button"
-                        onClick={(): void => navigate(`/assessments/${a.id}`)}
-                        className="w-full text-left p-2 rounded-lg hover:bg-navy-50/50 transition-colors flex items-center justify-between"
-                      >
-                        <div>
-                          <p className="text-sm font-medium text-navy-900">v{a.version}</p>
-                          <p className="text-xs text-navy-500">{a.assessment_date}</p>
-                        </div>
-                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full capitalize ${recColor}`}>
-                          {a.recommendation}
-                        </span>
-                      </button>
-                    </li>
-                  )
-                })}
+                    return (
+                      <li key={a.id}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void navigate(`/assessments/${a.id}`);
+                          }}
+                          className="w-full text-left p-2 rounded-lg hover:bg-navy-50/50 transition-colors flex items-center justify-between"
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-navy-900">
+                              v{String(a.version)}
+                            </p>
+                            <p className="text-xs text-navy-500">
+                              {a.assessment_date}
+                            </p>
+                          </div>
+                          <span
+                            className={`text-[10px] font-medium px-2 py-0.5 rounded-full capitalize ${recColor}`}
+                          >
+                            {a.recommendation}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
               </ul>
             )}
           </div>
@@ -292,5 +343,5 @@ export default function PitchDetailPage(): ReactNode {
         </div>
       </div>
     </Layout>
-  )
+  );
 }

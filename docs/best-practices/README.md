@@ -24,8 +24,8 @@ obligation. Follow these rules so the docs stay trustworthy rather than becoming
 subtly-wrong lore:
 
 1. **The code is the source of truth; the docs are orientation.** If a doc and the
-   code disagree, the code wins — fix the doc. Examples are *illustrative pointers
-   to a pattern*, not an authoritative catalog; a reader who follows a pointer to a
+   code disagree, the code wins — fix the doc. Examples are _illustrative pointers
+   to a pattern_, not an authoritative catalog; a reader who follows a pointer to a
    moved symbol should still learn the pattern.
 2. **Update the doc in the same change that alters the pattern it describes.** If a
    PR renames `require_role`, restructures a layer, or changes an established
@@ -34,15 +34,15 @@ subtly-wrong lore:
 3. **Prefer durable anchors over volatile ones.** Reference stable structure
    (layers, directories, conventions like "no trailing slashes") in preference to a
    single function name, which is more likely to be renamed.
-4. **Mark forward references.** If a doc cites a symbol that is *planned but not yet
-   implemented* (e.g. a schema described in `features.json` but not yet built), say
+4. **Mark forward references.** If a doc cites a symbol that is _planned but not yet
+   implemented_ (e.g. a schema described in `features.json` but not yet built), say
    so ("planned as `X`") rather than presenting it as existing. Reconcile it when
    the feature lands.
 5. **No tooling needed.** Four short docs don't warrant link-checkers or doctests;
    reviewer attention plus rule 2 is sufficient. Add automation only if drift
    actually becomes a recurring problem.
 
-What *doesn't* rot, and is safe to rely on: the principles and conventions
+What _doesn't_ rot, and is safe to rely on: the principles and conventions
 themselves (server-side authz, tests-first, integrity-in-app-code, the SOLID
 definitions). Only the anchoring examples need maintenance.
 

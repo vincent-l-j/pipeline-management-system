@@ -4,76 +4,83 @@
  * dragged between columns to change their stage.
  */
 
-import { DragDropContext, DropResult } from '@hello-pangea/dnd'
-import KanbanColumn from './KanbanColumn'
-import { PIPELINE_STAGES } from './PipelineConfig'
-import api from '../../services/api'
-
-interface Pitch {
-  id: number
-  title: string
-  short_description?: string
-  source?: string
-  funding_pathway?: string
-  domain_tags?: string
-  is_confidential?: boolean
-  submission_date?: string
-  current_stage: string
-}
+import { DragDropContext, DropResult } from "@hello-pangea/dnd";
+import KanbanColumn from "./KanbanColumn";
+import { PIPELINE_STAGES } from "./PipelineConfig";
+import api from "../../services/api";
+import type { Pitch } from "../../types";
 
 interface KanbanBoardProps {
-  pitches: Pitch[]
-  onPitchMoved: (pitchId: number, newStage: string) => void
+  pitches: Pitch[];
+  onPitchMoved: (pitchId: string, newStage: string) => void;
 }
 
-export default function KanbanBoard({ pitches, onPitchMoved }: KanbanBoardProps) {
+export default function KanbanBoard({
+  pitches,
+  onPitchMoved,
+}: KanbanBoardProps) {
   // Group pitches by their current stage
-  const pitchesByStage: Record<string, Pitch[]> = {}
+  const pitchesByStage: Record<string, Pitch[]> = {};
   for (const stage of PIPELINE_STAGES) {
-    pitchesByStage[stage.key] = pitches.filter(p => p.current_stage === stage.key)
+    pitchesByStage[stage.key] = pitches.filter(
+      (p) => p.current_stage === stage.key,
+    );
   }
 
   // Shared optimistic-move path used by both drag-and-drop and the right-click
   // stage menu: move the card immediately, persist the change, revert on failure.
-  async function moveStage(pitchId: number, fromStage: string, toStage: string): Promise<void> {
-    if (fromStage === toStage) return
+  async function moveStage(
+    pitchId: string,
+    fromStage: string,
+    toStage: string,
+  ): Promise<void> {
+    if (fromStage === toStage) return;
 
-    onPitchMoved(pitchId, toStage)
+    onPitchMoved(pitchId, toStage);
 
     try {
       await api.post(`/pitches/${pitchId}/stage`, {
         new_stage: toStage,
-        note: `Moved from ${fromStage.replace('_', ' ')} to ${toStage.replace('_', ' ')}`,
-      })
+        note: `Moved from ${fromStage.replace("_", " ")} to ${toStage.replace("_", " ")}`,
+      });
     } catch (err) {
       // If the API call fails, revert the move
-      onPitchMoved(pitchId, fromStage)
-      console.error('Failed to update stage:', err)
+      onPitchMoved(pitchId, fromStage);
+      console.error("Failed to update stage:", err);
     }
   }
 
   function handleDragEnd(result: DropResult): void {
-    const { draggableId, source, destination } = result
+    const { draggableId, source, destination } = result;
 
     // Dropped outside a column, or back in the same spot
-    if (!destination) return
-    if (source.droppableId === destination.droppableId && source.index === destination.index) return
+    if (!destination) return;
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    )
+      return;
 
-    moveStage(parseInt(draggableId), source.droppableId, destination.droppableId)
+    void moveStage(draggableId, source.droppableId, destination.droppableId);
   }
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className="flex gap-3 overflow-x-auto pb-4" style={{ minHeight: '500px' }}>
-        {PIPELINE_STAGES.map(stage => (
+      <div
+        className="flex gap-3 overflow-x-auto pb-4"
+        style={{ minHeight: "500px" }}
+      >
+        {PIPELINE_STAGES.map((stage) => (
           <KanbanColumn
             key={stage.key}
             stage={stage}
             pitches={pitchesByStage[stage.key]}
-            onStageSelect={moveStage}
+            onStageSelect={(pitchId, fromStage, toStage) => {
+              void moveStage(pitchId, fromStage, toStage);
+            }}
           />
         ))}
       </div>
     </DragDropContext>
-  )
+  );
 }

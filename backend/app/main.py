@@ -3,8 +3,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes import (
+    assessments,
+    auth,
+    contacts,
+    meetings,
+    organisations,
+    pitches,
+    reports,
+    search,
+    timeline,
+    users,
+)
 from app.core.config import settings
-from app.api.routes import auth, users, organisations, contacts, pitches, meetings, assessments, search, timeline, reports
 
 app = FastAPI(
     title="Rozetta PMS",
@@ -41,9 +52,11 @@ app.include_router(reports.router, prefix="/api")
 if settings.ENABLE_DEV_LOGIN:
     try:
         from app.api.routes import dev
+
         app.include_router(dev.router, prefix="/api")
     except ImportError:
         import logging
+
         logging.getLogger("uvicorn.error").warning(
             "ENABLE_DEV_LOGIN is set, but dev routes are not present in this build — ignoring."
         )

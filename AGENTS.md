@@ -24,7 +24,7 @@ Do not bind other ports or assume services on them.
 **Off-limits:**
 
 - Docker containers and ports not belonging to this project.
-- `methodology.md`, `validation-contract.md`, and the *shape* of `features.json`
+- `methodology.md`, `validation-contract.md`, and the _shape_ of `features.json`
   — do not rewrite the contract or invent assertions. The only edit a worker
   makes to `features.json` is flipping its own feature's `status`.
 - Secrets: never commit `.env` or hardcode keys. `SECRET_KEY`, Azure, and

@@ -1,152 +1,186 @@
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
-import ActivityTimeline from '../ActivityTimeline'
-import api from '../../../services/api'
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
+import ActivityTimeline from "../ActivityTimeline";
+import { createApiMocks } from "../../../test/mocks/api";
 
-vi.mock('../../../services/api', () => ({
+vi.mock("../../../services/api", () => ({
   default: { get: vi.fn() },
-}))
+}));
 
-const mockNavigate = vi.fn()
-vi.mock('react-router-dom', async (importOriginal) => {
-  const mod = await importOriginal()
-  return { ...mod, useNavigate: () => mockNavigate }
-})
+const apiMocks = createApiMocks();
 
-function renderTimeline(pitchId = '1') {
+const mockNavigate = vi.fn();
+vi.mock("react-router-dom", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("react-router-dom")>();
+  return { ...mod, useNavigate: () => mockNavigate };
+});
+
+function renderTimeline(pitchId = "1") {
   return render(
     <MemoryRouter>
       <ActivityTimeline pitchId={pitchId} />
-    </MemoryRouter>
-  )
+    </MemoryRouter>,
+  );
 }
 
-describe('ActivityTimeline', () => {
-  beforeEach(() => {
-    mockNavigate.mockClear()
-    vi.mocked(api.get).mockClear()
-  })
+describe("ActivityTimeline", () => {
+  it("shows loading text initially", () => {
+    apiMocks.get.mockReturnValue(
+      new Promise(
+        /* never resolves */ () => {
+          // Intentionally empty - promise never resolves
+        },
+      ),
+    );
+    renderTimeline();
+    expect(screen.getByText("Loading timeline...")).toBeInTheDocument();
+  });
 
-  it('shows loading text initially', () => {
-    vi.mocked(api.get).mockReturnValue(new Promise(() => {})) // never resolves
-    renderTimeline()
-    expect(screen.getByText('Loading timeline...')).toBeInTheDocument()
-  })
-
-  it('shows empty message when no events are returned', async () => {
-    vi.mocked(api.get).mockResolvedValue({ data: { events: [] } })
-    renderTimeline()
+  it("shows empty message when no events are returned", async () => {
+    apiMocks.get.mockResolvedValue({ data: { events: [] } });
+    renderTimeline();
     await waitFor(() => {
-      expect(screen.getByText('No activity recorded yet.')).toBeInTheDocument()
-    })
-  })
+      expect(screen.getByText("No activity recorded yet.")).toBeInTheDocument();
+    });
+  });
 
-  it('shows empty message when the API call fails', async () => {
-    vi.mocked(api.get).mockRejectedValue(new Error('Network Error'))
-    renderTimeline()
+  it("shows empty message when the API call fails", async () => {
+    apiMocks.get.mockRejectedValue(new Error("Network Error"));
+    renderTimeline();
     await waitFor(() => {
-      expect(screen.getByText('No activity recorded yet.')).toBeInTheDocument()
-    })
-  })
+      expect(screen.getByText("No activity recorded yet.")).toBeInTheDocument();
+    });
+  });
 
-  it('renders each event title after data loads', async () => {
-    vi.mocked(api.get).mockResolvedValue({
-      data: {
-        events: [
-          { type: 'created', title: 'Pitch Received', date: '2026-01-01T10:00:00Z', actor: 'Admin' },
-          { type: 'stage_change', title: 'Moved to Assessment', date: '2026-01-10T09:00:00Z' },
-        ],
-      },
-    })
-    renderTimeline()
-    await waitFor(() => {
-      expect(screen.getByText('Pitch Received')).toBeInTheDocument()
-      expect(screen.getByText('Moved to Assessment')).toBeInTheDocument()
-    })
-  })
-
-  it('renders event description when present', async () => {
-    vi.mocked(api.get).mockResolvedValue({
+  it("renders each event title after data loads", async () => {
+    apiMocks.get.mockResolvedValue({
       data: {
         events: [
           {
-            type: 'created',
-            title: 'Pitch Received',
-            description: 'Initial submission via referral.',
-            date: '2026-01-01T10:00:00Z',
+            type: "created",
+            title: "Pitch Received",
+            date: "2026-01-01T10:00:00Z",
+            actor: "Admin",
+          },
+          {
+            type: "stage_change",
+            title: "Moved to Assessment",
+            date: "2026-01-10T09:00:00Z",
           },
         ],
       },
-    })
-    renderTimeline()
+    });
+    renderTimeline();
     await waitFor(() => {
-      expect(screen.getByText('Initial submission via referral.')).toBeInTheDocument()
-    })
-  })
+      expect(screen.getByText("Pitch Received")).toBeInTheDocument();
+      expect(screen.getByText("Moved to Assessment")).toBeInTheDocument();
+    });
+  });
 
-  it('renders actor name when present', async () => {
-    vi.mocked(api.get).mockResolvedValue({
+  it("renders event description when present", async () => {
+    apiMocks.get.mockResolvedValue({
       data: {
         events: [
-          { type: 'created', title: 'Created', date: '2026-01-01T10:00:00Z', actor: 'Jane Smith' },
+          {
+            type: "created",
+            title: "Pitch Received",
+            description: "Initial submission via referral.",
+            date: "2026-01-01T10:00:00Z",
+          },
         ],
       },
-    })
-    renderTimeline()
+    });
+    renderTimeline();
     await waitFor(() => {
-      expect(screen.getByText(/Jane Smith/)).toBeInTheDocument()
-    })
-  })
+      expect(
+        screen.getByText("Initial submission via referral."),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("renders actor name when present", async () => {
+    apiMocks.get.mockResolvedValue({
+      data: {
+        events: [
+          {
+            type: "created",
+            title: "Created",
+            date: "2026-01-01T10:00:00Z",
+            actor: "Jane Smith",
+          },
+        ],
+      },
+    });
+    renderTimeline();
+    await waitFor(() => {
+      expect(screen.getByText(/Jane Smith/)).toBeInTheDocument();
+    });
+  });
 
   it('shows "click to view" hint for meeting events', async () => {
-    vi.mocked(api.get).mockResolvedValue({
+    apiMocks.get.mockResolvedValue({
       data: {
         events: [
-          { type: 'meeting', title: 'Discovery Meeting', date: '2026-02-01T14:00:00Z', meeting_id: 10 },
+          {
+            type: "meeting",
+            title: "Discovery Meeting",
+            date: "2026-02-01T14:00:00Z",
+            meeting_id: 10,
+          },
         ],
       },
-    })
-    renderTimeline()
+    });
+    renderTimeline();
     await waitFor(() => {
-      expect(screen.getByText('click to view')).toBeInTheDocument()
-    })
-  })
+      expect(screen.getByText("click to view")).toBeInTheDocument();
+    });
+  });
 
-  it('navigates to meeting page when a meeting event is clicked', async () => {
-    const user = userEvent.setup()
-    vi.mocked(api.get).mockResolvedValue({
+  it("navigates to meeting page when a meeting event is clicked", async () => {
+    const user = userEvent.setup();
+    apiMocks.get.mockResolvedValue({
       data: {
         events: [
-          { type: 'meeting', title: 'Discovery Meeting', date: '2026-02-01T14:00:00Z', meeting_id: 10 },
+          {
+            type: "meeting",
+            title: "Discovery Meeting",
+            date: "2026-02-01T14:00:00Z",
+            meeting_id: 10,
+          },
         ],
       },
-    })
-    renderTimeline()
-    await waitFor(() => screen.getByText('Discovery Meeting'))
-    await user.click(screen.getByText('Discovery Meeting'))
-    expect(mockNavigate).toHaveBeenCalledWith('/meetings/10')
-  })
+    });
+    renderTimeline();
+    await waitFor(() => screen.getByText("Discovery Meeting"));
+    await user.click(screen.getByText("Discovery Meeting"));
+    expect(mockNavigate).toHaveBeenCalledWith("/meetings/10");
+  });
 
-  it('navigates to assessment page when an assessment event is clicked', async () => {
-    const user = userEvent.setup()
-    vi.mocked(api.get).mockResolvedValue({
+  it("navigates to assessment page when an assessment event is clicked", async () => {
+    const user = userEvent.setup();
+    apiMocks.get.mockResolvedValue({
       data: {
         events: [
-          { type: 'assessment', title: 'Deep Assessment', date: '2026-03-01T10:00:00Z', assessment_id: 7 },
+          {
+            type: "assessment",
+            title: "Deep Assessment",
+            date: "2026-03-01T10:00:00Z",
+            assessment_id: 7,
+          },
         ],
       },
-    })
-    renderTimeline()
-    await waitFor(() => screen.getByText('Deep Assessment'))
-    await user.click(screen.getByText('Deep Assessment'))
-    expect(mockNavigate).toHaveBeenCalledWith('/assessments/7')
-  })
+    });
+    renderTimeline();
+    await waitFor(() => screen.getByText("Deep Assessment"));
+    await user.click(screen.getByText("Deep Assessment"));
+    expect(mockNavigate).toHaveBeenCalledWith("/assessments/7");
+  });
 
-  it('fetches timeline for the given pitchId', async () => {
-    vi.mocked(api.get).mockResolvedValue({ data: { events: [] } })
-    renderTimeline('99')
-    await waitFor(() => screen.getByText('No activity recorded yet.'))
-    expect(api.get).toHaveBeenCalledWith('/pitches/99/timeline')
-  })
-})
+  it("fetches timeline for the given pitchId", async () => {
+    apiMocks.get.mockResolvedValue({ data: { events: [] } });
+    renderTimeline("99");
+    await waitFor(() => screen.getByText("No activity recorded yet."));
+    expect(apiMocks.get.mock).toHaveBeenCalledWith("/pitches/99/timeline");
+  });
+});

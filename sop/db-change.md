@@ -38,6 +38,7 @@ A model edit alone changes no database — it only takes effect through a migrat
 ## 2. Generate the migration (against a throwaway/local DB)
 
 Use a local or throwaway database (never production). Override `$DATABASE_URL` from `.env`:
+
 ```bash
 export DATABASE_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/throwaway_db"
 echo "TARGET DB: $DATABASE_URL"          # confirm not production
@@ -117,7 +118,7 @@ alembic downgrade -1       # step back one
 - `downgrade()` only works if it was written correctly — read it, especially for anything
   beyond a plain add/drop.
 - A downgrade that **drops a column deletes that column's data permanently.** `[HUMAN
-  CONFIRM]` before downgrading anything holding data.
+CONFIRM]` before downgrading anything holding data.
 - **In production, prefer a new forward migration** that corrects the mistake over a manual
   downgrade. Data already lost to a bad migration is not recovered by downgrading.
 

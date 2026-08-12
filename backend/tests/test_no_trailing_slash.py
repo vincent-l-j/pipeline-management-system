@@ -13,6 +13,7 @@ dev Vite proxy (changeOrigin: true) that redirect pointed at the unreachable
 `backend:8000` host, the request died with no response, and the UI showed the
 generic "Failed to create pitch".
 """
+
 import pytest
 
 COLLECTIONS = [
@@ -29,9 +30,7 @@ COLLECTIONS = [
 def test_no_slash_reaches_route_not_redirect(client, path):
     """The no-slash path resolves to the route (auth-rejected), never a 307."""
     resp = client.get(path)
-    assert resp.status_code != 307, (
-        f"{path} 307-redirected — the trailing-slash bug is back"
-    )
+    assert resp.status_code != 307, f"{path} 307-redirected — the trailing-slash bug is back"
     # Route matched and the auth layer rejected us (no bearer token).
     assert resp.status_code in (401, 403)
 

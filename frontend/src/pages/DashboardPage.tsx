@@ -8,93 +8,113 @@
  * - Phase 7 financial reporting placeholder
  */
 
-import { useState, useEffect, ReactNode } from 'react'
-import { Link } from 'react-router-dom'
-import Layout from '../components/Layout'
-import PageHeader from '../components/PageHeader'
-import api from '../services/api'
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import Layout from "../components/Layout";
+import PageHeader from "../components/PageHeader";
+import api from "../services/api";
 
 interface StageConfig {
-  key: string
-  label: string
-  color: string
+  key: string;
+  label: string;
+  color: string;
 }
 
 interface PitchMonth {
-  month: string
-  count: number
+  month: string;
+  count: number;
 }
 
 interface ConversionMetrics {
-  advanced_to_assessment: number
-  advancement_rate: number
-  completed: number
-  declined: number
-  decline_rate: number
+  advanced_to_assessment: number;
+  advancement_rate: number;
+  completed: number;
+  declined: number;
+  decline_rate: number;
 }
 
 interface Recent30Days {
-  pitches_added: number
-  meetings_logged: number
-  assessments_created: number
-  stage_changes: number
+  pitches_added: number;
+  meetings_logged: number;
+  assessments_created: number;
+  stage_changes: number;
 }
 
 interface VelocityReport {
-  stage_counts: Record<string, number>
-  pitches_per_month: PitchMonth[]
-  conversion: ConversionMetrics
-  recent_30_days: Recent30Days
+  stage_counts: Record<string, number>;
+  pitches_per_month: PitchMonth[];
+  conversion: ConversionMetrics;
+  recent_30_days: Recent30Days;
 }
 
 const STAGE_CONFIG: StageConfig[] = [
-  { key: 'received', label: 'Received', color: 'bg-blue-500' },
-  { key: 'initial_screen', label: 'Initial Screen', color: 'bg-sky-500' },
-  { key: 'discovery_meeting', label: 'Discovery', color: 'bg-cyan-500' },
-  { key: 'deep_assessment', label: 'Deep Assessment', color: 'bg-teal-500' },
-  { key: 'due_diligence', label: 'Due Diligence', color: 'bg-amber-500' },
-  { key: 'decision_pending', label: 'Decision Pending', color: 'bg-orange-500' },
-  { key: 'active_support', label: 'Active Support', color: 'bg-green-500' },
-  { key: 'parked', label: 'Parked', color: 'bg-gray-400' },
-  { key: 'declined', label: 'Declined', color: 'bg-red-500' },
-  { key: 'completed', label: 'Completed', color: 'bg-emerald-500' },
-]
+  { key: "received", label: "Received", color: "bg-blue-500" },
+  { key: "initial_screen", label: "Initial Screen", color: "bg-sky-500" },
+  { key: "discovery_meeting", label: "Discovery", color: "bg-cyan-500" },
+  { key: "deep_assessment", label: "Deep Assessment", color: "bg-teal-500" },
+  { key: "due_diligence", label: "Due Diligence", color: "bg-amber-500" },
+  {
+    key: "decision_pending",
+    label: "Decision Pending",
+    color: "bg-orange-500",
+  },
+  { key: "active_support", label: "Active Support", color: "bg-green-500" },
+  { key: "parked", label: "Parked", color: "bg-gray-400" },
+  { key: "declined", label: "Declined", color: "bg-red-500" },
+  { key: "completed", label: "Completed", color: "bg-emerald-500" },
+];
 
-export default function DashboardPage(): ReactNode {
-  const [velocity, setVelocity] = useState<VelocityReport | null>(null)
-  const [loading, setLoading] = useState(true)
+export default function DashboardPage(): React.JSX.Element {
+  const [velocity, setVelocity] = useState<VelocityReport | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get<VelocityReport>('/reports/velocity')
+    api
+      .get<VelocityReport>("/reports/velocity")
       .then(({ data }) => {
-        setVelocity(data)
-        setLoading(false)
+        setVelocity(data);
+        setLoading(false);
       })
-      .catch(() => setLoading(false))
-  }, [])
+      .catch(() => {
+        setLoading(false);
+      });
+  }, []);
 
   if (loading) {
     return (
       <Layout>
-        <PageHeader title="Dashboard" description="Overview of the Rozetta pipeline" />
+        <PageHeader
+          title="Dashboard"
+          description="Overview of the Rozetta pipeline"
+        />
         <p className="text-navy-400">Loading dashboard...</p>
       </Layout>
-    )
+    );
   }
 
   if (!velocity) {
     return (
       <Layout>
-        <PageHeader title="Dashboard" description="Overview of the Rozetta pipeline" />
+        <PageHeader
+          title="Dashboard"
+          description="Overview of the Rozetta pipeline"
+        />
         <p className="text-navy-400">Unable to load dashboard data</p>
       </Layout>
-    )
+    );
   }
 
-  const { stage_counts, pitches_per_month, conversion, recent_30_days } = velocity
-  const totalActive = Object.values(stage_counts).reduce((a: number, b: number) => a + b, 0)
+  const { stage_counts, pitches_per_month, conversion, recent_30_days } =
+    velocity;
+  const totalActive = Object.values(stage_counts).reduce(
+    (a: number, b: number) => a + b,
+    0,
+  );
 
-  const maxMonthly = Math.max(...pitches_per_month.map((m: PitchMonth) => m.count), 1)
+  const maxMonthly = Math.max(
+    ...pitches_per_month.map((m: PitchMonth) => m.count),
+    1,
+  );
 
   return (
     <Layout>
@@ -119,29 +139,46 @@ export default function DashboardPage(): ReactNode {
         </div>
         <div className="bg-white rounded-xl border border-navy-100 p-5">
           <p className="text-sm text-navy-500">Advanced to Assessment</p>
-          <p className="text-3xl font-bold text-navy-900 mt-1">{conversion.advanced_to_assessment}</p>
-          <p className="text-xs text-navy-400 mt-1">{conversion.advancement_rate}% of total</p>
+          <p className="text-3xl font-bold text-navy-900 mt-1">
+            {conversion.advanced_to_assessment}
+          </p>
+          <p className="text-xs text-navy-400 mt-1">
+            {conversion.advancement_rate}% of total
+          </p>
         </div>
         <div className="bg-white rounded-xl border border-navy-100 p-5">
           <p className="text-sm text-navy-500">Completed</p>
-          <p className="text-3xl font-bold text-emerald-600 mt-1">{conversion.completed}</p>
+          <p className="text-3xl font-bold text-emerald-600 mt-1">
+            {conversion.completed}
+          </p>
         </div>
         <div className="bg-white rounded-xl border border-navy-100 p-5">
           <p className="text-sm text-navy-500">Declined</p>
-          <p className="text-3xl font-bold text-red-500 mt-1">{conversion.declined}</p>
-          <p className="text-xs text-navy-400 mt-1">{conversion.decline_rate}% of total</p>
+          <p className="text-3xl font-bold text-red-500 mt-1">
+            {conversion.declined}
+          </p>
+          <p className="text-xs text-navy-400 mt-1">
+            {conversion.decline_rate}% of total
+          </p>
         </div>
       </div>
 
       {/* --- Pipeline stage breakdown --- */}
       <div className="bg-white rounded-xl border border-navy-100 p-6 mb-8">
-        <h2 className="text-sm font-semibold text-navy-500 uppercase tracking-wide mb-4">Pipeline by Stage</h2>
+        <h2 className="text-sm font-semibold text-navy-500 uppercase tracking-wide mb-4">
+          Pipeline by Stage
+        </h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {STAGE_CONFIG.map((s: StageConfig) => (
-            <div key={s.key} className="flex items-center gap-3 p-3 rounded-lg bg-navy-50/50">
+            <div
+              key={s.key}
+              className="flex items-center gap-3 p-3 rounded-lg bg-navy-50/50"
+            >
               <div className={`w-3 h-3 rounded-full ${s.color} shrink-0`} />
               <div className="min-w-0">
-                <p className="text-lg font-bold text-navy-900">{stage_counts[s.key] || 0}</p>
+                <p className="text-lg font-bold text-navy-900">
+                  {stage_counts[s.key] || 0}
+                </p>
                 <p className="text-[10px] text-navy-500 truncate">{s.label}</p>
               </div>
             </div>
@@ -156,23 +193,30 @@ export default function DashboardPage(): ReactNode {
             Pitches Received per Month
           </h2>
           {pitches_per_month.length === 0 ? (
-            <p className="text-sm text-navy-400">No data yet — pitches will appear here as they are added.</p>
+            <p className="text-sm text-navy-400">
+              No data yet — pitches will appear here as they are added.
+            </p>
           ) : (
             <div className="flex items-end gap-2 h-40">
               {pitches_per_month.map((m: PitchMonth) => {
-                const height = Math.max((m.count / maxMonthly) * 100, 4)
+                const height = Math.max((m.count / maxMonthly) * 100, 4);
                 return (
-                  <div key={m.month} className="flex-1 flex flex-col items-center justify-end">
-                    <span className="text-xs font-semibold text-navy-900 mb-1">{m.count}</span>
+                  <div
+                    key={m.month}
+                    className="flex-1 flex flex-col items-center justify-end"
+                  >
+                    <span className="text-xs font-semibold text-navy-900 mb-1">
+                      {m.count}
+                    </span>
                     <div
                       className="w-full bg-navy-800 rounded-t-md transition-all"
-                      style={{ height: `${height}%` }}
+                      style={{ height: `${String(height)}%` }}
                     />
                     <span className="text-[9px] text-navy-400 mt-1.5 -rotate-45 origin-top-left whitespace-nowrap">
                       {m.month}
                     </span>
                   </div>
-                )
+                );
               })}
             </div>
           )}
@@ -185,14 +229,35 @@ export default function DashboardPage(): ReactNode {
           </h2>
           <div className="space-y-4">
             {[
-              { label: 'New pitches added', value: recent_30_days.pitches_added, color: 'text-blue-600' },
-              { label: 'Meetings logged', value: recent_30_days.meetings_logged, color: 'text-amber-600' },
-              { label: 'Assessments created', value: recent_30_days.assessments_created, color: 'text-green-600' },
-              { label: 'Stage transitions', value: recent_30_days.stage_changes, color: 'text-navy-600' },
-            ].map(item => (
-              <div key={item.label} className="flex items-center justify-between">
+              {
+                label: "New pitches added",
+                value: recent_30_days.pitches_added,
+                color: "text-blue-600",
+              },
+              {
+                label: "Meetings logged",
+                value: recent_30_days.meetings_logged,
+                color: "text-amber-600",
+              },
+              {
+                label: "Assessments created",
+                value: recent_30_days.assessments_created,
+                color: "text-green-600",
+              },
+              {
+                label: "Stage transitions",
+                value: recent_30_days.stage_changes,
+                color: "text-navy-600",
+              },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="flex items-center justify-between"
+              >
                 <span className="text-sm text-navy-600">{item.label}</span>
-                <span className={`text-xl font-bold ${item.color}`}>{item.value}</span>
+                <span className={`text-xl font-bold ${item.color}`}>
+                  {item.value}
+                </span>
               </div>
             ))}
           </div>
@@ -205,7 +270,9 @@ export default function DashboardPage(): ReactNode {
           <span className="inline-block bg-amber-100 text-amber-700 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wide">
             Coming Soon — Phase 7
           </span>
-          <h2 className="text-lg font-bold text-navy-900 mt-3">Financial Reporting</h2>
+          <h2 className="text-lg font-bold text-navy-900 mt-3">
+            Financial Reporting
+          </h2>
           <p className="text-sm text-navy-500 mt-1">
             These modules are planned for the next phase of development
           </p>
@@ -216,9 +283,12 @@ export default function DashboardPage(): ReactNode {
             <div className="w-10 h-10 bg-navy-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
               <span className="text-navy-400 text-sm font-bold">$</span>
             </div>
-            <h3 className="text-sm font-semibold text-navy-700">Pipeline Financial Table</h3>
+            <h3 className="text-sm font-semibold text-navy-700">
+              Pipeline Financial Table
+            </h3>
             <p className="text-xs text-navy-400 mt-1">
-              Bids by status: successful, under development, declined. Financial tracking across the pipeline.
+              Bids by status: successful, under development, declined. Financial
+              tracking across the pipeline.
             </p>
           </div>
 
@@ -226,9 +296,12 @@ export default function DashboardPage(): ReactNode {
             <div className="w-10 h-10 bg-navy-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
               <span className="text-navy-400 text-sm font-bold">%</span>
             </div>
-            <h3 className="text-sm font-semibold text-navy-700">Risk-Adjusted Income View</h3>
+            <h3 className="text-sm font-semibold text-navy-700">
+              Risk-Adjusted Income View
+            </h3>
             <p className="text-xs text-navy-400 mt-1">
-              Likely income weighted by probability of success at each pipeline stage.
+              Likely income weighted by probability of success at each pipeline
+              stage.
             </p>
           </div>
 
@@ -236,13 +309,16 @@ export default function DashboardPage(): ReactNode {
             <div className="w-10 h-10 bg-navy-100 rounded-lg mx-auto mb-3 flex items-center justify-center">
               <span className="text-navy-400 text-sm font-bold">i</span>
             </div>
-            <h3 className="text-sm font-semibold text-navy-700">Impact Measurement View</h3>
+            <h3 className="text-sm font-semibold text-navy-700">
+              Impact Measurement View
+            </h3>
             <p className="text-xs text-navy-400 mt-1">
-              Track and report on the economic, social, and environmental impact of supported initiatives.
+              Track and report on the economic, social, and environmental impact
+              of supported initiatives.
             </p>
           </div>
         </div>
       </div>
     </Layout>
-  )
+  );
 }

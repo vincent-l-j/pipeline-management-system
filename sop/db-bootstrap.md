@@ -7,7 +7,7 @@ PostgreSQL + DigitalOcean App Platform.
 Alembic migrations. For ongoing field/table changes after this, use
 [`db-change.md`](./db-change.md).
 
-**When to run this.** `create_all()` at startup is acceptable *only* during an app's
+**When to run this.** `create_all()` at startup is acceptable _only_ during an app's
 earliest phase — while **all** of these hold: no shared/deployed environment, no data
 you'd be upset to lose, a single developer, and a schema still changing daily. Run this
 SOP the moment **any** of them stops being true (a shared staging/preview URL, a second
@@ -40,16 +40,17 @@ This SOP contains destructive and irreversible steps. If you are an agent execut
    it as fail and HALT.
 6. **Where to run.** The commands below assume a shell that has the app's Python env,
    Alembic, and `psql`/`pg_dump` on `PATH`. If that toolchain lives only in containers
-   (as it does for Rozetta PMS — no host `python`/`alembic`/`psql`), run each step *inside*
+   (as it does for Rozetta PMS — no host `python`/`alembic`/`psql`), run each step _inside_
    the appropriate container from the repo root, and use the copy-paste command sequence in
    the instance sheet rather than these bare commands. Note `CREATE DATABASE` / `DROP
-   DATABASE` cannot run inside a transaction block — issue them as separate statements.
+DATABASE` cannot run inside a transaction block — issue them as separate statements.
 
 ---
 
 ## 1. Preconditions
 
 Ensure `.env` includes:
+
 - `POSTGRES_USER`
 - `POSTGRES_PASSWORD`
 - `DATABASE_URL` (the target managed DB)
@@ -65,9 +66,11 @@ must be decided by a human first.
 Nothing here touches a database.
 
 1. Add the enum autogenerate hook to `backend/alembic/env.py` (top of file):
+
    ```python
    import alembic_postgresql_enum
    ```
+
    This is required even for the genesis migration, so downgrade drops enum types cleanly
    (see Phase C round-trip). Without it, autogenerate does not detect enum value changes
    and does not drop enum types on downgrade.
@@ -79,6 +82,7 @@ Nothing here touches a database.
 
 3. Ensure `env.py` builds the engine directly from settings, so a `%` in the DB password
    can't break ConfigParser interpolation:
+
    ```python
    from sqlalchemy import create_engine
    # online:
@@ -88,9 +92,11 @@ Nothing here touches a database.
    ```
 
 4. **Confirm the model registry is complete.** Run:
+
    ```bash
    cd backend && python -c "from app.models import Base; print(sorted(Base.metadata.tables))"
    ```
+
    `[STOP IF]` any expected table (per instance sheet) is missing — `app/models/__init__.py`
    isn't importing that module. Fix the import before generating anything; a missing table
    here silently produces an incomplete genesis migration.
@@ -140,16 +146,20 @@ All three checks run against the empty throwaway from Phase B. Confirm `$DATABAS
 points there first.
 
 1. **Round-trip.** The second upgrade is where dangling enum types surface.
+
    ```bash
    docker compose run --rm -T backend sh -c 'alembic upgrade head; alembic downgrade base; alembic upgrade head'
    ```
+
    PASS = all three succeed with exit 0. `[STOP IF]` the second `upgrade head` errors with
    "type already exists" — downgrade isn't dropping an enum type; fix `downgrade()`.
 
 2. **Empty-diff.** Prove the migration matches the models exactly.
+
    ```bash
    docker compose run --rm -T backend sh -c 'alembic revision --autogenerate -m _tmp_check'
    ```
+
    PASS = the new file's `upgrade()` and `downgrade()` bodies contain only `pass` (no
    operations). Then delete `_tmp_check`. `[STOP IF]` it contains any operation — the
    genesis migration does not match the models; reconcile and regenerate.
@@ -179,7 +189,7 @@ environments and is a clean review point. Cutover is deliberately a separate cha
 
 ---
 
-## 6. Phase E — Cutover  `[HUMAN CONFIRM required for the whole phase]`
+## 6. Phase E — Cutover `[HUMAN CONFIRM required for the whole phase]`
 
 Follow the branch specified in `$CUTOVER_BRANCH` from `.env`.
 
@@ -206,7 +216,7 @@ Follow the branch specified in `$CUTOVER_BRANCH` from `.env`.
      genesis baseline with a hand-run `ALTER` (verify the data conversion is lossless), re-diff
      until only benign hunks remain, then stamp.
    - **Drastic drift** (many tables/columns diverge): do **not** hand-align or stamp head.
-     Baseline the migration history on the source's *real* schema (autogenerate an initial
+     Baseline the migration history on the source's _real_ schema (autogenerate an initial
      revision against a restored copy, `stamp` that), then author reviewed, CI-tested,
      reversible forward migrations for each delta and `upgrade` through them. Stamp only a
      revision the DB actually matches.

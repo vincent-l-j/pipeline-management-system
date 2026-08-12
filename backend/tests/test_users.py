@@ -119,6 +119,7 @@ def test_unauthenticated_list_users_is_rejected(client):
 
 # --- User directory (minimal, available to any authenticated user) ---
 
+
 def test_viewer_can_read_directory(viewer_client):
     resp = viewer_client.get("/api/users/directory")
     assert resp.status_code == 200

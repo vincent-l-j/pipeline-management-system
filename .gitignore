@@ -10,6 +10,13 @@ venv/
 node_modules/
 frontend/dist/
 
+# TypeScript/Vitest build artifacts (compiled config + incremental build info)
+*.tsbuildinfo
+vite.config.d.ts
+vite.config.js
+vitest.config.d.ts
+vitest.config.js
+
 # Environment
 .env
 .env.local

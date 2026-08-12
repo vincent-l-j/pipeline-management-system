@@ -1,4 +1,5 @@
 """Tests for /api/assessments CRUD, auto-versioning, validation, and RBAC."""
+
 import pytest
 
 
@@ -27,6 +28,7 @@ SCORE_PAYLOAD = {
 
 
 # --- CRUD ---
+
 
 def test_create_assessment(admin_client):
     pitch_id = _create_pitch(admin_client)
@@ -62,12 +64,12 @@ def test_get_assessment(admin_client):
 
 
 def test_get_nonexistent_assessment(admin_client):
-    resp = admin_client.get(
-        "/api/assessments/00000000-0000-0000-0000-000000000000")
+    resp = admin_client.get("/api/assessments/00000000-0000-0000-0000-000000000000")
     assert resp.status_code == 404
 
 
 # --- Auto-versioning ---
+
 
 def test_assessment_auto_versioning(admin_client):
     pitch_id = _create_pitch(admin_client)
@@ -94,12 +96,9 @@ def test_versions_are_independent_per_pitch(admin_client):
     pitch_a = _create_pitch(admin_client)
     pitch_b = _create_pitch(admin_client)
 
-    a1 = admin_client.post(
-        "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_a}).json()
-    b1 = admin_client.post(
-        "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_b}).json()
-    a2 = admin_client.post(
-        "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_a}).json()
+    a1 = admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_a}).json()
+    b1 = admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_b}).json()
+    a2 = admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_a}).json()
 
     assert a1["version"] == 1
     assert b1["version"] == 1
@@ -108,10 +107,18 @@ def test_versions_are_independent_per_pitch(admin_client):
 
 # --- Score validation ---
 
-@pytest.mark.parametrize("field", [
-    "national_impact", "translation_readiness", "team_capability",
-    "ecosystem_fit", "funding_pathway_clarity", "masterplan_alignment",
-])
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "national_impact",
+        "translation_readiness",
+        "team_capability",
+        "ecosystem_fit",
+        "funding_pathway_clarity",
+        "masterplan_alignment",
+    ],
+)
 def test_score_above_5_rejected(admin_client, field):
     pitch_id = _create_pitch(admin_client)
     payload = {**SCORE_PAYLOAD, "pitch_id": pitch_id, field: 6}
@@ -119,10 +126,17 @@ def test_score_above_5_rejected(admin_client, field):
     assert resp.status_code == 422
 
 
-@pytest.mark.parametrize("field", [
-    "national_impact", "translation_readiness", "team_capability",
-    "ecosystem_fit", "funding_pathway_clarity", "masterplan_alignment",
-])
+@pytest.mark.parametrize(
+    "field",
+    [
+        "national_impact",
+        "translation_readiness",
+        "team_capability",
+        "ecosystem_fit",
+        "funding_pathway_clarity",
+        "masterplan_alignment",
+    ],
+)
 def test_score_below_1_rejected(admin_client, field):
     pitch_id = _create_pitch(admin_client)
     payload = {**SCORE_PAYLOAD, "pitch_id": pitch_id, field: 0}
@@ -132,15 +146,13 @@ def test_score_below_1_rejected(admin_client, field):
 
 # --- Filter by pitch_id ---
 
+
 def test_get_pitch_assessments_returns_all_versions(admin_client):
     """GET /pitches/{id}/assessments returns ALL versions for that pitch."""
     pitch_id = _create_pitch(admin_client)
-    v1 = admin_client.post(
-        "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id}).json()
-    v2 = admin_client.post(
-        "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id}).json()
-    v3 = admin_client.post(
-        "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id}).json()
+    v1 = admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id}).json()
+    v2 = admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id}).json()
+    v3 = admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id}).json()
 
     resp = admin_client.get(f"/api/pitches/{pitch_id}/assessments")
     assert resp.status_code == 200
@@ -155,10 +167,10 @@ def test_get_pitch_assessments_returns_all_versions(admin_client):
 
 # --- RBAC ---
 
+
 def test_viewer_cannot_create_assessment(viewer_client):
     fake_pitch_id = "00000000-0000-0000-0000-000000000099"
-    resp = viewer_client.post(
-        "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": fake_pitch_id})
+    resp = viewer_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": fake_pitch_id})
     assert resp.status_code == 403
 
 
@@ -169,8 +181,7 @@ def test_viewer_can_list_assessments(viewer_client):
 
 def test_assessor_can_create_assessment(assessor_client):
     pitch_id = _create_pitch(assessor_client)
-    resp = assessor_client.post(
-        "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id})
+    resp = assessor_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id})
     assert resp.status_code == 200
 
 
@@ -195,15 +206,16 @@ def test_create_assessment_with_invalid_token_is_rejected(client):
 
 # --- Latest-version-only list ---
 
+
 def test_list_shows_only_latest_version_per_pitch(admin_client):
     pitch_id = _create_pitch(admin_client)
 
     # Create three versions of the same assessment
-    v1 = admin_client.post(
+    admin_client.post(
         "/api/assessments",
         json={**SCORE_PAYLOAD, "pitch_id": pitch_id},
     ).json()
-    v2 = admin_client.post(
+    admin_client.post(
         "/api/assessments",
         json={**SCORE_PAYLOAD, "pitch_id": pitch_id},
     ).json()
@@ -231,20 +243,15 @@ def test_list_shows_only_latest_version_per_pitch_multiple_pitches(admin_client)
     pitch_b = _create_pitch(admin_client)
 
     # Create versions for pitch A
-    admin_client.post("/api/assessments",
-                      json={**SCORE_PAYLOAD, "pitch_id": pitch_a})
-    admin_client.post("/api/assessments",
-                      json={**SCORE_PAYLOAD, "pitch_id": pitch_a})
+    admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_a})
+    admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_a})
     a2_v3 = admin_client.post(
         "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_a}
     ).json()
 
     # Create versions for pitch B
-    admin_client.post("/api/assessments",
-                      json={**SCORE_PAYLOAD, "pitch_id": pitch_b})
-    b_v2 = admin_client.post(
-        "/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_b}
-    ).json()
+    admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_b})
+    b_v2 = admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_b}).json()
 
     # List all assessments
     resp = admin_client.get("/api/assessments")
@@ -267,6 +274,7 @@ def test_list_shows_only_latest_version_per_pitch_multiple_pitches(admin_client)
 
 # --- Amending (pitch cannot change) ---
 
+
 def test_amending_creates_new_version_without_mutating_prior(admin_client):
     """A second create appends a new version; the prior row keeps its own scores
     and recommendation on a subsequent GET."""
@@ -274,13 +282,21 @@ def test_amending_creates_new_version_without_mutating_prior(admin_client):
 
     v1 = admin_client.post(
         "/api/assessments",
-        json={**SCORE_PAYLOAD, "pitch_id": pitch_id,
-              "national_impact": 4, "recommendation": "proceed"},
+        json={
+            **SCORE_PAYLOAD,
+            "pitch_id": pitch_id,
+            "national_impact": 4,
+            "recommendation": "proceed",
+        },
     ).json()
     v2 = admin_client.post(
         "/api/assessments",
-        json={**SCORE_PAYLOAD, "pitch_id": pitch_id,
-              "national_impact": 2, "recommendation": "decline"},
+        json={
+            **SCORE_PAYLOAD,
+            "pitch_id": pitch_id,
+            "national_impact": 2,
+            "recommendation": "decline",
+        },
     ).json()
 
     assert v2["version"] == v1["version"] + 1
@@ -300,13 +316,11 @@ def test_new_version_records_supplied_date_and_acting_assessor(admin_client, ass
 
     v1 = admin_client.post(
         "/api/assessments",
-        json={**SCORE_PAYLOAD, "pitch_id": pitch_id,
-              "assessment_date": "2026-06-10"},
+        json={**SCORE_PAYLOAD, "pitch_id": pitch_id, "assessment_date": "2026-06-10"},
     ).json()
     v2 = assessor_client.post(
         "/api/assessments",
-        json={**SCORE_PAYLOAD, "pitch_id": pitch_id,
-              "assessment_date": "2026-07-01"},
+        json={**SCORE_PAYLOAD, "pitch_id": pitch_id, "assessment_date": "2026-07-01"},
     ).json()
 
     # Date is taken from the request, per version.

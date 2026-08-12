@@ -1,6 +1,6 @@
 """Tests for authentication — protected endpoints reject unauthenticated requests."""
-import pytest
 
+import pytest
 
 PROTECTED_ENDPOINTS = [
     ("GET", "/api/pitches"),

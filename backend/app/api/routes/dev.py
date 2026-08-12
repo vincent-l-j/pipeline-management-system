@@ -32,9 +32,13 @@ def dev_token(db: Session = Depends(get_db)):
         db.refresh(user)
 
     token = create_access_token(str(user.id), user.email, user.role.value)
-    return {"access_token": token, "token_type": "bearer", "user": {
-        "id": str(user.id),
-        "email": user.email,
-        "display_name": user.display_name,
-        "role": user.role.value,
-    }}
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {
+            "id": str(user.id),
+            "email": user.email,
+            "display_name": user.display_name,
+            "role": user.role.value,
+        },
+    }

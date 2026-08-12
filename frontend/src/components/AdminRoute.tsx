@@ -4,17 +4,17 @@
  * This is a UX guard — the backend independently enforces admin-only access.
  */
 
-import { ReactNode } from 'react'
-import { Navigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { ReactNode } from "react";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 interface AdminRouteProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 export default function AdminRoute({ children }: AdminRouteProps) {
-  const { user, loading } = useAuth()
-  if (loading) return null
-  if (user?.role !== 'admin') return <Navigate to="/" replace />
-  return children
+  const { user, loading } = useAuth();
+  if (loading) return null;
+  if (user?.role !== "admin") return <Navigate to="/" replace />;
+  return children;
 }

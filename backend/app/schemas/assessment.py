@@ -1,6 +1,8 @@
-from pydantic import BaseModel, field_validator
-from uuid import UUID
 from datetime import date, datetime
+from uuid import UUID
+
+from pydantic import BaseModel, field_validator
+
 from app.models.assessment import Recommendation
 
 
@@ -17,8 +19,12 @@ class AssessmentCreate(BaseModel):
     pitch_id: UUID
 
     @field_validator(
-        "national_impact", "translation_readiness", "team_capability",
-        "ecosystem_fit", "funding_pathway_clarity", "masterplan_alignment"
+        "national_impact",
+        "translation_readiness",
+        "team_capability",
+        "ecosystem_fit",
+        "funding_pathway_clarity",
+        "masterplan_alignment",
     )
     @classmethod
     def score_must_be_1_to_5(cls, v: int) -> int:

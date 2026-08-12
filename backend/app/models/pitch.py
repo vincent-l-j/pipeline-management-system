@@ -1,18 +1,17 @@
 """Pitches — the central entity of the pipeline."""
 
-from sqlalchemy import (
-    String, Text, Date, Boolean, ForeignKey, Enum as SAEnum, ARRAY, DateTime
-)
-from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import ARRAY as PG_ARRAY
-from datetime import date, datetime, timezone
 import enum
 import uuid
+from datetime import UTC, date, datetime
+
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, Text
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin
 
 
-class PipelineStage(str, enum.Enum):
+class PipelineStage(enum.StrEnum):
     RECEIVED = "received"
     INITIAL_SCREEN = "initial_screen"
     DISCOVERY_MEETING = "discovery_meeting"
@@ -25,7 +24,7 @@ class PipelineStage(str, enum.Enum):
     COMPLETED = "completed"
 
 
-class PitchSource(str, enum.Enum):
+class PitchSource(enum.StrEnum):
     REFERRAL = "referral"
     WEBSITE = "website"
     EVENT = "event"
@@ -33,7 +32,7 @@ class PitchSource(str, enum.Enum):
     INTERNAL = "internal"
 
 
-class FundingPathway(str, enum.Enum):
+class FundingPathway(enum.StrEnum):
     CRC_BID = "crc_bid"
     RDTI = "rdti"
     PHILANTHROPIC = "philanthropic"
@@ -59,19 +58,21 @@ class Pitch(Base, TimestampMixin):
     is_confidential: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Foreign keys
-    organisation_id: Mapped[uuid.UUID | None] = mapped_column(
-        ForeignKey("organisations.id")
-    )
+    organisation_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("organisations.id"))
     lead_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
 
     # Relationships
     organisation = relationship("Organisation", back_populates="pitches")
     lead = relationship("User", back_populates="led_pitches", foreign_keys=[lead_id])
     stage_history = relationship(
-        "PitchStageHistory", back_populates="pitch",
-        order_by="PitchStageHistory.changed_at", cascade="all, delete-orphan"
+        "PitchStageHistory",
+        back_populates="pitch",
+        order_by="PitchStageHistory.changed_at",
+        cascade="all, delete-orphan",
     )
-    contact_links = relationship("PitchContact", back_populates="pitch", cascade="all, delete-orphan")
+    contact_links = relationship(
+        "PitchContact", back_populates="pitch", cascade="all, delete-orphan"
+    )
     file_links = relationship("PitchFileLink", back_populates="pitch", cascade="all, delete-orphan")
     meetings = relationship("Meeting", back_populates="pitch", cascade="all, delete-orphan")
     assessments = relationship("Assessment", back_populates="pitch", cascade="all, delete-orphan")
@@ -79,6 +80,7 @@ class Pitch(Base, TimestampMixin):
 
 class PitchStageHistory(Base):
     """Records every stage transition for a pitch."""
+
     __tablename__ = "pitch_stage_history"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -86,7 +88,7 @@ class PitchStageHistory(Base):
     from_stage: Mapped[PipelineStage | None] = mapped_column(SAEnum(PipelineStage))
     to_stage: Mapped[PipelineStage] = mapped_column(SAEnum(PipelineStage))
     changed_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
     changed_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     note: Mapped[str | None] = mapped_column(Text)
@@ -98,6 +100,7 @@ class PitchStageHistory(Base):
 
 class PitchContact(Base):
     """Links contacts to pitches (many-to-many)."""
+
     __tablename__ = "pitch_contacts"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -111,6 +114,7 @@ class PitchContact(Base):
 
 class PitchFileLink(Base, TimestampMixin):
     """Local file path references attached to a pitch (no file storage in DB)."""
+
     __tablename__ = "pitch_file_links"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)

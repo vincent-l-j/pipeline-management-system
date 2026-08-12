@@ -8,10 +8,10 @@ Flow:
 5. Frontend stores the JWT and sends it with every request
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+import msal
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-import msal
 
 from app.core.config import settings
 from app.core.database import get_db
@@ -61,7 +61,9 @@ def callback(code: str, db: Session = Depends(get_db)):
 
     # Restrict to Rozetta domain
     if not email.endswith("@rozettainstitute.com"):
-        raise HTTPException(status_code=403, detail="Access restricted to @rozettainstitute.com accounts")
+        raise HTTPException(
+            status_code=403, detail="Access restricted to @rozettainstitute.com accounts"
+        )
 
     # Find or create user
     user = db.query(User).filter(User.email == email).first()

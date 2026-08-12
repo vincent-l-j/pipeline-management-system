@@ -4,87 +4,106 @@
  * Drag cards between columns to move pitches through the pipeline.
  */
 
-import { useState, useEffect, useCallback, ReactNode } from 'react'
-import { Link } from 'react-router-dom'
-import Layout from '../components/Layout'
-import PageHeader from '../components/PageHeader'
-import KanbanBoard from '../components/pipeline/KanbanBoard'
-import PipelineListView from '../components/pipeline/PipelineListView'
-import PipelineFilters, { PipelineFiltersState } from '../components/pipeline/PipelineFilters'
-import { useAuth } from '../contexts/AuthContext'
-import api from '../services/api'
-import { Pitch, User } from '../types'
+import { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
+import Layout from "../components/Layout";
+import PageHeader from "../components/PageHeader";
+import KanbanBoard from "../components/pipeline/KanbanBoard";
+import PipelineListView from "../components/pipeline/PipelineListView";
+import PipelineFilters, {
+  PipelineFiltersState,
+} from "../components/pipeline/PipelineFilters";
+import { useAuth } from "../contexts/AuthContext";
+import api from "../services/api";
+import { Pitch, User } from "../types";
 
-export default function PipelinePage(): ReactNode {
-  const { user } = useAuth()
-  const canEdit = user?.role === 'admin' || user?.role === 'assessor'
-  const [pitches, setPitches] = useState<Pitch[]>([])
-  const [users, setUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
-  const [view, setView] = useState<'kanban' | 'list'>('kanban')
-  const [filters, setFilters] = useState<PipelineFiltersState>({ sort: 'newest' })
+export default function PipelinePage(): React.JSX.Element {
+  const { user } = useAuth();
+  const canEdit = user?.role === "admin" || user?.role === "assessor";
+  const [pitches, setPitches] = useState<Pitch[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<"kanban" | "list">("kanban");
+  const [filters, setFilters] = useState<PipelineFiltersState>({
+    sort: "newest",
+  });
 
   useEffect(() => {
     Promise.all([
-      api.get('/pitches'),
-      api.get('/users/directory'),
-    ]).then(([pitchRes, userRes]) => {
-      setPitches(pitchRes.data)
-      setUsers(userRes.data)
-      setLoading(false)
-    }).catch(() => setLoading(false))
-  }, [])
+      api.get<Pitch[]>("/pitches"),
+      api.get<User[]>("/users/directory"),
+    ])
+      .then(([pitchRes, userRes]) => {
+        setPitches(pitchRes.data);
+        setUsers(userRes.data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
+  }, []);
 
-  const handlePitchMoved = useCallback((pitchId: number, newStage: string): void => {
-    setPitches(prev => prev.map(p =>
-      p.id === pitchId ? { ...p, current_stage: newStage } : p
-    ))
-  }, [])
+  const handlePitchMoved = useCallback(
+    (pitchId: string, newStage: string): void => {
+      setPitches((prev) =>
+        prev.map((p) =>
+          p.id === pitchId ? { ...p, current_stage: newStage } : p,
+        ),
+      );
+    },
+    [],
+  );
 
   function getFilteredPitches(): Pitch[] {
-    let result = [...pitches]
+    let result = [...pitches];
 
     if (filters.stage) {
-      result = result.filter(p => p.current_stage === filters.stage)
+      result = result.filter((p) => p.current_stage === filters.stage);
     }
     if (filters.source) {
-      result = result.filter(p => p.source === filters.source)
+      result = result.filter((p) => p.source === filters.source);
     }
     if (filters.domain) {
-      result = result.filter(p =>
-        p.domain_tags && p.domain_tags.toLowerCase().includes(filters.domain!.toLowerCase())
-      )
+      result = result.filter((p) =>
+        p.domain_tags
+          ?.toLowerCase()
+          .includes(filters.domain?.toLowerCase() ?? ""),
+      );
     }
     if (filters.lead_id) {
-      result = result.filter(p => p.lead_id === filters.lead_id)
+      result = result.filter((p) => p.lead_id === filters.lead_id);
     }
 
     switch (filters.sort) {
-      case 'oldest':
-        result.sort((a, b) => (a.submission_date || '').localeCompare(b.submission_date || ''))
-        break
-      case 'title_asc':
-        result.sort((a, b) => a.title.localeCompare(b.title))
-        break
-      case 'title_desc':
-        result.sort((a, b) => b.title.localeCompare(a.title))
-        break
-      case 'newest':
+      case "oldest":
+        result.sort((a, b) =>
+          (a.submission_date ?? "").localeCompare(b.submission_date ?? ""),
+        );
+        break;
+      case "title_asc":
+        result.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+      case "title_desc":
+        result.sort((a, b) => b.title.localeCompare(a.title));
+        break;
+      case "newest":
       default:
-        result.sort((a, b) => (b.submission_date || '').localeCompare(a.submission_date || ''))
-        break
+        result.sort((a, b) =>
+          (b.submission_date ?? "").localeCompare(a.submission_date ?? ""),
+        );
+        break;
     }
 
-    return result
+    return result;
   }
 
-  const filteredPitches = getFilteredPitches()
+  const filteredPitches = getFilteredPitches();
 
   return (
     <Layout>
       <PageHeader
         title="Pipeline"
-        description={`${pitches.length} initiatives in the pipeline`}
+        description={`${String(pitches.length)} initiatives in the pipeline`}
         action={
           <div className="flex items-center gap-3">
             {canEdit && (
@@ -97,21 +116,25 @@ export default function PipelinePage(): ReactNode {
             )}
             <div className="flex items-center bg-navy-100 rounded-lg p-0.5">
               <button
-                onClick={() => setView('kanban')}
+                onClick={() => {
+                  setView("kanban");
+                }}
                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  view === 'kanban'
-                    ? 'bg-white text-navy-900 shadow-sm'
-                    : 'text-navy-500 hover:text-navy-700'
+                  view === "kanban"
+                    ? "bg-white text-navy-900 shadow-sm"
+                    : "text-navy-500 hover:text-navy-700"
                 }`}
               >
                 Board
               </button>
               <button
-                onClick={() => setView('list')}
+                onClick={() => {
+                  setView("list");
+                }}
                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  view === 'list'
-                    ? 'bg-white text-navy-900 shadow-sm'
-                    : 'text-navy-500 hover:text-navy-700'
+                  view === "list"
+                    ? "bg-white text-navy-900 shadow-sm"
+                    : "text-navy-500 hover:text-navy-700"
                 }`}
               >
                 List
@@ -121,19 +144,18 @@ export default function PipelinePage(): ReactNode {
         }
       />
 
-      <PipelineFilters
-        filters={filters}
-        onChange={setFilters}
-        users={users}
-      />
+      <PipelineFilters filters={filters} onChange={setFilters} users={users} />
 
       {loading ? (
         <p className="text-navy-400">Loading pipeline...</p>
-      ) : view === 'kanban' ? (
-        <KanbanBoard pitches={filteredPitches} onPitchMoved={handlePitchMoved} />
+      ) : view === "kanban" ? (
+        <KanbanBoard
+          pitches={filteredPitches}
+          onPitchMoved={handlePitchMoved}
+        />
       ) : (
         <PipelineListView pitches={filteredPitches} />
       )}
     </Layout>
-  )
+  );
 }

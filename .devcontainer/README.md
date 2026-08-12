@@ -10,9 +10,9 @@ Install these once on your machine.
 
 **Required for everyone:**
 
-| Tool | Download |
-|------|----------|
-| VS Code | https://code.visualstudio.com |
+| Tool                             | Download                                                                                                                                  |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| VS Code                          | https://code.visualstudio.com                                                                                                             |
 | VS Code Dev Containers extension | Search "Dev Containers" in VS Code Extensions, or: https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers |
 
 **Then choose one container runtime:**
@@ -60,12 +60,12 @@ The Podman container (`.devcontainer/podman/`) is configured to run **rootless**
 
 A firewall runs automatically on every container start and restricts outbound traffic to a fixed allowlist:
 
-| Service | Purpose |
-|---------|---------|
-| `api.anthropic.com`, `platform.claude.com` | Claude Code |
-| GitHub IP ranges | Git operations |
-| `registry.npmjs.org` | npm installs |
-| `pypi.org`, `files.pythonhosted.org` | pip installs |
+| Service                                    | Purpose        |
+| ------------------------------------------ | -------------- |
+| `api.anthropic.com`, `platform.claude.com` | Claude Code    |
+| GitHub IP ranges                           | Git operations |
+| `registry.npmjs.org`                       | npm installs   |
+| `pypi.org`, `files.pythonhosted.org`       | pip installs   |
 
 All other outbound internet access is blocked. If a tool or script tries to reach an unlisted host it will be rejected immediately (ICMP admin-prohibited).
 

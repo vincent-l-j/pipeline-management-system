@@ -45,7 +45,7 @@ silently doesn't force.
 
 ```
 backend/app/   FastAPI: api/routes, core (config/db/security), models, schemas, services
-frontend/src/  React: pages, components, contexts, services/api.js
+frontend/src/  React: pages, components, contexts, services/api.ts
 docs/          architecture.md, best-practices/
 sop/           db bootstrap/migration runbooks, tooling, instance sheets
 ```
@@ -90,7 +90,7 @@ in the same change that alters the pattern it describes).
    is client-controlled.
 3. **Least-privilege responses.** Return only the fields a caller needs; add a
    narrow schema/endpoint rather than leaking a full record to a low-privilege role.
-4. **All frontend HTTP goes through `src/services/api.js`.** Never call
+4. **All frontend HTTP goes through `src/services/api.ts`.** Never call
    `fetch`/`axios` directly.
 5. **No trailing slashes on routes** (`redirect_slashes=False`, regression-tested).
 6. **Pydantic schemas are allowlists.** Don't widen one to pass a field through;

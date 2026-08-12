@@ -73,15 +73,15 @@
     "description": "Update frontend domain selector to replace old domains (climate, digital, forestry, agri, education, other) with new domains (AI Energy Transition, Health, Semiconductors)",
     "milestone": "domain-options-update",
     "expectedBehavior": [
-      "DOMAIN_OPTIONS in PitchCreatePage.jsx contains AI Energy Transition, Health, Semiconductors",
-      "DOMAIN_OPTIONS in PitchEditPage.jsx contains AI Energy Transition, Health, Semiconductors",
-      "DOMAIN_OPTIONS in PipelineFilters.jsx contains AI Energy Transition, Health, Semiconductors",
+      "DOMAIN_OPTIONS in PitchCreatePage.tsx contains AI Energy Transition, Health, Semiconductors",
+      "DOMAIN_OPTIONS in PitchEditPage.tsx contains AI Energy Transition, Health, Semiconductors",
+      "DOMAIN_OPTIONS in PipelineFilters.tsx contains AI Energy Transition, Health, Semiconductors",
       "Old domain values are no longer available in any form UI"
     ],
     "verificationSteps": [
-      "Update DOMAIN_OPTIONS in frontend/src/pages/PitchCreatePage.jsx to ['AI Energy Transition', 'Health', 'Semiconductors']",
-      "Update DOMAIN_OPTIONS in frontend/src/pages/PitchEditPage.jsx to ['AI Energy Transition', 'Health', 'Semiconductors']",
-      "Update DOMAIN_OPTIONS in frontend/src/components/pipeline/PipelineFilters.jsx to ['AI Energy Transition', 'Health', 'Semiconductors']",
+      "Update DOMAIN_OPTIONS in frontend/src/pages/PitchCreatePage.tsx to ['AI Energy Transition', 'Health', 'Semiconductors']",
+      "Update DOMAIN_OPTIONS in frontend/src/pages/PitchEditPage.tsx to ['AI Energy Transition', 'Health', 'Semiconductors']",
+      "Update DOMAIN_OPTIONS in frontend/src/components/pipeline/PipelineFilters.tsx to ['AI Energy Transition', 'Health', 'Semiconductors']",
       "Load pitch creation form and verify only three domain pills are shown",
       "Load pitch edit form and verify only three domain pills are shown",
       "Load pipeline list view and verify domain filter dropdown shows only three options"

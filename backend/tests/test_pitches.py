@@ -186,6 +186,40 @@ def test_funding_pathway_unknown_value_returns_422(admin_client):
     assert resp.status_code == 422
 
 
+# --- Domains ---
+
+
+@pytest.mark.parametrize("domain", ["AI Energy Transition", "Health", "Semiconductors"])
+def test_domain_tags_single_domain_round_trips(admin_client, domain):
+    create = admin_client.post(
+        "/api/pitches", json={"title": f"Domain {domain}", "domain_tags": domain}
+    )
+    assert create.status_code == 200
+    assert create.json()["domain_tags"] == domain
+
+    fetched = admin_client.get(f"/api/pitches/{create.json()['id']}")
+    assert fetched.json()["domain_tags"] == domain
+
+
+def test_domain_tags_multiple_domains_stored_comma_separated(admin_client):
+    create = admin_client.post(
+        "/api/pitches", json={"title": "Multi Domain", "domain_tags": "Health,Semiconductors"}
+    )
+    assert create.status_code == 200
+
+    fetched = admin_client.get(f"/api/pitches/{create.json()['id']}")
+    body = fetched.json()
+    # Stored verbatim — the API neither reorders nor normalises the list.
+    assert body["domain_tags"] == "Health,Semiconductors"
+    assert body["domain_tags"].split(",") == ["Health", "Semiconductors"]
+
+
+def test_domain_tags_defaults_to_null_when_omitted(admin_client):
+    create = admin_client.post("/api/pitches", json={"title": "No Domain"})
+    assert create.status_code == 200
+    assert create.json()["domain_tags"] is None
+
+
 # --- Stage transitions ---
 
 

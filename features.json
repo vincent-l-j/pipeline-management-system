@@ -66,7 +66,7 @@
       "VAL-DOMAIN-003"
     ],
     "dependsOn": [],
-    "status": "pending"
+    "status": "complete"
   },
   {
     "id": "pitch-domain-options-migration",

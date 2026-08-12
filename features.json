@@ -118,5 +118,28 @@
     ],
     "dependsOn": [],
     "status": "complete"
+  },
+  {
+    "id": "pitch-source-funding-options-frontend",
+    "description": "Expose the new pitch sources (RIAC, Foundry, Board, RIAC student) and funding pathways (no funding identified, internal funding) in the frontend selectors and display labels",
+    "milestone": "domain-options-update",
+    "expectedBehavior": [
+      "SOURCES in PitchCreatePage.tsx and PitchEditPage.tsx offer riac, foundry, board, riac_student",
+      "FUNDING_PATHWAYS in PitchCreatePage.tsx and PitchEditPage.tsx offer no_funding_identified, internal_funding",
+      "SOURCE_LABELS and FUNDING_LABELS in PipelineConfig.ts label the new values, so cards, list, detail and the pipeline filter render names rather than raw enum keys",
+      "Existing sources and funding pathways remain selectable"
+    ],
+    "verificationSteps": [
+      "cd frontend && npm test",
+      "Load the pitch creation form and verify the source dropdown lists RIAC, Foundry, Board and RIAC Student",
+      "Load the pitch edit form and verify the funding pathway dropdown lists No Funding Identified and Internal Funding",
+      "Create a pitch with source='riac' and verify the pipeline card shows 'RIAC' rather than 'riac'"
+    ],
+    "fulfills": [],
+    "dependsOn": [
+      "pitch-sources-enum-expansion",
+      "pitch-funding-pathway-enum-expansion"
+    ],
+    "status": "pending"
   }
 ]

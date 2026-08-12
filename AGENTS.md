@@ -72,9 +72,9 @@ boundaries, or if a feature's `expectedBehavior` conflicts with an assertion in
 
 ## Frontend Conventions (React 18, Vite, React Router 6, Tailwind)
 
-- Function components + hooks. Routes live in `App.jsx` wrapped in `ProtectedRoute`;
+- Function components + hooks. Routes live in `App.tsx` wrapped in `ProtectedRoute`;
   admin-only routes additionally guard on role.
-- **All HTTP goes through `src/services/api.js`** (axios, `baseURL: '/api'`, bearer-token
+- **All HTTP goes through `src/services/api.ts`** (axios, `baseURL: '/api'`, bearer-token
   and 401 interceptors). Do not call `fetch`/`axios` directly elsewhere.
 - Auth/role via `useAuth()` (`AuthContext`); `token`/`user` persist in `localStorage`.
   Role-based UI gating (e.g. `user.role === 'admin'`) is **UX only, not a security

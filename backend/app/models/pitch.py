@@ -30,6 +30,10 @@ class PitchSource(enum.StrEnum):
     EVENT = "event"
     COLD_OUTREACH = "cold_outreach"
     INTERNAL = "internal"
+    RIAC = "riac"
+    FOUNDRY = "foundry"
+    BOARD = "board"
+    RIAC_STUDENT = "riac_student"
 
 
 class FundingPathway(enum.StrEnum):
@@ -39,6 +43,8 @@ class FundingPathway(enum.StrEnum):
     GOVERNMENT_GRANT = "government_grant"
     PRIVATE = "private"
     OTHER = "other"
+    NO_FUNDING_IDENTIFIED = "no_funding_identified"
+    INTERNAL_FUNDING = "internal_funding"
 
 
 class Pitch(Base, TimestampMixin):
@@ -52,7 +58,10 @@ class Pitch(Base, TimestampMixin):
     current_stage: Mapped[PipelineStage] = mapped_column(
         SAEnum(PipelineStage), default=PipelineStage.RECEIVED
     )
-    domain_tags: Mapped[str | None] = mapped_column(Text)  # comma-separated: climate,health,digital
+    # Free text, comma-separated, e.g. "Health,Semiconductors". Deliberately not an
+    # enum: the domain vocabulary is set by the frontend (DOMAIN_OPTIONS) and changes
+    # without a migration. Current values: AI Energy Transition, Health, Semiconductors.
+    domain_tags: Mapped[str | None] = mapped_column(Text)
     funding_pathway: Mapped[FundingPathway | None] = mapped_column(SAEnum(FundingPathway))
     masterplan_alignment: Mapped[str | None] = mapped_column(Text)
     is_confidential: Mapped[bool] = mapped_column(Boolean, default=False)

@@ -8,15 +8,7 @@ import { ChangeEvent } from "react";
 import { PIPELINE_STAGES, SOURCE_LABELS } from "./PipelineConfig";
 import { User } from "../../types";
 
-const DOMAIN_OPTIONS = [
-  "climate",
-  "health",
-  "digital",
-  "forestry",
-  "agri",
-  "education",
-  "other",
-];
+const DOMAIN_OPTIONS = ["AI Energy Transition", "Health", "Semiconductors"];
 
 interface SortOption {
   key: string;

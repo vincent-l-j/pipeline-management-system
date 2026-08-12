@@ -23,6 +23,10 @@ const SOURCES: SelectOption[] = [
   { value: "event", label: "Event" },
   { value: "cold_outreach", label: "Cold Outreach" },
   { value: "internal", label: "Internal" },
+  { value: "riac", label: "RIAC" },
+  { value: "foundry", label: "Foundry" },
+  { value: "board", label: "Board" },
+  { value: "riac_student", label: "RIAC Student" },
 ];
 
 const FUNDING_PATHWAYS: SelectOption[] = [
@@ -32,16 +36,14 @@ const FUNDING_PATHWAYS: SelectOption[] = [
   { value: "government_grant", label: "Government Grant" },
   { value: "private", label: "Private" },
   { value: "other", label: "Other" },
+  { value: "no_funding_identified", label: "No Funding Identified" },
+  { value: "internal_funding", label: "Internal Funding" },
 ];
 
 const DOMAIN_OPTIONS: string[] = [
-  "climate",
-  "health",
-  "digital",
-  "forestry",
-  "agri",
-  "education",
-  "other",
+  "AI Energy Transition",
+  "Health",
+  "Semiconductors",
 ];
 
 interface PitchForm {

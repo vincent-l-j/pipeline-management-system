@@ -58,4 +58,48 @@ describe("PitchCreatePage", () => {
       screen.getByRole("button", { name: /Add Pitch/i }),
     ).toBeInTheDocument();
   });
+
+  it("offers the new sources and funding pathways in their dropdowns", async () => {
+    render(<PitchCreatePage />);
+    await waitFor(() => screen.getByText("New Pitch"));
+
+    for (const source of ["RIAC", "Foundry", "Board", "RIAC Student"]) {
+      expect(screen.getByRole("option", { name: source })).toBeInTheDocument();
+    }
+    for (const pathway of ["No Funding Identified", "Internal Funding"]) {
+      expect(screen.getByRole("option", { name: pathway })).toBeInTheDocument();
+    }
+    // The original vocabulary is unaffected.
+    expect(
+      screen.getByRole("option", { name: "Referral" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "RDTI" })).toBeInTheDocument();
+  });
+
+  it("offers exactly the three current domains as pills", async () => {
+    render(<PitchCreatePage />);
+    await waitFor(() => screen.getByText("New Pitch"));
+
+    for (const domain of ["AI Energy Transition", "Health", "Semiconductors"]) {
+      expect(screen.getByRole("button", { name: domain })).toBeInTheDocument();
+    }
+  });
+
+  it("no longer offers the retired domains", async () => {
+    render(<PitchCreatePage />);
+    await waitFor(() => screen.getByText("New Pitch"));
+
+    for (const retired of [
+      "Climate",
+      "Digital",
+      "Forestry",
+      "Agri",
+      "Education",
+      "Other",
+    ]) {
+      expect(
+        screen.queryByRole("button", { name: retired }),
+      ).not.toBeInTheDocument();
+    }
+  });
 });

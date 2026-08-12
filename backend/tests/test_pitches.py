@@ -1,5 +1,7 @@
 """Tests for /api/pitches CRUD, stage transitions, file links, and RBAC."""
 
+import pytest
+
 PITCH_PAYLOAD = {"title": "Green Hydrogen Initiative"}
 
 
@@ -124,6 +126,139 @@ def test_delete_pitch(admin_client):
 def test_get_nonexistent_pitch(admin_client):
     resp = admin_client.get("/api/pitches/00000000-0000-0000-0000-000000000000")
     assert resp.status_code == 404
+
+
+# --- Sources ---
+
+
+@pytest.mark.parametrize("source", ["riac", "foundry", "board", "riac_student"])
+def test_pitch_source_new_value_round_trips(admin_client, source):
+    create = admin_client.post("/api/pitches", json={"title": f"Source {source}", "source": source})
+    assert create.status_code == 200
+    assert create.json()["source"] == source
+
+    fetched = admin_client.get(f"/api/pitches/{create.json()['id']}")
+    assert fetched.json()["source"] == source
+
+
+@pytest.mark.parametrize("source", ["referral", "website", "event", "cold_outreach", "internal"])
+def test_pitch_source_existing_value_still_accepted(admin_client, source):
+    resp = admin_client.post("/api/pitches", json={"title": f"Legacy {source}", "source": source})
+    assert resp.status_code == 200
+    assert resp.json()["source"] == source
+
+
+def test_pitch_source_unknown_value_returns_422(admin_client):
+    resp = admin_client.post("/api/pitches", json={"title": "Bad", "source": "not_a_source"})
+    assert resp.status_code == 422
+
+
+# --- Funding pathways ---
+
+
+@pytest.mark.parametrize("pathway", ["no_funding_identified", "internal_funding"])
+def test_funding_pathway_new_value_round_trips(admin_client, pathway):
+    create = admin_client.post(
+        "/api/pitches", json={"title": f"Funding {pathway}", "funding_pathway": pathway}
+    )
+    assert create.status_code == 200
+    assert create.json()["funding_pathway"] == pathway
+
+    fetched = admin_client.get(f"/api/pitches/{create.json()['id']}")
+    assert fetched.json()["funding_pathway"] == pathway
+
+
+@pytest.mark.parametrize(
+    "pathway", ["crc_bid", "rdti", "philanthropic", "government_grant", "private", "other"]
+)
+def test_funding_pathway_existing_value_still_accepted(admin_client, pathway):
+    resp = admin_client.post(
+        "/api/pitches", json={"title": f"Legacy {pathway}", "funding_pathway": pathway}
+    )
+    assert resp.status_code == 200
+    assert resp.json()["funding_pathway"] == pathway
+
+
+def test_funding_pathway_unknown_value_returns_422(admin_client):
+    resp = admin_client.post(
+        "/api/pitches", json={"title": "Bad", "funding_pathway": "not_a_pathway"}
+    )
+    assert resp.status_code == 422
+
+
+# --- Domains ---
+
+
+@pytest.mark.parametrize("domain", ["AI Energy Transition", "Health", "Semiconductors"])
+def test_domain_tags_single_domain_round_trips(admin_client, domain):
+    create = admin_client.post(
+        "/api/pitches", json={"title": f"Domain {domain}", "domain_tags": domain}
+    )
+    assert create.status_code == 200
+    assert create.json()["domain_tags"] == domain
+
+    fetched = admin_client.get(f"/api/pitches/{create.json()['id']}")
+    assert fetched.json()["domain_tags"] == domain
+
+
+def test_domain_tags_multiple_domains_stored_comma_separated(admin_client):
+    create = admin_client.post(
+        "/api/pitches", json={"title": "Multi Domain", "domain_tags": "Health,Semiconductors"}
+    )
+    assert create.status_code == 200
+
+    fetched = admin_client.get(f"/api/pitches/{create.json()['id']}")
+    body = fetched.json()
+    # Stored verbatim — the API neither reorders nor normalises the list.
+    assert body["domain_tags"] == "Health,Semiconductors"
+    assert body["domain_tags"].split(",") == ["Health", "Semiconductors"]
+
+
+def test_domain_tags_defaults_to_null_when_omitted(admin_client):
+    create = admin_client.post("/api/pitches", json={"title": "No Domain"})
+    assert create.status_code == 200
+    assert create.json()["domain_tags"] is None
+
+
+# --- Submission date ---
+
+
+def test_submission_date_is_null_when_omitted(admin_client):
+    """A pitch with no submission date recorded yet reads back as null, not a
+    stand-in default."""
+    create = admin_client.post("/api/pitches", json={"title": "Undated"})
+    assert create.status_code == 200
+    assert create.json()["submission_date"] is None
+
+    fetched = admin_client.get(f"/api/pitches/{create.json()['id']}")
+    assert fetched.json()["submission_date"] is None
+
+
+def test_submission_date_accepts_explicit_null(admin_client):
+    create = admin_client.post(
+        "/api/pitches", json={"title": "Explicit Null", "submission_date": None}
+    )
+    assert create.status_code == 200
+    assert create.json()["submission_date"] is None
+
+
+@pytest.mark.parametrize("submitted_on", ["2024-01-01", "2026-12-31"])
+def test_submission_date_round_trips_past_and_future(admin_client, submitted_on):
+    create = admin_client.post(
+        "/api/pitches", json={"title": f"Dated {submitted_on}", "submission_date": submitted_on}
+    )
+    assert create.status_code == 200
+    assert create.json()["submission_date"] == submitted_on
+
+    fetched = admin_client.get(f"/api/pitches/{create.json()['id']}")
+    assert fetched.json()["submission_date"] == submitted_on
+
+
+def test_submission_date_rejects_malformed_value(admin_client):
+    resp = admin_client.post(
+        "/api/pitches", json={"title": "Bad Date", "submission_date": "not-a-date"}
+    )
+    assert resp.status_code == 422
 
 
 # --- Stage transitions ---

@@ -71,7 +71,9 @@ describe("ContactsPage", () => {
     setupGet([{ ...CONTACTS[0], last_name: null }]);
     render(<ContactsPage />);
     await waitFor(() => screen.getByText("Jane"));
-    expect(screen.queryByText("Doe")).not.toBeInTheDocument();
+    const cells = screen.getAllByRole("cell");
+    expect(cells[0]).toHaveTextContent("Jane");
+    expect(cells[1]).toHaveTextContent("-");
   });
 
   it("admin sees Add and per-row Remove", async () => {

@@ -15,7 +15,15 @@ interface User {
 
 interface Contact {
   id: string;
-  name: string;
+  first_name: string | null;
+  last_name: string | null;
+}
+
+function contactName(contact: Contact): string {
+  const name = [contact.first_name, contact.last_name]
+    .filter(Boolean)
+    .join(" ");
+  return name || "Unnamed contact";
 }
 
 interface Attendee {
@@ -90,7 +98,7 @@ export default function MeetingAttendees({
     }
     if (attendee.contact_id) {
       const c = contacts.find((c) => c.id === attendee.contact_id);
-      return c ? c.name : "Unknown contact";
+      return c ? contactName(c) : "Unknown contact";
     }
     return "Unknown";
   }
@@ -155,7 +163,7 @@ export default function MeetingAttendees({
                   ))
                 : contacts.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name}
+                      {contactName(c)}
                     </option>
                   ))}
             </select>

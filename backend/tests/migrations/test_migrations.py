@@ -85,7 +85,7 @@ def _seed_connected_graph(url: str) -> None:
     with Session(engine) as s:
         org = Organisation(name="Acme Research", org_type=OrgType.STARTUP)
         user = User(email="lead@example.com", display_name="Lead", role=UserRole.ASSESSOR)
-        contact = Contact(name="Jane External")
+        contact = Contact(first_name="Jane", last_name="External")
         s.add_all([org, user, contact])
         s.flush()
 
@@ -140,3 +140,55 @@ def test_downgrade_runs_on_populated_db(alembic, clean_db, pg_url):
     # The real assertion is that these don't raise (alembic runner asserts rc==0).
     alembic("downgrade", "base")
     alembic("upgrade", "head")
+
+
+# --- Level 2 (per-revision): b7c3f1d29e84 splits contacts.name --------------
+
+_GENESIS = "a1a27441d35c"
+_SPLIT_CONTACT_NAME = "b7c3f1d29e84"
+
+# (name before the split, expected first_name, expected last_name)
+_SPLIT_CASES = [
+    ("Jane Doe", "Jane", "Doe"),
+    ("Prince", "Prince", None),
+    ("Mary Jane van Doe", "Mary", "Jane van Doe"),
+    ("  Padded  Name  ", "Padded", "Name"),
+    ("", None, None),
+]
+
+
+def _contact_rows(url: str, columns: str) -> list[tuple]:
+    from sqlalchemy import create_engine, text
+
+    engine = create_engine(url)
+    with engine.begin() as conn:
+        rows = conn.execute(text(f"SELECT {columns} FROM contacts ORDER BY id")).all()
+    engine.dispose()
+    return [tuple(r) for r in rows]
+
+
+def test_split_contact_name_preserves_existing_names(alembic, clean_db, pg_url):
+    """Upgrading across b7c3f1d29e84 splits each stored name instead of dropping
+    the column; downgrading recombines it."""
+    from sqlalchemy import create_engine, text
+
+    alembic("upgrade", _GENESIS)
+
+    engine = create_engine(pg_url)
+    with engine.begin() as conn:
+        for i, (name, _, _) in enumerate(_SPLIT_CASES):
+            conn.execute(
+                text("INSERT INTO contacts (id, name) VALUES (:id, :name)"),
+                {"id": f"00000000-0000-0000-0000-0000000000{i:02d}", "name": name},
+            )
+    engine.dispose()
+
+    alembic("upgrade", _SPLIT_CONTACT_NAME)
+    assert _contact_rows(pg_url, "first_name, last_name") == [
+        (first, last) for _, first, last in _SPLIT_CASES
+    ]
+
+    alembic("downgrade", _GENESIS)
+    assert _contact_rows(pg_url, "name") == [
+        (" ".join(part for part in (first, last) if part),) for _, first, last in _SPLIT_CASES
+    ]

@@ -1,7 +1,7 @@
 """Full-text search across all record types."""
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -79,12 +79,17 @@ def search_all(
         for o in orgs
     ]
 
-    # Contacts — search name, role, email, notes
+    # Contacts — search first/last name (and the two combined), role, email, notes
+    full_name = func.trim(
+        func.coalesce(Contact.first_name, "") + " " + func.coalesce(Contact.last_name, "")
+    )
     contacts = (
         db.query(Contact)
         .filter(
             or_(
-                Contact.name.ilike(term),
+                Contact.first_name.ilike(term),
+                Contact.last_name.ilike(term),
+                full_name.ilike(term),
                 Contact.role.ilike(term),
                 Contact.email.ilike(term),
                 Contact.notes.ilike(term),
@@ -96,7 +101,7 @@ def search_all(
     results["contacts"] = [
         {
             "id": str(c.id),
-            "title": c.name,
+            "title": c.full_name or "Unnamed contact",
             "subtitle": c.role or c.email or "",
             "badge": "",
             "type": "contact",

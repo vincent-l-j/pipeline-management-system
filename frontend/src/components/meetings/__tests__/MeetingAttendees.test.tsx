@@ -25,14 +25,20 @@ interface User {
 
 interface Contact {
   id: string;
-  name: string;
+  first_name: string | null;
+  last_name: string | null;
 }
 
 const mockUsers: User[] = [
   { id: "u1", display_name: "Alice Staff" },
   { id: "u2", display_name: "Bob Staff" },
 ];
-const mockContacts: Contact[] = [{ id: "c1", name: "External Contact" }];
+const mockContacts: Contact[] = [
+  { id: "c1", first_name: "External", last_name: "Contact" },
+  { id: "c2", first_name: "Mononym", last_name: null },
+  { id: "c3", first_name: null, last_name: "Surnameonly" },
+  { id: "c4", first_name: null, last_name: null },
+];
 
 interface Attendee {
   id: string;
@@ -72,6 +78,26 @@ describe("MeetingAttendees", () => {
     await waitFor(() => {
       expect(screen.getByText("Alice Staff")).toBeInTheDocument();
       expect(screen.getByText("External Contact")).toBeInTheDocument();
+    });
+  });
+
+  it("renders a contact with only one name part as that part alone", async () => {
+    setupApiMocks([
+      { id: "a3", contact_id: "c2", is_internal: false },
+      { id: "a4", contact_id: "c3", is_internal: false },
+    ]);
+    render(<MeetingAttendees meetingId="1" />);
+    await waitFor(() => {
+      expect(screen.getByText("Mononym")).toBeInTheDocument();
+    });
+    expect(screen.getByText("Surnameonly")).toBeInTheDocument();
+  });
+
+  it("labels a contact with no name at all", async () => {
+    setupApiMocks([{ id: "a5", contact_id: "c4", is_internal: false }]);
+    render(<MeetingAttendees meetingId="1" />);
+    await waitFor(() => {
+      expect(screen.getByText("Unnamed contact")).toBeInTheDocument();
     });
   });
 

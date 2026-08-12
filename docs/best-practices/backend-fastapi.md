@@ -77,7 +77,8 @@ def delete_organisation(org_id: UUID, db: Session = Depends(get_db),
 
 ```python
 class ContactUpdate(BaseModel):
-    name: str | None = None
+    first_name: str | None = None
+    last_name: str | None = None
     email: EmailStr | None = None
     organisation_id: UUID | None = None
 

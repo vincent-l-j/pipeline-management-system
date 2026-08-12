@@ -96,9 +96,14 @@ def test_export_organisations_csv(admin_client):
 
 
 def test_export_contacts_csv(admin_client):
+    admin_client.post("/api/contacts", json={"first_name": "Csv", "last_name": "Exported"})
+
     resp = admin_client.get("/api/reports/export/contacts")
     assert resp.status_code == 200
     assert "text/csv" in resp.headers["content-type"]
+    assert "First Name" in resp.text
+    assert "Last Name" in resp.text
+    assert "Csv,Exported" in resp.text
 
 
 def test_export_meetings_csv(admin_client):

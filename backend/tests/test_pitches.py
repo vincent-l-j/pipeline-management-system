@@ -153,6 +153,39 @@ def test_pitch_source_unknown_value_returns_422(admin_client):
     assert resp.status_code == 422
 
 
+# --- Funding pathways ---
+
+
+@pytest.mark.parametrize("pathway", ["no_funding_identified", "internal_funding"])
+def test_funding_pathway_new_value_round_trips(admin_client, pathway):
+    create = admin_client.post(
+        "/api/pitches", json={"title": f"Funding {pathway}", "funding_pathway": pathway}
+    )
+    assert create.status_code == 200
+    assert create.json()["funding_pathway"] == pathway
+
+    fetched = admin_client.get(f"/api/pitches/{create.json()['id']}")
+    assert fetched.json()["funding_pathway"] == pathway
+
+
+@pytest.mark.parametrize(
+    "pathway", ["crc_bid", "rdti", "philanthropic", "government_grant", "private", "other"]
+)
+def test_funding_pathway_existing_value_still_accepted(admin_client, pathway):
+    resp = admin_client.post(
+        "/api/pitches", json={"title": f"Legacy {pathway}", "funding_pathway": pathway}
+    )
+    assert resp.status_code == 200
+    assert resp.json()["funding_pathway"] == pathway
+
+
+def test_funding_pathway_unknown_value_returns_422(admin_client):
+    resp = admin_client.post(
+        "/api/pitches", json={"title": "Bad", "funding_pathway": "not_a_pathway"}
+    )
+    assert resp.status_code == 422
+
+
 # --- Stage transitions ---
 
 

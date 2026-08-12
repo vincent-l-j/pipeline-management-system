@@ -43,6 +43,8 @@ class FundingPathway(enum.StrEnum):
     GOVERNMENT_GRANT = "government_grant"
     PRIVATE = "private"
     OTHER = "other"
+    NO_FUNDING_IDENTIFIED = "no_funding_identified"
+    INTERNAL_FUNDING = "internal_funding"
 
 
 class Pitch(Base, TimestampMixin):

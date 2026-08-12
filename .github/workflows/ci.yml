@@ -12,15 +12,30 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+          cache: npm
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
-      - run: npm install
+      - run: npm ci
       - run: pip install -r requirements-dev.txt
         working-directory: backend
-      - run: npm run format:check
+      - run: npm run format:prettier:check
+      - run: npm run format:ruff:check
+        if: always()
 
-  lint-format-frontend:
+  typecheck:
+    name: Typecheck (frontend)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+
+  lint-frontend:
     name: Lint (frontend)
     runs-on: ubuntu-latest
     steps:
@@ -28,8 +43,8 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "24"
-      - run: npm install
-      - run: npm run format:frontend
+          cache: npm
+      - run: npm ci
       - run: npm run lint:frontend
 
   lint-backend:
@@ -42,7 +57,7 @@ jobs:
           python-version: "3.12"
       - run: pip install -r requirements-dev.txt
         working-directory: backend
-      - run: ruff check .
+      - run: npm run lint:backend
 
   workflows:
     name: Workflow lint
@@ -97,7 +112,7 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt -r requirements-dev.txt

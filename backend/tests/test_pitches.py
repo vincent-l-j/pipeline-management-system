@@ -1,5 +1,7 @@
 """Tests for /api/pitches CRUD, stage transitions, file links, and RBAC."""
 
+import pytest
+
 PITCH_PAYLOAD = {"title": "Green Hydrogen Initiative"}
 
 
@@ -124,6 +126,31 @@ def test_delete_pitch(admin_client):
 def test_get_nonexistent_pitch(admin_client):
     resp = admin_client.get("/api/pitches/00000000-0000-0000-0000-000000000000")
     assert resp.status_code == 404
+
+
+# --- Sources ---
+
+
+@pytest.mark.parametrize("source", ["riac", "foundry", "board", "riac_student"])
+def test_pitch_source_new_value_round_trips(admin_client, source):
+    create = admin_client.post("/api/pitches", json={"title": f"Source {source}", "source": source})
+    assert create.status_code == 200
+    assert create.json()["source"] == source
+
+    fetched = admin_client.get(f"/api/pitches/{create.json()['id']}")
+    assert fetched.json()["source"] == source
+
+
+@pytest.mark.parametrize("source", ["referral", "website", "event", "cold_outreach", "internal"])
+def test_pitch_source_existing_value_still_accepted(admin_client, source):
+    resp = admin_client.post("/api/pitches", json={"title": f"Legacy {source}", "source": source})
+    assert resp.status_code == 200
+    assert resp.json()["source"] == source
+
+
+def test_pitch_source_unknown_value_returns_422(admin_client):
+    resp = admin_client.post("/api/pitches", json={"title": "Bad", "source": "not_a_source"})
+    assert resp.status_code == 422
 
 
 # --- Stage transitions ---

@@ -30,6 +30,10 @@ class PitchSource(enum.StrEnum):
     EVENT = "event"
     COLD_OUTREACH = "cold_outreach"
     INTERNAL = "internal"
+    RIAC = "riac"
+    FOUNDRY = "foundry"
+    BOARD = "board"
+    RIAC_STUDENT = "riac_student"
 
 
 class FundingPathway(enum.StrEnum):

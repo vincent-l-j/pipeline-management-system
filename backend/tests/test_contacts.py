@@ -111,6 +111,18 @@ def test_create_contact_without_first_name(admin_client):
     assert body["last_name"] == "Ashworth"
 
 
+def test_create_nameless_contact_with_other_details(admin_client):
+    """A nameless contact is fine as long as something identifies it."""
+    resp = admin_client.post(
+        "/api/contacts", json={"email": "nameless@example.com", "phone": "555"}
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["first_name"] is None
+    assert body["last_name"] is None
+    assert body["email"] == "nameless@example.com"
+
+
 def test_create_contact_drops_legacy_name_field(admin_client):
     """`name` is gone from the schema — the allowlist drops it rather than
     persisting it under either new column."""
@@ -123,6 +135,47 @@ def test_create_contact_drops_legacy_name_field(admin_client):
     assert body["first_name"] is None
     assert body["last_name"] is None
     assert body["email"] == "legacy@example.com"
+
+
+# --- A contact needs at least one populated field ---
+
+
+def test_create_empty_contact_is_rejected(admin_client):
+    resp = admin_client.post("/api/contacts", json={})
+    assert resp.status_code == 422
+
+
+def test_create_contact_with_only_dropped_fields_is_rejected(admin_client):
+    """Every field here is outside the allowlist, so nothing survives to store."""
+    resp = admin_client.post("/api/contacts", json={"name": "Legacy Only", "bogus": "x"})
+    assert resp.status_code == 422
+
+
+def test_create_contact_with_only_blank_strings_is_rejected(admin_client):
+    """Whitespace is not a value — a blank first name leaves the row empty."""
+    resp = admin_client.post("/api/contacts", json={"first_name": "   ", "last_name": ""})
+    assert resp.status_code == 422
+
+
+def test_patch_cannot_empty_every_field(admin_client):
+    """Clearing the last populated field is refused, and the row is untouched."""
+    contact_id = admin_client.post("/api/contacts", json={"first_name": "Solo"}).json()["id"]
+
+    resp = admin_client.patch(f"/api/contacts/{contact_id}", json={"first_name": None})
+    assert resp.status_code == 422
+    assert admin_client.get(f"/api/contacts/{contact_id}").json()["first_name"] == "Solo"
+
+
+def test_patch_can_clear_a_field_while_others_remain(admin_client):
+    contact_id = admin_client.post(
+        "/api/contacts", json={"first_name": "Clearable", "email": "keep@example.com"}
+    ).json()["id"]
+
+    resp = admin_client.patch(f"/api/contacts/{contact_id}", json={"first_name": None})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["first_name"] is None
+    assert body["email"] == "keep@example.com"
 
 
 def test_create_contact_with_email(admin_client):
@@ -261,7 +314,8 @@ def test_patch_last_name_only_preserves_first_name(admin_client):
 
 def test_patch_can_clear_either_name_part(admin_client):
     created = admin_client.post(
-        "/api/contacts", json={"first_name": "Jane", "last_name": "Doe"}
+        "/api/contacts",
+        json={"first_name": "Jane", "last_name": "Doe", "email": "jane@example.com"},
     ).json()
 
     resp = admin_client.patch(f"/api/contacts/{created['id']}", json={"last_name": None})

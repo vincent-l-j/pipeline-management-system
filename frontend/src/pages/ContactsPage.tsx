@@ -38,9 +38,10 @@ const EDITABLE_FIELDS: (keyof ContactForm)[] = [
   "email",
 ];
 
-/** Both name parts are optional, but a contact with neither is unidentifiable. */
-function hasName(form: ContactForm): boolean {
-  return Boolean(form.first_name.trim() || form.last_name.trim());
+/** Every field is optional, but a contact with nothing recorded is not a contact
+ *  — the API refuses one, so don't offer to submit it. */
+function hasAnyDetail(form: ContactForm): boolean {
+  return EDITABLE_FIELDS.some((field) => form[field].trim() !== "");
 }
 
 interface ErrorResponse {
@@ -75,7 +76,7 @@ export default function ContactsPage(): React.JSX.Element {
   }, []);
 
   const addContact = async (): Promise<void> => {
-    if (!hasName(form)) return;
+    if (!hasAnyDetail(form)) return;
     setError("");
     try {
       const { data } = await api.post<Contact>("/contacts", {
@@ -114,7 +115,7 @@ export default function ContactsPage(): React.JSX.Element {
       const next = editForm[field].trim() || null;
       if (next !== (contact[field] ?? null)) changes[field] = next;
     }
-    if (!hasName(editForm) || Object.keys(changes).length === 0) {
+    if (!hasAnyDetail(editForm) || Object.keys(changes).length === 0) {
       setEditingId(null);
       return;
     }
@@ -200,7 +201,7 @@ export default function ContactsPage(): React.JSX.Element {
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
                 setForm((p) => ({ ...p, role: e.target.value }));
               }}
-              placeholder="Role (optional)"
+              placeholder="Role"
               className={inputClass}
             />
             <input
@@ -209,7 +210,7 @@ export default function ContactsPage(): React.JSX.Element {
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
                 setForm((p) => ({ ...p, email: e.target.value }));
               }}
-              placeholder="Email (optional)"
+              placeholder="Email"
               className={inputClass}
             />
           </div>
@@ -218,7 +219,7 @@ export default function ContactsPage(): React.JSX.Element {
               onClick={() => {
                 void addContact();
               }}
-              disabled={!hasName(form)}
+              disabled={!hasAnyDetail(form)}
               className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
             >
               Create
@@ -332,7 +333,7 @@ export default function ContactsPage(): React.JSX.Element {
                           onClick={() => {
                             void saveEdit(c);
                           }}
-                          disabled={!hasName(editForm)}
+                          disabled={!hasAnyDetail(editForm)}
                           className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
                         >
                           Save

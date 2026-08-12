@@ -15,6 +15,8 @@ from app.schemas.contact import ContactCreate, ContactOut, ContactUpdate
 
 router = APIRouter(prefix="/contacts", tags=["contacts"])
 
+_BLANK_CONTACT_DETAIL = "A contact needs at least one detail recorded"
+
 
 @router.get("", response_model=list[ContactOut])
 def list_contacts(
@@ -43,6 +45,8 @@ def create_contact(
     current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.ASSESSOR)),
 ):
     contact = Contact(**data.model_dump())
+    if contact.is_blank:
+        raise HTTPException(status_code=422, detail=_BLANK_CONTACT_DETAIL)
     db.add(contact)
     db.commit()
     db.refresh(contact)
@@ -61,6 +65,9 @@ def update_contact(
         raise HTTPException(status_code=404, detail="Contact not found")
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(contact, field, value)
+    if contact.is_blank:
+        db.rollback()
+        raise HTTPException(status_code=422, detail=_BLANK_CONTACT_DETAIL)
     db.commit()
     db.refresh(contact)
     return contact

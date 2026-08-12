@@ -141,15 +141,26 @@ describe("ContactsPage", () => {
     expect(screen.getByText("Person")).toBeInTheDocument();
   });
 
-  it("Create stays disabled until one of the name parts is entered", async () => {
+  it("Create stays disabled until some detail is entered", async () => {
     const user = userEvent.setup();
     setupGet([]);
     render(<ContactsPage />);
     await waitFor(() => screen.getByRole("button", { name: /Add Contact/i }));
     await user.click(screen.getByRole("button", { name: /Add Contact/i }));
     expect(screen.getByRole("button", { name: "Create" })).toBeDisabled();
-    await user.type(screen.getByPlaceholderText("Last name"), "Surnameonly");
+    // A nameless contact is allowed, so an email alone unlocks Create.
+    await user.type(screen.getByPlaceholderText("Email"), "only@example.com");
     expect(screen.getByRole("button", { name: "Create" })).toBeEnabled();
+  });
+
+  it("Create stays disabled for whitespace-only input", async () => {
+    const user = userEvent.setup();
+    setupGet([]);
+    render(<ContactsPage />);
+    await waitFor(() => screen.getByRole("button", { name: /Add Contact/i }));
+    await user.click(screen.getByRole("button", { name: /Add Contact/i }));
+    await user.type(screen.getByPlaceholderText("First name"), "   ");
+    expect(screen.getByRole("button", { name: "Create" })).toBeDisabled();
   });
 
   it("a contact with no first name posts first_name as null", async () => {
@@ -335,14 +346,38 @@ describe("ContactsPage", () => {
     });
   });
 
-  it("emptying both name parts blocks the save", async () => {
+  it("emptying both name parts still saves while other fields remain", async () => {
     const user = userEvent.setup();
     setupGet();
+    apiMocks.patch.mockResolvedValue({
+      data: { ...CONTACTS[0], first_name: null, last_name: null },
+    });
     render(<ContactsPage />);
     await waitFor(() => screen.getByText("Jane"));
     await user.click(screen.getByRole("button", { name: "Edit" }));
     await user.clear(screen.getByLabelText("Contact first name"));
     await user.clear(screen.getByLabelText("Contact last name"));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(apiMocks.patch.mock).toHaveBeenCalledWith("/contacts/c1", {
+      first_name: null,
+      last_name: null,
+    });
+  });
+
+  it("emptying every field blocks the save", async () => {
+    const user = userEvent.setup();
+    setupGet();
+    render(<ContactsPage />);
+    await waitFor(() => screen.getByText("Jane"));
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+    for (const label of [
+      "Contact first name",
+      "Contact last name",
+      "Contact role",
+      "Contact email",
+    ]) {
+      await user.clear(screen.getByLabelText(label));
+    }
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
     expect(apiMocks.patch.mock).not.toHaveBeenCalled();
   });

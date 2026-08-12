@@ -62,8 +62,9 @@ mission-control artifacts at the root are:
 - **`AGENTS.md`** — mission boundaries + coding conventions. Read before editing.
 - **`services.yaml`** — build/run/test commands and services.
 - **`sop/`** — Standard Operating Procedures: runbooks for database bootstrap
-  (`db-bootstrap.md`), schema changes (`db-change.md`), and tooling (`bin/db.sh`).
-  See `sop/instances/rozetta-pms.md` for app-specific values.
+  (`db-bootstrap.md`), schema changes (`db-change.md`), bulk contact import
+  (`data-import.md`), and tooling (`bin/db.sh`). See
+  `sop/instances/rozetta-pms.md` for app-specific values.
 
 To implement a feature: read its `features.json` entry → the `VAL-*` assertions it
 fulfills → `AGENTS.md` → the relevant best-practices doc → **write tests first** →

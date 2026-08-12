@@ -43,5 +43,8 @@ Thumbs.db
 # Logs
 *.log
 
+# Contact-import run logs — hold real record ids; keep them local (see sop/data-import.md)
+import-log-*.jsonl
+
 # claude
 .claude

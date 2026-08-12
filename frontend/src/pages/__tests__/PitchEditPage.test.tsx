@@ -137,6 +137,19 @@ describe("PitchEditPage", () => {
     expect(mockNavigate).toHaveBeenCalledWith("/pitches/42");
   });
 
+  it("offers the new sources and funding pathways in their dropdowns", async () => {
+    setupGet();
+    render(<PitchEditPage />);
+    await waitFor(() => screen.getByDisplayValue("Original Title"));
+
+    for (const source of ["RIAC", "Foundry", "Board", "RIAC Student"]) {
+      expect(screen.getByRole("option", { name: source })).toBeInTheDocument();
+    }
+    for (const pathway of ["No Funding Identified", "Internal Funding"]) {
+      expect(screen.getByRole("option", { name: pathway })).toBeInTheDocument();
+    }
+  });
+
   it("offers exactly the three current domains as pills", async () => {
     setupGet();
     render(<PitchEditPage />);

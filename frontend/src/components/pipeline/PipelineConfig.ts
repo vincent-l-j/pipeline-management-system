@@ -101,6 +101,10 @@ export const SOURCE_LABELS: Record<string, string> = {
   event: "Event",
   cold_outreach: "Cold Outreach",
   internal: "Internal",
+  riac: "RIAC",
+  foundry: "Foundry",
+  board: "Board",
+  riac_student: "RIAC Student",
 } as const;
 
 /**
@@ -114,4 +118,6 @@ export const FUNDING_LABELS: Record<string, string> = {
   government_grant: "Government Grant",
   private: "Private",
   other: "Other",
+  no_funding_identified: "No Funding Identified",
+  internal_funding: "Internal Funding",
 } as const;

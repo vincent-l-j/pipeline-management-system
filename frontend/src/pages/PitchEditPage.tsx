@@ -19,6 +19,10 @@ const SOURCES = [
   { value: "event", label: "Event" },
   { value: "cold_outreach", label: "Cold Outreach" },
   { value: "internal", label: "Internal" },
+  { value: "riac", label: "RIAC" },
+  { value: "foundry", label: "Foundry" },
+  { value: "board", label: "Board" },
+  { value: "riac_student", label: "RIAC Student" },
 ];
 
 const FUNDING_PATHWAYS = [
@@ -28,6 +32,8 @@ const FUNDING_PATHWAYS = [
   { value: "government_grant", label: "Government Grant" },
   { value: "private", label: "Private" },
   { value: "other", label: "Other" },
+  { value: "no_funding_identified", label: "No Funding Identified" },
+  { value: "internal_funding", label: "Internal Funding" },
 ];
 
 const DOMAIN_OPTIONS = ["AI Energy Transition", "Health", "Semiconductors"];

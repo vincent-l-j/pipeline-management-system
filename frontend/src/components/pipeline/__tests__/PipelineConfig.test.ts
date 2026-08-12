@@ -66,4 +66,23 @@ describe("PipelineConfig", () => {
       other: "Other",
     });
   });
+
+  it("labels every source the backend can return", () => {
+    // Mirrors PitchSource in backend/app/models/pitch.py. An unlabelled value
+    // falls back to the raw enum key in the UI, e.g. "riac_student".
+    expect(SOURCE_LABELS).toMatchObject({
+      riac: "RIAC",
+      foundry: "Foundry",
+      board: "Board",
+      riac_student: "RIAC Student",
+    });
+  });
+
+  it("labels every funding pathway the backend can return", () => {
+    // Mirrors FundingPathway in backend/app/models/pitch.py.
+    expect(FUNDING_LABELS).toMatchObject({
+      no_funding_identified: "No Funding Identified",
+      internal_funding: "Internal Funding",
+    });
+  });
 });

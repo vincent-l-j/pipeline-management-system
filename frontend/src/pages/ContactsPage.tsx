@@ -1,9 +1,9 @@
 import { useState, useEffect, ChangeEvent } from "react";
-import { AxiosError } from "axios";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api";
+import { apiErrorMessage } from "../services/apiError";
 
 const inputClass =
   "w-full border border-navy-200 rounded-lg px-3 py-1.5 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300";
@@ -42,10 +42,6 @@ const EDITABLE_FIELDS: (keyof ContactForm)[] = [
  *  — the API refuses one, so don't offer to submit it. */
 function hasAnyDetail(form: ContactForm): boolean {
   return EDITABLE_FIELDS.some((field) => form[field].trim() !== "");
-}
-
-interface ErrorResponse {
-  detail?: string;
 }
 
 export default function ContactsPage(): React.JSX.Element {
@@ -89,8 +85,7 @@ export default function ContactsPage(): React.JSX.Element {
       setForm(EMPTY_FORM);
       setShowAdd(false);
     } catch (err) {
-      const apiError = err as AxiosError<ErrorResponse>;
-      setError(apiError.response?.data.detail ?? "Failed to add contact");
+      setError(apiErrorMessage(err, "Failed to add contact"));
     }
   };
 
@@ -128,8 +123,7 @@ export default function ContactsPage(): React.JSX.Element {
       setContacts((prev) => prev.map((c) => (c.id === contact.id ? data : c)));
       setEditingId(null);
     } catch (err) {
-      const apiError = err as AxiosError<ErrorResponse>;
-      setError(apiError.response?.data.detail ?? "Failed to update contact");
+      setError(apiErrorMessage(err, "Failed to update contact"));
     }
   };
 
@@ -139,8 +133,7 @@ export default function ContactsPage(): React.JSX.Element {
       await api.delete(`/contacts/${String(id)}`);
       setContacts((prev) => prev.filter((c) => c.id !== id));
     } catch (err) {
-      const apiError = err as AxiosError<ErrorResponse>;
-      setError(apiError.response?.data.detail ?? "Failed to remove contact");
+      setError(apiErrorMessage(err, "Failed to remove contact"));
     } finally {
       setConfirmingId(null);
     }

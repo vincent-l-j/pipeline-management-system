@@ -382,6 +382,56 @@ describe("ContactsPage", () => {
     expect(apiMocks.patch.mock).not.toHaveBeenCalled();
   });
 
+  it("shows the message from a validation error without blanking the page", async () => {
+    const user = userEvent.setup();
+    setupGet();
+    apiMocks.patch.mockRejectedValue({
+      response: {
+        status: 422,
+        data: {
+          // FastAPI's request-validation shape: detail is a list, not a string.
+          detail: [
+            {
+              type: "value_error",
+              loc: ["body", "email"],
+              msg: "value is not a valid email address",
+            },
+          ],
+        },
+      },
+    });
+    render(<ContactsPage />);
+    await waitFor(() => screen.getByText("Jane"));
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+    await user.clear(screen.getByLabelText("Contact email"));
+    await user.type(screen.getByLabelText("Contact email"), "jane@example");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => {
+      expect(
+        screen.getByText(/value is not a valid email address/),
+      ).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+  });
+
+  it("reports the status code when the failure carries no detail", async () => {
+    const user = userEvent.setup();
+    setupGet();
+    apiMocks.patch.mockRejectedValue({
+      response: { status: 500, data: "<html>Proxy error</html>" },
+    });
+    render(<ContactsPage />);
+    await waitFor(() => screen.getByText("Jane"));
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+    await user.clear(screen.getByLabelText("Contact first name"));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => {
+      expect(
+        screen.getByText("Failed to update contact (HTTP 500)"),
+      ).toBeInTheDocument();
+    });
+  });
+
   it("cancelling the edit makes no api.patch call", async () => {
     const user = userEvent.setup();
     setupGet();

@@ -19,8 +19,8 @@ commands:
   test-frontend: cd frontend && npm test
 
   # Lint: eslint over frontend/ + ruff over backend/. The root scripts delegate,
-  # so eslint config sits with the code it lints (frontend/eslint.config.mjs) and
-  # ruff config stays in [tool.ruff] in pyproject.toml.
+  # so each linter's config sits with the code it lints —
+  # frontend/eslint.config.mjs and [tool.ruff] in backend/pyproject.toml.
   lint: npm run lint
   lint-frontend: npm run lint:frontend
   lint-backend: npm run lint:backend

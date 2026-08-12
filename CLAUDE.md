@@ -30,7 +30,8 @@ Canonical commands live in `services.yaml`. In short:
 All of these run from the **repo root**, but only prettier lives there — the root
 `package.json` is a thin delegator. eslint + typescript are `frontend/`
 devDependencies (with `frontend/eslint.config.mjs`), and ruff comes from
-`backend/requirements-dev.txt`. So `npm install` at the root is enough for format,
+`backend/requirements-dev.txt` (configured in `backend/pyproject.toml`). Each
+linter's config sits with the code it lints. So `npm install` at the root is enough for format,
 while lint and typecheck need `npm install --prefix frontend`. There is no backend
 type checker (no mypy) — don't assume one.
 

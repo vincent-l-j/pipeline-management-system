@@ -4,9 +4,7 @@
     "@eslint/js": "^10.0.1",
     "eslint": "^10.8.0",
     "prettier": "3.9.6",
-    "prettier-plugin-yaml": "1.2.0",
-    "typescript": "^6.0.3",
-    "typescript-eslint": "^8.66.0"
+    "prettier-plugin-yaml": "1.2.0"
   },
   "scripts": {
     "format": "npm run format:prettier && npm run format:ruff",
@@ -15,7 +13,7 @@
     "format:prettier:check": "prettier --check .",
     "format:ruff": "ruff format backend/",
     "format:ruff:check": "ruff format --check backend/",
-    "typecheck": "tsc -b frontend",
+    "typecheck": "npm run typecheck --prefix frontend",
     "lint:frontend": "eslint frontend/",
     "lint:backend": "ruff check backend/",
     "lint": "npm run lint:frontend && npm run lint:backend",

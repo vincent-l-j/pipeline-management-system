@@ -8,12 +8,12 @@
     "format:check": "npm run format:prettier:check && npm run format:ruff:check",
     "format:prettier": "prettier --write .",
     "format:prettier:check": "prettier --check .",
-    "format:ruff": "ruff format backend/",
-    "format:ruff:check": "ruff format --check backend/",
+    "format:ruff": "bash scripts/ruff.sh format",
+    "format:ruff:check": "bash scripts/ruff.sh format --check",
     "typecheck": "npm run typecheck --prefix frontend",
     "lint:frontend": "npm run lint --prefix frontend",
-    "lint:backend": "ruff check backend/",
+    "lint:backend": "bash scripts/ruff.sh check",
     "lint": "npm run lint:frontend && npm run lint:backend",
-    "lint:fix": "npm run lint:fix --prefix frontend && ruff check --fix backend/"
+    "lint:fix": "npm run lint:fix --prefix frontend && bash scripts/ruff.sh check --fix"
   }
 }

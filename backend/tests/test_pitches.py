@@ -220,6 +220,47 @@ def test_domain_tags_defaults_to_null_when_omitted(admin_client):
     assert create.json()["domain_tags"] is None
 
 
+# --- Submission date ---
+
+
+def test_submission_date_is_null_when_omitted(admin_client):
+    """A pitch with no submission date recorded yet reads back as null, not a
+    stand-in default."""
+    create = admin_client.post("/api/pitches", json={"title": "Undated"})
+    assert create.status_code == 200
+    assert create.json()["submission_date"] is None
+
+    fetched = admin_client.get(f"/api/pitches/{create.json()['id']}")
+    assert fetched.json()["submission_date"] is None
+
+
+def test_submission_date_accepts_explicit_null(admin_client):
+    create = admin_client.post(
+        "/api/pitches", json={"title": "Explicit Null", "submission_date": None}
+    )
+    assert create.status_code == 200
+    assert create.json()["submission_date"] is None
+
+
+@pytest.mark.parametrize("submitted_on", ["2024-01-01", "2026-12-31"])
+def test_submission_date_round_trips_past_and_future(admin_client, submitted_on):
+    create = admin_client.post(
+        "/api/pitches", json={"title": f"Dated {submitted_on}", "submission_date": submitted_on}
+    )
+    assert create.status_code == 200
+    assert create.json()["submission_date"] == submitted_on
+
+    fetched = admin_client.get(f"/api/pitches/{create.json()['id']}")
+    assert fetched.json()["submission_date"] == submitted_on
+
+
+def test_submission_date_rejects_malformed_value(admin_client):
+    resp = admin_client.post(
+        "/api/pitches", json={"title": "Bad Date", "submission_date": "not-a-date"}
+    )
+    assert resp.status_code == 422
+
+
 # --- Stage transitions ---
 
 

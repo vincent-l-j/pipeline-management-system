@@ -16,6 +16,7 @@ interface Pitch {
   funding_pathway: string | null;
   submission_date: string | null;
   masterplan_alignment: string | null;
+  next_step: string | null;
   organisation_id: string | null;
   contact_ids: string[];
 }
@@ -112,6 +113,7 @@ const BASE_PITCH: Pitch = {
   funding_pathway: null,
   submission_date: null,
   masterplan_alignment: null,
+  next_step: null,
   organisation_id: null,
   contact_ids: [],
 };
@@ -375,6 +377,57 @@ describe("PitchDetailPage", () => {
     await waitFor(() => screen.getByText("Test Pitch"));
     expect(screen.getByText("Confidential")).toBeInTheDocument();
     expect(screen.getByText("Test Pitch")).toBeInTheDocument();
+  });
+
+  it("shows the next step in its own callout, above the details card", async () => {
+    setupGet({ ...BASE_PITCH, next_step: "Call the CSIRO lead on Friday" });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    const heading = screen.getByText("Next Step");
+    expect(heading).toBeInTheDocument();
+    expect(
+      screen.getByText("Call the CSIRO lead on Friday"),
+    ).toBeInTheDocument();
+
+    // The callout comes before the stage badge, which opens the details card.
+    const badge = screen.getByText("Received");
+    expect(heading.compareDocumentPosition(badge)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
+  it("preserves the line breaks a next step was typed with", async () => {
+    setupGet({ ...BASE_PITCH, next_step: "First line\nSecond line" });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    expect(screen.getByText(/First line/)).toHaveClass("whitespace-pre-line");
+  });
+
+  it("renders no next-step section when the pitch has none", async () => {
+    setupGet({ ...BASE_PITCH, next_step: null });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    expect(screen.queryByText("Next Step")).not.toBeInTheDocument();
+  });
+
+  it("renders no next-step section when the next step is only whitespace", async () => {
+    setupGet({ ...BASE_PITCH, next_step: "   " });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    expect(screen.queryByText("Next Step")).not.toBeInTheDocument();
+  });
+
+  it("shows the next step to a viewer", async () => {
+    mockUser = { role: "viewer" };
+    setupGet({ ...BASE_PITCH, next_step: "Visible to all" });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    expect(screen.getByText("Visible to all")).toBeInTheDocument();
   });
 });
 

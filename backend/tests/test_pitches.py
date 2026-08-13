@@ -299,6 +299,101 @@ def test_funding_pathway_unknown_value_returns_422(admin_client):
     assert resp.status_code == 422
 
 
+# --- Next step ---
+
+
+def test_next_step_round_trips_on_create(admin_client):
+    create = admin_client.post(
+        "/api/pitches",
+        json={"title": "Soil Sensors", "next_step": "Call the CSIRO lead on Friday"},
+    )
+    assert create.status_code == 200
+    assert create.json()["next_step"] == "Call the CSIRO lead on Friday"
+
+    fetched = admin_client.get(f"/api/pitches/{create.json()['id']}")
+    assert fetched.json()["next_step"] == "Call the CSIRO lead on Friday"
+
+
+def test_next_step_defaults_to_null_when_not_supplied(admin_client):
+    create = admin_client.post("/api/pitches", json={"title": "No Next Step"})
+    assert create.json()["next_step"] is None
+
+
+def test_next_step_accepts_multiple_lines(admin_client):
+    """Free text, so line breaks survive — the UI renders them."""
+    text = "Two things:\n- book the meeting\n- send the deck"
+    create = admin_client.post("/api/pitches", json={"title": "Multiline", "next_step": text})
+    assert create.json()["next_step"] == text
+
+
+def test_patching_next_step_preserves_the_other_fields(admin_client):
+    pitch = admin_client.post(
+        "/api/pitches",
+        json={
+            "title": "Keep Everything",
+            "short_description": "keep me",
+            "domain_tags": "AI",
+            "source": "referral",
+        },
+    ).json()
+
+    resp = admin_client.patch(f"/api/pitches/{pitch['id']}", json={"next_step": "Chase funding"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["next_step"] == "Chase funding"
+    assert body["title"] == "Keep Everything"
+    assert body["short_description"] == "keep me"
+    assert body["domain_tags"] == "AI"
+    assert body["source"] == "referral"
+
+
+def test_next_step_can_be_cleared_with_null(admin_client):
+    pitch = admin_client.post(
+        "/api/pitches", json={"title": "Clear Me", "next_step": "something"}
+    ).json()
+
+    resp = admin_client.patch(f"/api/pitches/{pitch['id']}", json={"next_step": None})
+    assert resp.status_code == 200
+    assert resp.json()["next_step"] is None
+
+
+def test_omitting_next_step_from_a_patch_leaves_it_unchanged(admin_client):
+    """Distinguishes "clear it" (explicit null) from "don't touch it" (omitted)."""
+    pitch = admin_client.post(
+        "/api/pitches", json={"title": "Untouched", "next_step": "keep this"}
+    ).json()
+
+    resp = admin_client.patch(f"/api/pitches/{pitch['id']}", json={"title": "Renamed"})
+    assert resp.status_code == 200
+    assert resp.json()["next_step"] == "keep this"
+
+
+def test_assessor_can_set_next_step(assessor_client):
+    pitch = assessor_client.post("/api/pitches", json={"title": "Assessor Pitch"}).json()
+    resp = assessor_client.patch(f"/api/pitches/{pitch['id']}", json={"next_step": "Draft the MOU"})
+    assert resp.status_code == 200
+    assert resp.json()["next_step"] == "Draft the MOU"
+
+
+def test_viewer_cannot_set_next_step(viewer_client):
+    # RBAC fires before the DB lookup — a fake UUID still yields 403.
+    resp = viewer_client.patch(
+        "/api/pitches/00000000-0000-0000-0000-000000000099",
+        json={"next_step": "Should not stick"},
+    )
+    assert resp.status_code == 403
+
+
+def test_viewer_can_read_next_step(admin_client, viewer_client):
+    pitch = admin_client.post(
+        "/api/pitches", json={"title": "Readable", "next_step": "Visible to all"}
+    ).json()
+
+    resp = viewer_client.get(f"/api/pitches/{pitch['id']}")
+    assert resp.status_code == 200
+    assert resp.json()["next_step"] == "Visible to all"
+
+
 # --- Domains ---
 
 

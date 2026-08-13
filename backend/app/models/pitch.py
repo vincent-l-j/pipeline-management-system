@@ -65,6 +65,10 @@ class Pitch(Base, TimestampMixin):
     domain_tags: Mapped[str | None] = mapped_column(Text)
     funding_pathway: Mapped[FundingPathway | None] = mapped_column(SAEnum(FundingPathway))
     masterplan_alignment: Mapped[str | None] = mapped_column(Text)
+    # The immediate next action on this pitch, in whatever words the team uses.
+    # Free text on purpose: it is internal comms, not a workflow state — the
+    # audited state lives in current_stage.
+    next_step: Mapped[str | None] = mapped_column(Text)
     is_confidential: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # Foreign keys

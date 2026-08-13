@@ -9,6 +9,7 @@ import { useState, useEffect, FormEvent } from "react";
 import { useNavigate, useParams, Navigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
+import { DOMAIN_OPTIONS } from "../components/pipeline/PipelineConfig";
 import api from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import { User, Organisation, ApiError } from "../types";
@@ -35,8 +36,6 @@ const FUNDING_PATHWAYS = [
   { value: "no_funding_identified", label: "No Funding Identified" },
   { value: "internal_funding", label: "Internal Funding" },
 ];
-
-const DOMAIN_OPTIONS = ["AI Energy Transition", "Health", "Semiconductors"];
 
 interface Pitch {
   title: string;

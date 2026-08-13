@@ -108,6 +108,22 @@ export const SOURCE_LABELS: Record<string, string> = {
 } as const;
 
 /**
+ * Domain vocabulary offered by the pitch forms and the pipeline filter.
+ * Stored on a pitch as a comma-separated free-text string, so retiring a value
+ * here leaves existing pitches tagged with it untouched.
+ */
+export const DOMAIN_OPTIONS: readonly string[] = [
+  "AI",
+  "Energy Transition",
+  "Digital Finance",
+  "Critical Minerals",
+  "Semiconductors",
+  "Health",
+  "Innovation system",
+  "Other",
+] as const;
+
+/**
  * Labels for funding type options.
  * Maps funding type keys to display labels.
  */

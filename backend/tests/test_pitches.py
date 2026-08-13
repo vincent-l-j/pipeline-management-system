@@ -189,7 +189,19 @@ def test_funding_pathway_unknown_value_returns_422(admin_client):
 # --- Domains ---
 
 
-@pytest.mark.parametrize("domain", ["AI Energy Transition", "Health", "Semiconductors"])
+@pytest.mark.parametrize(
+    "domain",
+    [
+        "AI",
+        "Energy Transition",
+        "Digital Finance",
+        "Critical Minerals",
+        "Semiconductors",
+        "Health",
+        "Innovation system",
+        "Other",
+    ],
+)
 def test_domain_tags_single_domain_round_trips(admin_client, domain):
     create = admin_client.post(
         "/api/pitches", json={"title": f"Domain {domain}", "domain_tags": domain}

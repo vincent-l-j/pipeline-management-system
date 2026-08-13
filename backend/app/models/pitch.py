@@ -34,6 +34,7 @@ class PitchSource(enum.StrEnum):
     FOUNDRY = "foundry"
     BOARD = "board"
     RIAC_STUDENT = "riac_student"
+    ROZETTA_NETWORK = "rozetta_network"
 
 
 class FundingPathway(enum.StrEnum):

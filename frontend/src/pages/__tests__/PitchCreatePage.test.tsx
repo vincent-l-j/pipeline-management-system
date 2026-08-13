@@ -63,7 +63,13 @@ describe("PitchCreatePage", () => {
     render(<PitchCreatePage />);
     await waitFor(() => screen.getByText("New Pitch"));
 
-    for (const source of ["RIAC", "Foundry", "Board", "RIAC Student"]) {
+    for (const source of [
+      "RIAC",
+      "Foundry",
+      "Board",
+      "RIAC Student",
+      "Rozetta Network",
+    ]) {
       expect(screen.getByRole("option", { name: source })).toBeInTheDocument();
     }
     for (const pathway of ["No Funding Identified", "Internal Funding"]) {

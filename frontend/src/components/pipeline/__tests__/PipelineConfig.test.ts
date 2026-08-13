@@ -75,6 +75,7 @@ describe("PipelineConfig", () => {
       foundry: "Foundry",
       board: "Board",
       riac_student: "RIAC Student",
+      rozetta_network: "Rozetta Network",
     });
   });
 

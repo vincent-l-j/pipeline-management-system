@@ -1,9 +1,9 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
-from app.models.assessment import Recommendation
+from app.models.assessment import DeclineReason, Recommendation
 
 
 class AssessmentCreate(BaseModel):
@@ -14,9 +14,22 @@ class AssessmentCreate(BaseModel):
     funding_pathway_clarity: int
     masterplan_alignment: int
     recommendation: Recommendation
+    decline_reason: DeclineReason | None = None
     rationale: str | None = None
     assessment_date: date
     pitch_id: UUID
+
+    @model_validator(mode="after")
+    def reason_requires_a_decline(self) -> "AssessmentCreate":
+        """A reason only means something alongside a decline.
+
+        Accepting one on a Proceed would store a contradiction that the pitch view
+        would then have to decide how to interpret. Note the asymmetry: a decline
+        *without* a reason stays valid, because the reason is optional.
+        """
+        if self.decline_reason is not None and self.recommendation != Recommendation.DECLINE:
+            raise ValueError("decline_reason is only valid when recommendation is 'decline'")
+        return self
 
     @field_validator(
         "national_impact",
@@ -42,6 +55,7 @@ class AssessmentOut(BaseModel):
     funding_pathway_clarity: int
     masterplan_alignment: int
     recommendation: Recommendation
+    decline_reason: DeclineReason | None
     rationale: str | None
     assessment_date: date
     version: int

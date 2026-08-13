@@ -409,3 +409,203 @@ def test_amend_with_nonexistent_from_id_rejected(admin_client):
     )
     assert resp.status_code == 404
     assert "not found" in resp.json()["detail"].lower()
+
+
+# --- Decline reasons ---
+
+
+# The reason vocabulary as it goes over the wire. Mirrored by
+# DECLINE_REASON_LABELS in frontend/src/components/assessments/AssessmentConfig.ts.
+EXPECTED_DECLINE_REASONS = [
+    "not_strategic_priority",
+    "insufficient_scale",
+    "insufficient_capacity_capability",
+    "grant_funding_rejected",
+    "lack_of_rozetta_capacity",
+    "other",
+]
+
+
+def test_decline_reason_vocabulary_matches_the_enum():
+    """Adding or removing a DeclineReason member without updating this list — and
+    the frontend labels and the Alembic enum that mirror it — fails here."""
+    from app.models.assessment import DeclineReason
+
+    assert [r.value for r in DeclineReason] == EXPECTED_DECLINE_REASONS
+
+
+@pytest.mark.parametrize("reason", EXPECTED_DECLINE_REASONS)
+def test_decline_reason_round_trips(admin_client, reason):
+    pitch_id = _create_pitch(admin_client)
+    resp = admin_client.post(
+        "/api/assessments",
+        json={
+            **SCORE_PAYLOAD,
+            "recommendation": "decline",
+            "decline_reason": reason,
+            "pitch_id": pitch_id,
+        },
+    )
+    assert resp.status_code == 200
+    assert resp.json()["decline_reason"] == reason
+
+    fetched = admin_client.get(f"/api/assessments/{resp.json()['id']}")
+    assert fetched.json()["decline_reason"] == reason
+
+
+def test_decline_without_a_reason_is_accepted(admin_client):
+    """The reason is optional, so declining without one must stay valid."""
+    pitch_id = _create_pitch(admin_client)
+    resp = admin_client.post(
+        "/api/assessments",
+        json={**SCORE_PAYLOAD, "recommendation": "decline", "pitch_id": pitch_id},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["decline_reason"] is None
+
+
+def test_non_decline_assessment_has_no_reason(admin_client):
+    pitch_id = _create_pitch(admin_client)
+    resp = admin_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": pitch_id})
+    assert resp.status_code == 200
+    assert resp.json()["decline_reason"] is None
+
+
+@pytest.mark.parametrize("recommendation", ["proceed", "park"])
+def test_reason_supplied_without_a_decline_is_rejected(admin_client, recommendation):
+    pitch_id = _create_pitch(admin_client)
+    resp = admin_client.post(
+        "/api/assessments",
+        json={
+            **SCORE_PAYLOAD,
+            "recommendation": recommendation,
+            "decline_reason": "insufficient_scale",
+            "pitch_id": pitch_id,
+        },
+    )
+    assert resp.status_code == 422
+
+    # Nothing was stored.
+    assert admin_client.get(f"/api/pitches/{pitch_id}/assessments").json() == []
+
+
+def test_unknown_decline_reason_is_rejected(admin_client):
+    pitch_id = _create_pitch(admin_client)
+    resp = admin_client.post(
+        "/api/assessments",
+        json={
+            **SCORE_PAYLOAD,
+            "recommendation": "decline",
+            "decline_reason": "we_just_did_not_fancy_it",
+            "pitch_id": pitch_id,
+        },
+    )
+    assert resp.status_code == 422
+
+
+def test_empty_string_decline_reason_is_rejected(admin_client):
+    """The frontend must send null, not "", when no reason is chosen."""
+    pitch_id = _create_pitch(admin_client)
+    resp = admin_client.post(
+        "/api/assessments",
+        json={
+            **SCORE_PAYLOAD,
+            "recommendation": "decline",
+            "decline_reason": "",
+            "pitch_id": pitch_id,
+        },
+    )
+    assert resp.status_code == 422
+
+
+def test_explicit_null_decline_reason_is_accepted(admin_client):
+    pitch_id = _create_pitch(admin_client)
+    resp = admin_client.post(
+        "/api/assessments",
+        json={
+            **SCORE_PAYLOAD,
+            "recommendation": "decline",
+            "decline_reason": None,
+            "pitch_id": pitch_id,
+        },
+    )
+    assert resp.status_code == 200
+    assert resp.json()["decline_reason"] is None
+
+
+def test_amending_a_decline_keeps_each_version_reason(admin_client):
+    """Assessments are immutable-with-versions, so the history of *why* survives."""
+    pitch_id = _create_pitch(admin_client)
+    first = admin_client.post(
+        "/api/assessments",
+        json={
+            **SCORE_PAYLOAD,
+            "recommendation": "decline",
+            "decline_reason": "insufficient_scale",
+            "pitch_id": pitch_id,
+        },
+    ).json()
+
+    second = admin_client.post(
+        f"/api/assessments?amending_from_id={first['id']}",
+        json={
+            **SCORE_PAYLOAD,
+            "recommendation": "decline",
+            "decline_reason": "grant_funding_rejected",
+            "pitch_id": pitch_id,
+        },
+    ).json()
+
+    assert second["version"] == first["version"] + 1
+    assert second["decline_reason"] == "grant_funding_rejected"
+    # The earlier version keeps its original reason.
+    assert (
+        admin_client.get(f"/api/assessments/{first['id']}").json()["decline_reason"]
+        == "insufficient_scale"
+    )
+
+
+def test_assessor_can_record_a_decline_reason(assessor_client):
+    pitch_id = _create_pitch(assessor_client)
+    resp = assessor_client.post(
+        "/api/assessments",
+        json={
+            **SCORE_PAYLOAD,
+            "recommendation": "decline",
+            "decline_reason": "other",
+            "pitch_id": pitch_id,
+        },
+    )
+    assert resp.status_code == 200
+    assert resp.json()["decline_reason"] == "other"
+
+
+def test_viewer_cannot_record_a_decline_reason(viewer_client, admin_client):
+    pitch_id = _create_pitch(admin_client)
+    resp = viewer_client.post(
+        "/api/assessments",
+        json={
+            **SCORE_PAYLOAD,
+            "recommendation": "decline",
+            "decline_reason": "other",
+            "pitch_id": pitch_id,
+        },
+    )
+    assert resp.status_code == 403
+
+
+def test_viewer_can_read_a_decline_reason(admin_client, viewer_client):
+    pitch_id = _create_pitch(admin_client)
+    created = admin_client.post(
+        "/api/assessments",
+        json={
+            **SCORE_PAYLOAD,
+            "recommendation": "decline",
+            "decline_reason": "not_strategic_priority",
+            "pitch_id": pitch_id,
+        },
+    ).json()
+
+    resp = viewer_client.get(f"/api/assessments/{created['id']}")
+    assert resp.status_code == 200
+    assert resp.json()["decline_reason"] == "not_strategic_priority"

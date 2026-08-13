@@ -4,6 +4,8 @@ import {
   STAGE_MAP,
   SOURCE_LABELS,
   FUNDING_LABELS,
+  SOURCE_OPTIONS,
+  FUNDING_OPTIONS,
 } from "../PipelineConfig";
 
 describe("PipelineConfig", () => {
@@ -84,6 +86,17 @@ describe("PipelineConfig", () => {
     expect(FUNDING_LABELS).toMatchObject({
       no_funding_identified: "No Funding Identified",
       internal_funding: "Internal Funding",
+    });
+  });
+
+  describe.each([
+    ["SOURCE_OPTIONS", SOURCE_LABELS, SOURCE_OPTIONS],
+    ["FUNDING_OPTIONS", FUNDING_LABELS, FUNDING_OPTIONS],
+  ])("%s", (_name, labels, options) => {
+    it("derives one option per label, in map order", () => {
+      expect(options).toEqual(
+        Object.entries(labels).map(([value, label]) => ({ value, label })),
+      );
     });
   });
 });

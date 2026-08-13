@@ -4,6 +4,7 @@
  */
 
 import { STAGE_MAP, SOURCE_LABELS, FUNDING_LABELS } from "./PipelineConfig";
+import { DECLINE_REASON_LABELS } from "../assessments/AssessmentConfig";
 import type { Pitch } from "../../types";
 
 interface PipelineListViewProps {
@@ -73,6 +74,14 @@ export default function PipelineListView({ pitches }: PipelineListViewProps) {
                     >
                       {stage.label}
                     </span>
+                    {/* Under the badge rather than in a column of its own, which
+                        would be empty on every row that is not declined. */}
+                    {pitch.decline_reason && (
+                      <p className="text-[11px] text-red-600 mt-1">
+                        {DECLINE_REASON_LABELS[pitch.decline_reason] ??
+                          pitch.decline_reason}
+                      </p>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-navy-500">
                     {pitch.source

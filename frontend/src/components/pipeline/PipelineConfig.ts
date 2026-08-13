@@ -105,6 +105,7 @@ export const SOURCE_LABELS: Record<string, string> = {
   foundry: "Foundry",
   board: "Board",
   riac_student: "RIAC Student",
+  rozetta_network: "Rozetta Network",
 } as const;
 
 /**

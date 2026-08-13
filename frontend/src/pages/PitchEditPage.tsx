@@ -24,6 +24,7 @@ const SOURCES = [
   { value: "foundry", label: "Foundry" },
   { value: "board", label: "Board" },
   { value: "riac_student", label: "RIAC Student" },
+  { value: "rozetta_network", label: "Rozetta Network" },
 ];
 
 const FUNDING_PATHWAYS = [

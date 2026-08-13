@@ -132,3 +132,150 @@ describe("AssessmentCreatePage (amend)", () => {
     expect(apiMocks.get.mock).not.toHaveBeenCalledWith("/assessments/a2");
   });
 });
+
+describe("AssessmentCreatePage decline reason", () => {
+  beforeEach(() => {
+    mockSearch = "pitch_id=p1";
+    apiMocks.get.mockImplementation((url: string) => {
+      if (url === "/pitches")
+        return Promise.resolve({ data: [{ id: "p1", title: "Solar Pitch" }] });
+      return Promise.resolve({ data: [] });
+    });
+  });
+
+  async function scoreEverything(
+    user: ReturnType<typeof userEvent.setup>,
+  ): Promise<void> {
+    // Each criterion offers buttons 1-5; take the first "3" of each row.
+    const threes = screen.getAllByRole("button", { name: "3" });
+    for (const button of threes) await user.click(button);
+  }
+
+  it("offers no reason field until Decline is chosen", async () => {
+    const user = userEvent.setup();
+    render(<AssessmentCreatePage />);
+    await waitFor(() => screen.getByText("Recommendation *"));
+
+    expect(
+      screen.queryByLabelText(/Reason for declining/),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Proceed" }));
+    expect(
+      screen.queryByLabelText(/Reason for declining/),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Decline" }));
+    expect(screen.getByLabelText(/Reason for declining/)).toBeInTheDocument();
+  });
+
+  it("offers the six reasons", async () => {
+    const user = userEvent.setup();
+    render(<AssessmentCreatePage />);
+    await waitFor(() => screen.getByText("Recommendation *"));
+    await user.click(screen.getByRole("button", { name: "Decline" }));
+
+    for (const label of [
+      "Not a strategic priority",
+      "Insufficient scale",
+      "Insufficient capacity or capability",
+      "Grant funding rejected",
+      "Lack of Rozetta capacity",
+      "Other",
+    ]) {
+      expect(screen.getByRole("option", { name: label })).toBeInTheDocument();
+    }
+  });
+
+  it("sends the chosen reason", async () => {
+    const user = userEvent.setup();
+    apiMocks.post.mockResolvedValue({ data: { id: "new" } });
+    render(<AssessmentCreatePage />);
+    await waitFor(() => screen.getByText("Recommendation *"));
+
+    await scoreEverything(user);
+    await user.click(screen.getByRole("button", { name: "Decline" }));
+    await user.selectOptions(
+      screen.getByLabelText(/Reason for declining/),
+      "insufficient_scale",
+    );
+    await user.click(
+      screen.getByRole("button", { name: /Submit Assessment/i }),
+    );
+
+    expect(apiMocks.post.mock).toHaveBeenCalledWith(
+      "/assessments",
+      expect.objectContaining({
+        recommendation: "decline",
+        decline_reason: "insufficient_scale",
+      }),
+    );
+  });
+
+  it("sends null, not an empty string, when no reason is chosen", async () => {
+    // An empty string is not a valid enum member; the backend answers 422.
+    const user = userEvent.setup();
+    apiMocks.post.mockResolvedValue({ data: { id: "new" } });
+    render(<AssessmentCreatePage />);
+    await waitFor(() => screen.getByText("Recommendation *"));
+
+    await scoreEverything(user);
+    await user.click(screen.getByRole("button", { name: "Decline" }));
+    await user.click(
+      screen.getByRole("button", { name: /Submit Assessment/i }),
+    );
+
+    const posted = (apiMocks.post.mock.mock.calls as unknown[][])[0][1] as {
+      decline_reason: unknown;
+    };
+    expect(posted.decline_reason).toBeNull();
+  });
+
+  it("does not block saving a decline that has no reason", async () => {
+    const user = userEvent.setup();
+    apiMocks.post.mockResolvedValue({ data: { id: "new" } });
+    render(<AssessmentCreatePage />);
+    await waitFor(() => screen.getByText("Recommendation *"));
+
+    await scoreEverything(user);
+    await user.click(screen.getByRole("button", { name: "Decline" }));
+    await user.click(
+      screen.getByRole("button", { name: /Submit Assessment/i }),
+    );
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith("/assessments/new");
+    });
+  });
+
+  it("drops a reason already chosen when the recommendation moves off Decline", async () => {
+    const user = userEvent.setup();
+    apiMocks.post.mockResolvedValue({ data: { id: "new" } });
+    render(<AssessmentCreatePage />);
+    await waitFor(() => screen.getByText("Recommendation *"));
+
+    await scoreEverything(user);
+    await user.click(screen.getByRole("button", { name: "Decline" }));
+    await user.selectOptions(
+      screen.getByLabelText(/Reason for declining/),
+      "other",
+    );
+    await user.click(screen.getByRole("button", { name: "Proceed" }));
+    await user.click(
+      screen.getByRole("button", { name: /Submit Assessment/i }),
+    );
+
+    // A reason alongside Proceed is a contradiction the backend rejects.
+    expect(apiMocks.post.mock).toHaveBeenCalledWith(
+      "/assessments",
+      expect.objectContaining({
+        recommendation: "proceed",
+        decline_reason: null,
+      }),
+    );
+
+    // And choosing Decline again starts from blank, not the discarded value.
+    await user.click(screen.getByRole("button", { name: "Decline" }));
+    expect(screen.getByLabelText(/Reason for declining/)).toHaveValue("");
+  });
+});

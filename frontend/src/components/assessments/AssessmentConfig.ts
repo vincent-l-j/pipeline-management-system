@@ -72,3 +72,28 @@ export const RECOMMENDATION_OPTIONS: RecommendationOption[] = [
     color: "bg-red-100 text-red-700 border-red-200",
   },
 ];
+
+/**
+ * Why a pitch was declined. Mirrors DeclineReason in
+ * backend/app/models/assessment.py — extend both together, plus the Alembic enum.
+ *
+ * Only offered alongside a Decline recommendation: the backend rejects a reason
+ * sent with any other recommendation.
+ */
+export const DECLINE_REASON_LABELS: Record<string, string> = {
+  not_strategic_priority: "Not a strategic priority",
+  insufficient_scale: "Insufficient scale",
+  insufficient_capacity_capability: "Insufficient capacity or capability",
+  grant_funding_rejected: "Grant funding rejected",
+  lack_of_rozetta_capacity: "Lack of Rozetta capacity",
+  other: "Other",
+} as const;
+
+/** Options for the reason select, derived from the labels above. */
+export const DECLINE_REASON_OPTIONS: readonly {
+  value: string;
+  label: string;
+}[] = Object.entries(DECLINE_REASON_LABELS).map(([value, label]) => ({
+  value,
+  label,
+}));

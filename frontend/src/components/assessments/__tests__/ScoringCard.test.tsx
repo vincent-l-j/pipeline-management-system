@@ -119,4 +119,29 @@ describe("ScoringCard", () => {
     render(<ScoringCard assessment={perfect} assessorName="Jane" />);
     expect(screen.getByText("5.0")).toBeInTheDocument();
   });
+
+  it("shows the decline reason beside the recommendation", () => {
+    render(
+      <ScoringCard
+        assessment={{
+          ...baseAssessment,
+          recommendation: "decline",
+          decline_reason: "not_strategic_priority",
+        }}
+      />,
+    );
+    expect(screen.getByText("Decline")).toBeInTheDocument();
+    expect(screen.getByText("Not a strategic priority")).toBeInTheDocument();
+  });
+
+  it("shows no reason when the assessment has none", () => {
+    render(
+      <ScoringCard
+        assessment={{ ...baseAssessment, recommendation: "decline" }}
+      />,
+    );
+    expect(
+      screen.queryByText("Not a strategic priority"),
+    ).not.toBeInTheDocument();
+  });
 });

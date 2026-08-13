@@ -1,5 +1,7 @@
 """Tests for /api/pitches CRUD, stage transitions, file links, and RBAC."""
 
+from uuid import UUID
+
 import pytest
 
 from app.models.pitch import PitchSource
@@ -123,6 +125,103 @@ def test_delete_pitch(admin_client):
 
     resp = admin_client.get(f"/api/pitches/{pitch_id}")
     assert resp.status_code == 404
+
+
+def test_delete_unknown_pitch_returns_404(admin_client):
+    resp = admin_client.delete("/api/pitches/00000000-0000-0000-0000-000000000099")
+    assert resp.status_code == 404
+
+
+def test_unauthenticated_delete_is_rejected(client):
+    # HTTPBearer returns 403 for a missing Authorization header; an invalid token
+    # yields 401 from get_current_user. Either way the delete is refused.
+    resp = client.delete("/api/pitches/00000000-0000-0000-0000-000000000099")
+    assert resp.status_code in (401, 403)
+
+
+def test_delete_pitch_removes_dependent_rows(admin_client, db_session):
+    """Deleting a pitch removes everything it owns in the same transaction:
+    stage history, contact links, file links, assessments, meetings, and the
+    attendee rows hanging off those meetings."""
+    from app.models.assessment import Assessment
+    from app.models.meeting import Meeting, MeetingAttendee
+    from app.models.pitch import PitchContact, PitchFileLink, PitchStageHistory
+
+    pitch_id = admin_client.post("/api/pitches", json={"title": "Fully Linked Pitch"}).json()["id"]
+    contact_id = admin_client.post(
+        "/api/contacts", json={"first_name": "Linked", "last_name": "Person"}
+    ).json()["id"]
+
+    # A meeting with both an external and an internal attendee.
+    meeting_id = admin_client.post(
+        "/api/meetings",
+        json={"title": "Kickoff", "meeting_date": "2026-01-01", "pitch_id": pitch_id},
+    ).json()["id"]
+    assert (
+        admin_client.post(
+            f"/api/meetings/{meeting_id}/attendees",
+            json={"contact_id": contact_id, "is_internal": False},
+        ).status_code
+        == 200
+    )
+
+    admin_client.post(
+        "/api/assessments",
+        json={
+            "pitch_id": pitch_id,
+            "national_impact": 4,
+            "translation_readiness": 3,
+            "team_capability": 5,
+            "ecosystem_fit": 4,
+            "funding_pathway_clarity": 3,
+            "masterplan_alignment": 4,
+            "recommendation": "proceed",
+            "assessment_date": "2026-06-10",
+        },
+    )
+    admin_client.post(
+        f"/api/pitches/{pitch_id}/files",
+        json={"file_path": "/docs/deck.pdf", "label": "Deck"},
+    )
+    admin_client.post(f"/api/pitches/{pitch_id}/stage", json={"new_stage": "initial_screen"})
+
+    # PitchContact has no create endpoint — insert the join row directly.
+    db_session.add(PitchContact(pitch_id=UUID(pitch_id), contact_id=UUID(contact_id)))
+    db_session.commit()
+
+    resp = admin_client.delete(f"/api/pitches/{pitch_id}")
+    assert resp.status_code == 200
+    assert admin_client.get(f"/api/pitches/{pitch_id}").status_code == 404
+
+    db_session.expire_all()
+    pid = UUID(pitch_id)
+    assert db_session.query(PitchStageHistory).filter_by(pitch_id=pid).count() == 0
+    assert db_session.query(PitchContact).filter_by(pitch_id=pid).count() == 0
+    assert db_session.query(PitchFileLink).filter_by(pitch_id=pid).count() == 0
+    assert db_session.query(Assessment).filter_by(pitch_id=pid).count() == 0
+    assert db_session.query(Meeting).filter_by(pitch_id=pid).count() == 0
+    assert db_session.query(MeetingAttendee).filter_by(meeting_id=UUID(meeting_id)).count() == 0
+
+
+def test_delete_pitch_keeps_contacts_and_organisations(admin_client, db_session):
+    """The people and organisations a pitch pointed at outlive it."""
+    from app.models.pitch import PitchContact
+
+    org_id = admin_client.post("/api/organisations", json={"name": "Surviving Org"}).json()["id"]
+    contact_id = admin_client.post(
+        "/api/contacts", json={"first_name": "Surviving", "last_name": "Contact"}
+    ).json()["id"]
+    pitch_id = admin_client.post(
+        "/api/pitches", json={"title": "Doomed Pitch", "organisation_id": org_id}
+    ).json()["id"]
+
+    db_session.add(PitchContact(pitch_id=UUID(pitch_id), contact_id=UUID(contact_id)))
+    db_session.commit()
+
+    assert admin_client.delete(f"/api/pitches/{pitch_id}").status_code == 200
+
+    assert admin_client.get(f"/api/organisations/{org_id}").status_code == 200
+    assert admin_client.get(f"/api/contacts/{contact_id}").status_code == 200
 
 
 def test_get_nonexistent_pitch(admin_client):
@@ -468,6 +567,12 @@ def test_viewer_can_list_pitches(viewer_client):
 def test_viewer_cannot_delete_pitch(viewer_client):
     # RBAC fires before DB lookup — fake UUID is sufficient to test the 403
     resp = viewer_client.delete("/api/pitches/00000000-0000-0000-0000-000000000099")
+    assert resp.status_code == 403
+
+
+def test_assessor_cannot_delete_pitch(assessor_client):
+    """Delete is admin-only: an assessor may create and edit, but not remove."""
+    resp = assessor_client.delete("/api/pitches/00000000-0000-0000-0000-000000000099")
     assert resp.status_code == 403
 
 

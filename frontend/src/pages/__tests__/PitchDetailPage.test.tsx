@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import PitchDetailPage from "../PitchDetailPage";
 import { createApiMocks } from "../../test/mocks/api";
 
@@ -132,5 +133,98 @@ describe("PitchDetailPage", () => {
     // Viewer can still read the pitch; the flag is a visual marker only.
     expect(screen.getByText("Confidential")).toBeInTheDocument();
     expect(screen.getByText("Test Pitch")).toBeInTheDocument();
+  });
+});
+
+describe("PitchDetailPage delete", () => {
+  beforeEach(() => {
+    mockUser = { role: "admin" };
+  });
+
+  async function renderAsAdmin() {
+    setupGet();
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+  }
+
+  async function openDialog(user: ReturnType<typeof userEvent.setup>) {
+    await renderAsAdmin();
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    return screen.getByRole("dialog");
+  }
+
+  it("shows a Delete control for admin", async () => {
+    await renderAsAdmin();
+    expect(screen.getByRole("button", { name: "Delete" })).toBeInTheDocument();
+  });
+
+  it("hides the Delete control for assessor", async () => {
+    mockUser = { role: "assessor" };
+    setupGet();
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+    expect(
+      screen.queryByRole("button", { name: "Delete" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("hides the Delete control for viewer", async () => {
+    mockUser = { role: "viewer" };
+    setupGet();
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+    expect(
+      screen.queryByRole("button", { name: "Delete" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens a confirmation dialog without calling the API", async () => {
+    const user = userEvent.setup();
+    await openDialog(user);
+    expect(apiMocks.delete.mock).not.toHaveBeenCalled();
+  });
+
+  it("deletes and navigates to the pitch list once the title is typed", async () => {
+    const user = userEvent.setup();
+    apiMocks.delete.mockResolvedValue({ data: { detail: "Pitch deleted" } });
+    await openDialog(user);
+
+    await user.type(screen.getByLabelText(/type/i), "Test Pitch");
+    await user.click(screen.getByRole("button", { name: "Delete pitch" }));
+
+    await waitFor(() => {
+      expect(apiMocks.delete.mock).toHaveBeenCalledWith("/pitches/42");
+    });
+    expect(mockNavigate).toHaveBeenCalledWith("/pitches");
+  });
+
+  it("does not call the API when the dialog is cancelled", async () => {
+    const user = userEvent.setup();
+    await openDialog(user);
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(apiMocks.delete.mock).not.toHaveBeenCalled();
+  });
+
+  it("keeps the pitch and shows the error when the delete is rejected", async () => {
+    const user = userEvent.setup();
+    apiMocks.delete.mockRejectedValue({
+      response: { status: 403, data: { detail: "Requires role: admin" } },
+    });
+    await openDialog(user);
+
+    await user.type(screen.getByLabelText(/type/i), "Test Pitch");
+    await user.click(screen.getByRole("button", { name: "Delete pitch" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Requires role: admin")).toBeInTheDocument();
+    });
+    expect(mockNavigate).not.toHaveBeenCalledWith("/pitches");
+    // The pitch is still on screen behind the still-open dialog.
+    expect(
+      screen.getByRole("heading", { name: "Test Pitch" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 });

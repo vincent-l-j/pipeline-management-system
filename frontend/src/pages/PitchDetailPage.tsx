@@ -11,6 +11,7 @@ import type { AxiosResponse } from "axios";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import ActivityTimeline from "../components/pitch/ActivityTimeline";
+import DeletePitchModal from "../components/pitch/DeletePitchModal";
 import FileLinks from "../components/pitch/FileLinks";
 import {
   STAGE_MAP,
@@ -18,6 +19,7 @@ import {
   FUNDING_LABELS,
 } from "../components/pipeline/PipelineConfig";
 import api from "../services/api";
+import { apiErrorMessage } from "../services/apiError";
 import { useAuth } from "../contexts/AuthContext";
 import type { Assessment, Pitch, User, Organisation } from "../types";
 
@@ -43,8 +45,14 @@ export default function PitchDetailPage(): React.JSX.Element {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [showDelete, setShowDelete] = useState<boolean>(false);
+  const [deleting, setDeleting] = useState<boolean>(false);
+  const [deleteError, setDeleteError] = useState<string>("");
 
   const canEdit: boolean = user?.role === "admin" || user?.role === "assessor";
+  // Delete is admin-only, matching require_role on DELETE /api/pitches/{id}.
+  // This is UX only — the server is the boundary.
+  const canDelete: boolean = user?.role === "admin";
 
   useEffect((): void => {
     if (!pitchId) {
@@ -98,6 +106,18 @@ export default function PitchDetailPage(): React.JSX.Element {
       });
   }, [pitchId, navigate]);
 
+  async function deletePitch(): Promise<void> {
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await api.delete(`/pitches/${String(pitchId)}`);
+      void navigate("/pitches");
+    } catch (err) {
+      setDeleteError(apiErrorMessage(err, "Failed to delete pitch"));
+      setDeleting(false);
+    }
+  }
+
   function getUserName(userId: string | undefined): string | null {
     if (!userId) return null;
     const u = users.find((u): boolean => u.id === userId);
@@ -144,9 +164,37 @@ export default function PitchDetailPage(): React.JSX.Element {
                 </Link>
               </>
             )}
+            {canDelete && (
+              <button
+                type="button"
+                onClick={() => {
+                  setDeleteError("");
+                  setShowDelete(true);
+                }}
+                className="border border-red-200 text-red-600 px-4 py-2 rounded-lg text-sm font-medium hover:border-red-400 transition-colors"
+              >
+                Delete
+              </button>
+            )}
           </div>
         }
       />
+
+      {showDelete && (
+        <DeletePitchModal
+          pitchTitle={pitch.title}
+          meetingCount={meetings.length}
+          assessmentCount={assessments.length}
+          error={deleteError}
+          deleting={deleting}
+          onCancel={() => {
+            setShowDelete(false);
+          }}
+          onConfirm={() => {
+            void deletePitch();
+          }}
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left — Pitch info + Timeline */}

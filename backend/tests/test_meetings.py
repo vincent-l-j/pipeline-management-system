@@ -74,6 +74,41 @@ def test_delete_meeting(admin_client):
     assert resp.status_code == 404
 
 
+def test_delete_meeting_removes_its_attendees(admin_client, db_session):
+    """Attendees belong to their meeting — deleting the meeting takes them with it,
+    rather than leaving them behind with a dangling meeting_id."""
+    from uuid import UUID
+
+    from app.models.meeting import MeetingAttendee
+
+    pitch_id = _create_pitch(admin_client)
+    meeting_id = admin_client.post(
+        "/api/meetings",
+        json={
+            "title": "Meeting With Attendees",
+            "meeting_date": "2026-06-15",
+            "pitch_id": pitch_id,
+        },
+    ).json()["id"]
+    contact_id = admin_client.post(
+        "/api/contacts", json={"first_name": "Meeting", "last_name": "Attendee"}
+    ).json()["id"]
+    assert (
+        admin_client.post(
+            f"/api/meetings/{meeting_id}/attendees",
+            json={"contact_id": contact_id, "is_internal": False},
+        ).status_code
+        == 200
+    )
+
+    assert admin_client.delete(f"/api/meetings/{meeting_id}").status_code == 200
+
+    db_session.expire_all()
+    assert db_session.query(MeetingAttendee).filter_by(meeting_id=UUID(meeting_id)).count() == 0
+    # The contact themself survives.
+    assert admin_client.get(f"/api/contacts/{contact_id}").status_code == 200
+
+
 def test_get_nonexistent_meeting(admin_client):
     resp = admin_client.get("/api/meetings/00000000-0000-0000-0000-000000000000")
     assert resp.status_code == 404

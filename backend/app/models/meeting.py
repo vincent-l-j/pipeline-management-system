@@ -40,7 +40,11 @@ class Meeting(Base, TimestampMixin):
 
     # Relationships
     pitch = relationship("Pitch", back_populates="meetings")
-    attendees = relationship("MeetingAttendee", back_populates="meeting")
+    # Attendee rows are owned by their meeting: without the delete cascade
+    # SQLAlchemy de-associates them instead, nulling a NOT NULL meeting_id.
+    attendees = relationship(
+        "MeetingAttendee", back_populates="meeting", cascade="all, delete-orphan"
+    )
 
 
 class MeetingAttendee(Base):

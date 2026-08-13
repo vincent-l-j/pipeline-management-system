@@ -7,6 +7,7 @@ import ScoreSelector from "../components/assessments/ScoreSelector";
 import {
   CRITERIA,
   RECOMMENDATION_OPTIONS,
+  DECLINE_REASON_OPTIONS,
   Criterion,
   RecommendationOption,
 } from "../components/assessments/AssessmentConfig";
@@ -21,6 +22,7 @@ interface FormState extends AssessmentScores {
   pitch_id: string;
   assessment_date: string;
   recommendation: string;
+  decline_reason: string;
   rationale: string;
 }
 
@@ -36,6 +38,7 @@ export default function AssessmentCreatePage(): React.JSX.Element {
     pitch_id: searchParams.get("pitch_id") ?? "",
     assessment_date: new Date().toISOString().split("T")[0],
     recommendation: "",
+    decline_reason: "",
     rationale: "",
     national_impact: 0,
     translation_readiness: 0,
@@ -58,6 +61,7 @@ export default function AssessmentCreatePage(): React.JSX.Element {
         ...prev,
         pitch_id: data.pitch_id,
         recommendation: data.recommendation,
+        decline_reason: data.decline_reason ?? "",
         rationale: data.rationale ?? "",
         national_impact: data.national_impact,
         translation_readiness: data.translation_readiness,
@@ -101,7 +105,18 @@ export default function AssessmentCreatePage(): React.JSX.Element {
       const url = amendFromId
         ? `/assessments?amending_from_id=${amendFromId}`
         : "/assessments";
-      const { data } = await api.post<CreateAssessmentResponse>(url, form);
+      // This page posts its form object directly, so decline_reason has to be
+      // normalised here: the "" a blank select holds is not a valid enum member
+      // and the backend rejects it with a 422. It is also cleared for any
+      // recommendation other than decline, which the backend likewise rejects.
+      const payload = {
+        ...form,
+        decline_reason:
+          form.recommendation === "decline"
+            ? form.decline_reason || null
+            : null,
+      };
+      const { data } = await api.post<CreateAssessmentResponse>(url, payload);
       void navigate(`/assessments/${data.id}`);
     } catch (err: unknown) {
       const axiosError = err as AxiosError<{ detail?: string }>;
@@ -222,7 +237,14 @@ export default function AssessmentCreatePage(): React.JSX.Element {
                 key={opt.value}
                 type="button"
                 onClick={() => {
-                  setForm((prev) => ({ ...prev, recommendation: opt.value }));
+                  setForm((prev) => ({
+                    ...prev,
+                    recommendation: opt.value,
+                    // Drop any reason already chosen: keeping it would send a
+                    // contradiction, which the backend refuses.
+                    decline_reason:
+                      opt.value === "decline" ? prev.decline_reason : "",
+                  }));
                 }}
                 className={`
                   flex-1 py-3 px-4 rounded-xl border-2 text-sm font-semibold transition-all
@@ -237,6 +259,43 @@ export default function AssessmentCreatePage(): React.JSX.Element {
               </button>
             ))}
           </div>
+
+          {/*
+            Offered only for a Decline: the backend rejects a reason sent with
+            any other recommendation. A plain select rather than the Combobox —
+            six fixed options need no search.
+          */}
+          {form.recommendation === "decline" && (
+            <div className="mb-5">
+              <label
+                className="block text-sm font-medium text-navy-700 mb-1"
+                htmlFor="decline-reason"
+              >
+                Reason for declining
+              </label>
+              <select
+                id="decline-reason"
+                value={form.decline_reason}
+                onChange={(e) => {
+                  setForm((prev) => ({
+                    ...prev,
+                    decline_reason: e.target.value,
+                  }));
+                }}
+                className="w-full border border-navy-200 rounded-lg px-3 py-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300"
+              >
+                <option value="">Select a reason...</option>
+                {DECLINE_REASON_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-navy-400 mt-1">
+                Optional — it can be saved without one.
+              </p>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-navy-700 mb-1">

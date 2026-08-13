@@ -40,9 +40,22 @@ export interface Pitch {
   lead_id?: string;
   /** The immediate next action on the pitch, as free text. */
   next_step?: string | null;
+  /**
+   * Read-only and derived from the pitch's latest assessment, and only once the
+   * pitch is in the declined stage. Not settable through the pitch API.
+   */
+  decline_reason?: DeclineReason | null;
 }
 
 export type Recommendation = "proceed" | "park" | "decline";
+
+export type DeclineReason =
+  | "not_strategic_priority"
+  | "insufficient_scale"
+  | "insufficient_capacity_capability"
+  | "grant_funding_rejected"
+  | "lack_of_rozetta_capacity"
+  | "other";
 
 /** Score fields shared by the assessment API shape and the create form. */
 export interface AssessmentScores {
@@ -61,6 +74,8 @@ export interface Assessment extends AssessmentScores {
   assessment_date: string;
   version: number;
   recommendation: Recommendation;
+  /** Only ever set alongside a decline recommendation. */
+  decline_reason?: DeclineReason | null;
   rationale?: string;
 }
 

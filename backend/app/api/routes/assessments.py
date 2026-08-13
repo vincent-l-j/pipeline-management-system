@@ -3,7 +3,6 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -11,6 +10,7 @@ from app.core.security import get_current_user, require_role
 from app.models.assessment import Assessment
 from app.models.user import User, UserRole
 from app.schemas.assessment import AssessmentCreate, AssessmentOut
+from app.services.assessments import latest_assessments_query
 
 router = APIRouter(prefix="/assessments", tags=["assessments"])
 
@@ -21,24 +21,7 @@ def list_assessments(
     current_user: User = Depends(get_current_user),
 ):
     """Get the latest assessment version for each pitch (no historical versions)."""
-    # Subquery to get the max version for each pitch
-    subquery = (
-        db.query(Assessment.pitch_id, func.max(Assessment.version).label("max_version"))
-        .group_by(Assessment.pitch_id)
-        .subquery()
-    )
-
-    # Join to get only rows matching the max version per pitch
-    return (
-        db.query(Assessment)
-        .join(
-            subquery,
-            (Assessment.pitch_id == subquery.c.pitch_id)
-            & (Assessment.version == subquery.c.max_version),
-        )
-        .order_by(Assessment.assessment_date.desc())
-        .all()
-    )
+    return latest_assessments_query(db).order_by(Assessment.assessment_date.desc()).all()
 
 
 @router.get("/{assessment_id}", response_model=AssessmentOut)

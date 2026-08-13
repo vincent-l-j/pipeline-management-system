@@ -17,6 +17,7 @@ import {
   FUNDING_LABELS,
   PIPELINE_STAGES,
 } from "./PipelineConfig";
+import { DECLINE_REASON_LABELS } from "../assessments/AssessmentConfig";
 import { useAuth } from "../../contexts/AuthContext";
 import type { Pitch } from "../../types";
 
@@ -115,6 +116,15 @@ export default function PitchCard({
       )}
 
       <div className="flex flex-wrap gap-1.5 mt-2">
+        {/* Leads the row: on a declined card, why it was declined is the most
+            useful thing on it. The backend only fills this in for declined
+            pitches, so truthiness is the whole guard. */}
+        {pitch.decline_reason && (
+          <span className="text-[10px] bg-red-50 text-red-700 px-1.5 py-0.5 rounded font-medium">
+            {DECLINE_REASON_LABELS[pitch.decline_reason] ??
+              pitch.decline_reason}
+          </span>
+        )}
         {pitch.source && (
           <span className="text-[10px] bg-navy-50 text-navy-600 px-1.5 py-0.5 rounded">
             {SOURCE_LABELS[pitch.source] || pitch.source}

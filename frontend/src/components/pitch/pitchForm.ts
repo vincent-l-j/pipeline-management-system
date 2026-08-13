@@ -18,6 +18,7 @@ export interface PitchFormValues {
   funding_pathway: string;
   domain_tags: string[];
   masterplan_alignment: string;
+  next_step: string;
   is_confidential: boolean;
   organisation_id: string;
   lead_id: string;
@@ -32,6 +33,7 @@ export interface PitchFormSource {
   funding_pathway?: string | null;
   domain_tags?: string | null;
   masterplan_alignment?: string | null;
+  next_step?: string | null;
   is_confidential?: boolean | null;
   organisation_id?: string | null;
   lead_id?: string | null;
@@ -45,6 +47,7 @@ export const EMPTY_PITCH_FORM: PitchFormValues = {
   funding_pathway: "",
   domain_tags: [],
   masterplan_alignment: "",
+  next_step: "",
   is_confidential: false,
   organisation_id: "",
   lead_id: "",
@@ -77,6 +80,7 @@ export function pitchFormFromApi(pitch: PitchFormSource): PitchFormValues {
       ? pitch.domain_tags.split(",").map((tag) => tag.trim())
       : [],
     masterplan_alignment: pitch.masterplan_alignment ?? "",
+    next_step: pitch.next_step ?? "",
     is_confidential: pitch.is_confidential ?? false,
     organisation_id: pitch.organisation_id ?? "",
     lead_id: pitch.lead_id ?? "",
@@ -99,6 +103,7 @@ export function pitchPayload(values: PitchFormValues) {
     domain_tags:
       values.domain_tags.length > 0 ? values.domain_tags.join(",") : null,
     masterplan_alignment: values.masterplan_alignment || null,
+    next_step: values.next_step || null,
     is_confidential: values.is_confidential,
     organisation_id: values.organisation_id || null,
     lead_id: values.lead_id || null,

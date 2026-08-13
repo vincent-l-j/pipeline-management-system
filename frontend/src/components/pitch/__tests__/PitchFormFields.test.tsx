@@ -42,10 +42,32 @@ describe("PitchFormFields", () => {
     "Organisation",
     "Rozetta Lead",
     "Masterplan Alignment",
+    "Next Step",
     "Mark as confidential",
   ])("labels %s so it is reachable without a display value", (label) => {
     setup();
     expect(screen.getByLabelText(new RegExp(label))).toBeInTheDocument();
+  });
+
+  it("reports a typed next step", async () => {
+    const user = userEvent.setup();
+    const { onChange } = setup();
+    await user.type(screen.getByLabelText(/Next Step/), "C");
+    expect(onChange).toHaveBeenCalledWith({ next_step: "C" });
+  });
+
+  it("puts the next step after Masterplan Alignment and before Confidential", () => {
+    setup();
+    const alignment = screen.getByLabelText(/Masterplan Alignment/);
+    const nextStep = screen.getByLabelText(/Next Step/);
+    const confidential = screen.getByLabelText(/Mark as confidential/);
+
+    expect(alignment.compareDocumentPosition(nextStep)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(nextStep.compareDocumentPosition(confidential)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
   });
 
   it("renders no form element and no submit button, so the page owns submission", () => {

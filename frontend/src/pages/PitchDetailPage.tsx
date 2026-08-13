@@ -33,6 +33,7 @@ interface ExtendedPitch extends Pitch {
   organisation_id?: string;
   is_confidential?: boolean;
   masterplan_alignment?: string;
+  next_step?: string | null;
 }
 
 export default function PitchDetailPage(): React.JSX.Element {
@@ -199,6 +200,22 @@ export default function PitchDetailPage(): React.JSX.Element {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left — Pitch info + Timeline */}
         <div className="lg:col-span-2 space-y-6">
+          {/*
+            Next step leads the column rather than sitting in the details list
+            below: it is the one thing on this page that asks the reader to act,
+            so it should not have to compete with the reference fields.
+          */}
+          {pitch.next_step?.trim() && (
+            <div className="bg-teal-50 border border-teal-200 rounded-xl p-6">
+              <h2 className="text-sm font-semibold text-teal-800 uppercase tracking-wide mb-2">
+                Next Step
+              </h2>
+              <p className="text-sm text-navy-900 whitespace-pre-line">
+                {pitch.next_step}
+              </p>
+            </div>
+          )}
+
           {/* Pitch details card */}
           <div className="bg-white rounded-xl border border-navy-100 p-6">
             <div className="flex items-center gap-3 mb-4">

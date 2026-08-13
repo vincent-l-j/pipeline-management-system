@@ -30,6 +30,8 @@ export interface Pitch {
   submission_date?: string;
   current_stage: string;
   lead_id?: string;
+  /** The immediate next action on the pitch, as free text. */
+  next_step?: string | null;
 }
 
 export type Recommendation = "proceed" | "park" | "decline";

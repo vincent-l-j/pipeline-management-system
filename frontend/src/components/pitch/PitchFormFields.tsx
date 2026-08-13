@@ -237,6 +237,23 @@ export default function PitchFormFields({
         />
       </div>
 
+      <div>
+        <label className={labelClass} htmlFor="pitch-next-step">
+          Next Step
+        </label>
+        <textarea
+          id="pitch-next-step"
+          rows={2}
+          disabled={disabled}
+          value={values.next_step}
+          onChange={(e) => {
+            onChange({ next_step: e.target.value });
+          }}
+          placeholder="The immediate next action, e.g. 'Call the CSIRO lead on Friday'"
+          className={inputClass}
+        />
+      </div>
+
       <div className="flex items-center gap-3">
         <input
           type="checkbox"

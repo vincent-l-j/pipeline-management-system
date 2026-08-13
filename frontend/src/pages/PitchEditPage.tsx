@@ -10,6 +10,7 @@ import { useNavigate, useParams, Navigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import PitchFormFields from "../components/pitch/PitchFormFields";
+import OrganisationQuickCreateModal from "../components/organisations/OrganisationQuickCreateModal";
 import {
   EMPTY_PITCH_FORM,
   pitchFormFromApi,
@@ -30,6 +31,7 @@ export default function PitchEditPage(): React.JSX.Element {
 
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [creatingOrgFrom, setCreatingOrgFrom] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +58,12 @@ export default function PitchEditPage(): React.JSX.Element {
 
   function update(patch: Partial<PitchFormValues>): void {
     setForm((prev) => ({ ...prev, ...patch }));
+  }
+
+  function organisationCreated(organisation: Organisation): void {
+    setOrganisations((prev) => [...prev, organisation]);
+    update({ organisation_id: organisation.id });
+    setCreatingOrgFrom(null);
   }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>): Promise<void> {
@@ -108,6 +116,9 @@ export default function PitchEditPage(): React.JSX.Element {
           onChange={update}
           organisations={organisations}
           users={users}
+          onCreateOrganisation={(query) => {
+            setCreatingOrgFrom(query);
+          }}
         />
 
         {/* Actions */}
@@ -130,6 +141,17 @@ export default function PitchEditPage(): React.JSX.Element {
           </button>
         </div>
       </form>
+
+      {/* A sibling of the form, never nested inside it — see PitchCreatePage. */}
+      {creatingOrgFrom !== null && (
+        <OrganisationQuickCreateModal
+          initialName={creatingOrgFrom}
+          onCreated={organisationCreated}
+          onCancel={() => {
+            setCreatingOrgFrom(null);
+          }}
+        />
+      )}
     </Layout>
   );
 }

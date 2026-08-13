@@ -190,13 +190,79 @@ describe("PitchFormFields", () => {
     ]);
   });
 
-  it("lists the supplied organisations and users as options", () => {
+  it("lists the supplied users as lead options", () => {
     setup();
     expect(
-      screen.getByRole("option", { name: "Acme Research" }),
-    ).toBeInTheDocument();
-    expect(
       screen.getByRole("option", { name: "Ada Lovelace" }),
+    ).toBeInTheDocument();
+  });
+
+  it("offers the supplied organisations through a searchable picker", async () => {
+    const user = userEvent.setup();
+    const { onChange } = setup();
+
+    // Name-scoped: the form also has three native selects, which RTL maps to
+    // the combobox role too.
+    const picker = screen.getByRole("combobox", { name: /Organisation/ });
+    await user.click(picker);
+    await user.type(picker, "acme");
+
+    await user.click(screen.getByRole("option", { name: "Acme Research" }));
+    expect(onChange).toHaveBeenCalledWith({ organisation_id: "org-1" });
+  });
+
+  it("shows the selected organisation's name", () => {
+    setup({ organisation_id: "org-2" });
+    expect(screen.getByRole("combobox", { name: /Organisation/ })).toHaveValue(
+      "Beta Institute",
+    );
+  });
+
+  it("offers no create-organisation row unless the page supplies a handler", async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.click(screen.getByRole("combobox", { name: /Organisation/ }));
+    expect(
+      screen.queryByRole("option", { name: /Add a new organisation/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers a create-organisation row when the page supplies a handler", async () => {
+    const user = userEvent.setup();
+    const onCreateOrganisation = vi.fn();
+    render(
+      <PitchFormFields
+        values={EMPTY_PITCH_FORM}
+        onChange={vi.fn()}
+        organisations={ORGANISATIONS}
+        users={USERS}
+        onCreateOrganisation={onCreateOrganisation}
+      />,
+    );
+    const picker = screen.getByRole("combobox", { name: /Organisation/ });
+    await user.click(picker);
+    await user.type(picker, "Gamma");
+    await user.click(
+      screen.getByRole("option", {
+        name: 'Add "Gamma" as a new organisation',
+      }),
+    );
+
+    expect(onCreateOrganisation).toHaveBeenCalledWith("Gamma");
+  });
+
+  it("surfaces an organisation load failure under the picker", () => {
+    render(
+      <PitchFormFields
+        values={EMPTY_PITCH_FORM}
+        onChange={vi.fn()}
+        organisations={[]}
+        users={USERS}
+        organisationsError="Could not load organisations"
+      />,
+    );
+    expect(
+      screen.getByText("Could not load organisations"),
     ).toBeInTheDocument();
   });
 

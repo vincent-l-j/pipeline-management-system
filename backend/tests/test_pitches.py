@@ -131,7 +131,7 @@ def test_get_nonexistent_pitch(admin_client):
 # --- Sources ---
 
 
-@pytest.mark.parametrize("source", ["riac", "foundry", "board", "riac_student"])
+@pytest.mark.parametrize("source", ["rozetta_network"])
 def test_pitch_source_new_value_round_trips(admin_client, source):
     create = admin_client.post("/api/pitches", json={"title": f"Source {source}", "source": source})
     assert create.status_code == 200
@@ -141,7 +141,20 @@ def test_pitch_source_new_value_round_trips(admin_client, source):
     assert fetched.json()["source"] == source
 
 
-@pytest.mark.parametrize("source", ["referral", "website", "event", "cold_outreach", "internal"])
+@pytest.mark.parametrize(
+    "source",
+    [
+        "referral",
+        "website",
+        "event",
+        "cold_outreach",
+        "internal",
+        "riac",
+        "foundry",
+        "board",
+        "riac_student",
+    ],
+)
 def test_pitch_source_existing_value_still_accepted(admin_client, source):
     resp = admin_client.post("/api/pitches", json={"title": f"Legacy {source}", "source": source})
     assert resp.status_code == 200

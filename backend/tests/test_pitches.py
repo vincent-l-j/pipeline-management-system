@@ -957,3 +957,145 @@ def test_viewer_cannot_transition_stage(viewer_client):
         json={"new_stage": "initial_screen"},
     )
     assert resp.status_code == 403
+
+
+# --- Derived decline reason ---
+
+
+DECLINE_SCORES = {
+    "national_impact": 2,
+    "translation_readiness": 2,
+    "team_capability": 2,
+    "ecosystem_fit": 2,
+    "funding_pathway_clarity": 2,
+    "masterplan_alignment": 2,
+    "assessment_date": "2026-06-10",
+}
+
+
+def _assess(client, pitch_id, recommendation="decline", reason=None):
+    payload = {**DECLINE_SCORES, "recommendation": recommendation, "pitch_id": pitch_id}
+    if reason is not None:
+        payload["decline_reason"] = reason
+    resp = client.post("/api/assessments", json=payload)
+    assert resp.status_code == 200, resp.text
+    return resp.json()
+
+
+def _decline(client, pitch_id):
+    assert client.post(f"/api/pitches/{pitch_id}/stage", json={"new_stage": "declined"}).status_code
+
+
+def test_declined_pitch_reports_its_latest_decline_reason(admin_client):
+    pitch_id = admin_client.post("/api/pitches", json={"title": "Declined Pitch"}).json()["id"]
+    _assess(admin_client, pitch_id, reason="insufficient_scale")
+    _decline(admin_client, pitch_id)
+
+    assert admin_client.get(f"/api/pitches/{pitch_id}").json()["decline_reason"] == (
+        "insufficient_scale"
+    )
+
+
+def test_amending_the_assessment_changes_what_the_pitch_reports(admin_client):
+    pitch_id = admin_client.post("/api/pitches", json={"title": "Amended Decline"}).json()["id"]
+    first = _assess(admin_client, pitch_id, reason="insufficient_scale")
+    _decline(admin_client, pitch_id)
+
+    admin_client.post(
+        f"/api/assessments?amending_from_id={first['id']}",
+        json={
+            **DECLINE_SCORES,
+            "recommendation": "decline",
+            "decline_reason": "lack_of_rozetta_capacity",
+            "pitch_id": pitch_id,
+        },
+    )
+
+    assert admin_client.get(f"/api/pitches/{pitch_id}").json()["decline_reason"] == (
+        "lack_of_rozetta_capacity"
+    )
+
+
+def test_pitch_not_in_the_declined_stage_reports_no_reason(admin_client):
+    """The reason is a property of a declined pitch, not of any assessment."""
+    pitch_id = admin_client.post("/api/pitches", json={"title": "Still Open"}).json()["id"]
+    _assess(admin_client, pitch_id, reason="insufficient_scale")
+
+    assert admin_client.get(f"/api/pitches/{pitch_id}").json()["decline_reason"] is None
+
+
+def test_declined_pitch_with_no_assessment_reports_no_reason(admin_client):
+    pitch_id = admin_client.post("/api/pitches", json={"title": "Declined Unassessed"}).json()["id"]
+    _decline(admin_client, pitch_id)
+
+    assert admin_client.get(f"/api/pitches/{pitch_id}").json()["decline_reason"] is None
+
+
+def test_declined_pitch_whose_latest_assessment_has_no_reason(admin_client):
+    pitch_id = admin_client.post("/api/pitches", json={"title": "Declined No Reason"}).json()["id"]
+    _assess(admin_client, pitch_id)
+    _decline(admin_client, pitch_id)
+
+    assert admin_client.get(f"/api/pitches/{pitch_id}").json()["decline_reason"] is None
+
+
+def test_pitch_list_reports_decline_reasons(admin_client):
+    declined = admin_client.post("/api/pitches", json={"title": "Listed Decline"}).json()["id"]
+    open_pitch = admin_client.post("/api/pitches", json={"title": "Listed Open"}).json()["id"]
+    _assess(admin_client, declined, reason="grant_funding_rejected")
+    _decline(admin_client, declined)
+
+    by_id = {p["id"]: p for p in admin_client.get("/api/pitches").json()}
+    assert by_id[declined]["decline_reason"] == "grant_funding_rejected"
+    assert by_id[open_pitch]["decline_reason"] is None
+
+
+def test_pitch_list_resolves_decline_reasons_without_a_query_per_pitch(admin_client):
+    """Guards the N+1: the list must not fan out one assessment lookup per pitch."""
+    from sqlalchemy import event
+
+    from app.core.database import engine
+
+    for index in range(6):
+        pitch_id = admin_client.post("/api/pitches", json={"title": f"Bulk Pitch {index}"}).json()[
+            "id"
+        ]
+        _assess(admin_client, pitch_id, reason="other")
+        _decline(admin_client, pitch_id)
+
+    statements: list[str] = []
+
+    def record(conn, cursor, statement, parameters, context, executemany):
+        statements.append(statement)
+
+    event.listen(engine, "before_cursor_execute", record)
+    try:
+        assert admin_client.get("/api/pitches").status_code == 200
+    finally:
+        event.remove(engine, "before_cursor_execute", record)
+
+    selects = [s for s in statements if s.lstrip().upper().startswith("SELECT")]
+    # One for the pitches, one for their latest assessments. Comfortably under
+    # the 6 pitches, so this fails loudly if it ever becomes per-row.
+    assert len(selects) <= 3, selects
+
+
+def test_decline_reason_cannot_be_set_through_the_pitch(admin_client):
+    """It is derived from assessments; PitchCreate/PitchUpdate must not accept it."""
+    created = admin_client.post(
+        "/api/pitches", json={"title": "Not Settable", "decline_reason": "insufficient_scale"}
+    ).json()
+    assert created["decline_reason"] is None
+
+    patched = admin_client.patch(
+        f"/api/pitches/{created['id']}", json={"decline_reason": "insufficient_scale"}
+    ).json()
+    assert patched["decline_reason"] is None
+
+
+def test_viewer_can_read_a_pitch_decline_reason(admin_client, viewer_client):
+    pitch_id = admin_client.post("/api/pitches", json={"title": "Viewer Decline"}).json()["id"]
+    _assess(admin_client, pitch_id, reason="other")
+    _decline(admin_client, pitch_id)
+
+    assert viewer_client.get(f"/api/pitches/{pitch_id}").json()["decline_reason"] == "other"

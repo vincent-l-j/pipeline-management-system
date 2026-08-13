@@ -3,6 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from app.models.assessment import DeclineReason
 from app.models.pitch import FundingPathway, PipelineStage, PitchSource
 
 
@@ -74,6 +75,11 @@ class PitchOut(BaseModel):
     lead_id: UUID | None
     contact_ids: list[UUID]
     created_at: datetime
+    # Read-only and derived: the reason recorded on the pitch's latest assessment,
+    # and only once the pitch is actually in the declined stage. Absent from
+    # PitchCreate and PitchUpdate on purpose — a client cannot set it, so the
+    # pitch and its assessments can never disagree about why it was declined.
+    decline_reason: DeclineReason | None = None
 
     model_config = {"from_attributes": True}
 

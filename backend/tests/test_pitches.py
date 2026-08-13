@@ -2,6 +2,8 @@
 
 import pytest
 
+from app.models.pitch import PitchSource
+
 PITCH_PAYLOAD = {"title": "Green Hydrogen Initiative"}
 
 
@@ -131,34 +133,36 @@ def test_get_nonexistent_pitch(admin_client):
 # --- Sources ---
 
 
-@pytest.mark.parametrize("source", ["rozetta_network"])
-def test_pitch_source_new_value_round_trips(admin_client, source):
+# The source vocabulary as it goes over the wire, oldest first. Mirrored by
+# SOURCE_LABELS in frontend/src/components/pipeline/PipelineConfig.ts.
+EXPECTED_SOURCES = [
+    "referral",
+    "website",
+    "event",
+    "cold_outreach",
+    "internal",
+    "riac",
+    "foundry",
+    "board",
+    "riac_student",
+    "rozetta_network",
+]
+
+
+def test_pitch_source_vocabulary_matches_the_enum():
+    """Adding or removing a PitchSource member without updating EXPECTED_SOURCES —
+    and the frontend labels and Alembic enum sync that mirror it — fails here."""
+    assert [s.value for s in PitchSource] == EXPECTED_SOURCES
+
+
+@pytest.mark.parametrize("source", EXPECTED_SOURCES)
+def test_pitch_source_round_trips(admin_client, source):
     create = admin_client.post("/api/pitches", json={"title": f"Source {source}", "source": source})
     assert create.status_code == 200
     assert create.json()["source"] == source
 
     fetched = admin_client.get(f"/api/pitches/{create.json()['id']}")
     assert fetched.json()["source"] == source
-
-
-@pytest.mark.parametrize(
-    "source",
-    [
-        "referral",
-        "website",
-        "event",
-        "cold_outreach",
-        "internal",
-        "riac",
-        "foundry",
-        "board",
-        "riac_student",
-    ],
-)
-def test_pitch_source_existing_value_still_accepted(admin_client, source):
-    resp = admin_client.post("/api/pitches", json={"title": f"Legacy {source}", "source": source})
-    assert resp.status_code == 200
-    assert resp.json()["source"] == source
 
 
 def test_pitch_source_unknown_value_returns_422(admin_client):

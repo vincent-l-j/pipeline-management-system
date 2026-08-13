@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { AxiosError } from "axios";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
+import { DOMAIN_OPTIONS } from "../components/pipeline/PipelineConfig";
 import api from "../services/api";
 import { User, Organisation } from "../types";
 
@@ -38,12 +39,6 @@ const FUNDING_PATHWAYS: SelectOption[] = [
   { value: "other", label: "Other" },
   { value: "no_funding_identified", label: "No Funding Identified" },
   { value: "internal_funding", label: "Internal Funding" },
-];
-
-const DOMAIN_OPTIONS: string[] = [
-  "AI Energy Transition",
-  "Health",
-  "Semiconductors",
 ];
 
 interface PitchForm {

@@ -3,7 +3,10 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PipelineFilters from "../PipelineFilters";
 
-vi.mock("../PipelineConfig", () => ({
+// Stages and sources are stubbed; DOMAIN_OPTIONS stays real so the domain
+// assertion below checks the shipped vocabulary rather than a fixture.
+vi.mock("../PipelineConfig", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../PipelineConfig")>()),
   PIPELINE_STAGES: [
     { key: "received", label: "Received", color: "bg-blue-400" },
     { key: "submitted", label: "Submitted", color: "bg-green-400" },
@@ -28,7 +31,7 @@ describe("PipelineFilters", () => {
     expect(screen.getByDisplayValue("All domains")).toBeInTheDocument();
   });
 
-  it("lists exactly the three current domains, and none of the retired ones", () => {
+  it("lists exactly the current domains, and none of the retired ones", () => {
     render(
       <PipelineFilters
         filters={{ sort: "newest" }}
@@ -44,9 +47,14 @@ describe("PipelineFilters", () => {
 
     expect(options).toEqual([
       "All domains",
-      "AI Energy Transition",
-      "Health",
+      "AI",
+      "Energy Transition",
+      "Digital Finance",
+      "Critical Minerals",
       "Semiconductors",
+      "Health",
+      "Innovation system",
+      "Other",
     ]);
   });
 

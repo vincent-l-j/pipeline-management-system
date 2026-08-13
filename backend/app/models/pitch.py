@@ -60,7 +60,7 @@ class Pitch(Base, TimestampMixin):
     )
     # Free text, comma-separated, e.g. "Health,Semiconductors". Deliberately not an
     # enum: the domain vocabulary is set by the frontend (DOMAIN_OPTIONS) and changes
-    # without a migration. Current values: AI Energy Transition, Health, Semiconductors.
+    # without a migration.
     domain_tags: Mapped[str | None] = mapped_column(Text)
     funding_pathway: Mapped[FundingPathway | None] = mapped_column(SAEnum(FundingPathway))
     masterplan_alignment: Mapped[str | None] = mapped_column(Text)

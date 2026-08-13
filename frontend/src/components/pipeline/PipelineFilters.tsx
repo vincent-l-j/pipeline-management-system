@@ -5,10 +5,12 @@
  */
 
 import { ChangeEvent } from "react";
-import { PIPELINE_STAGES, SOURCE_LABELS } from "./PipelineConfig";
+import {
+  PIPELINE_STAGES,
+  SOURCE_LABELS,
+  DOMAIN_OPTIONS,
+} from "./PipelineConfig";
 import { User } from "../../types";
-
-const DOMAIN_OPTIONS = ["AI Energy Transition", "Health", "Semiconductors"];
 
 interface SortOption {
   key: string;

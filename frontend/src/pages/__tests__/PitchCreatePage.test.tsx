@@ -76,11 +76,20 @@ describe("PitchCreatePage", () => {
     expect(screen.getByRole("option", { name: "RDTI" })).toBeInTheDocument();
   });
 
-  it("offers exactly the three current domains as pills", async () => {
+  it("offers exactly the current domains as pills", async () => {
     render(<PitchCreatePage />);
     await waitFor(() => screen.getByText("New Pitch"));
 
-    for (const domain of ["AI Energy Transition", "Health", "Semiconductors"]) {
+    for (const domain of [
+      "AI",
+      "Energy Transition",
+      "Digital Finance",
+      "Critical Minerals",
+      "Semiconductors",
+      "Health",
+      "Innovation system",
+      "Other",
+    ]) {
       expect(screen.getByRole("button", { name: domain })).toBeInTheDocument();
     }
   });
@@ -90,12 +99,12 @@ describe("PitchCreatePage", () => {
     await waitFor(() => screen.getByText("New Pitch"));
 
     for (const retired of [
+      "AI Energy Transition",
       "Climate",
       "Digital",
       "Forestry",
       "Agri",
       "Education",
-      "Other",
     ]) {
       expect(
         screen.queryByRole("button", { name: retired }),

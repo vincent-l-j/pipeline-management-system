@@ -150,12 +150,21 @@ describe("PitchEditPage", () => {
     }
   });
 
-  it("offers exactly the three current domains as pills", async () => {
+  it("offers exactly the current domains as pills", async () => {
     setupGet();
     render(<PitchEditPage />);
     await waitFor(() => screen.getByDisplayValue("Original Title"));
 
-    for (const domain of ["AI Energy Transition", "Health", "Semiconductors"]) {
+    for (const domain of [
+      "AI",
+      "Energy Transition",
+      "Digital Finance",
+      "Critical Minerals",
+      "Semiconductors",
+      "Health",
+      "Innovation system",
+      "Other",
+    ]) {
       expect(screen.getByRole("button", { name: domain })).toBeInTheDocument();
     }
   });
@@ -166,6 +175,7 @@ describe("PitchEditPage", () => {
     await waitFor(() => screen.getByDisplayValue("Original Title"));
 
     for (const retired of [
+      "AI Energy Transition",
       "Climate",
       "Digital",
       "Forestry",

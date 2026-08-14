@@ -123,4 +123,4 @@ def test_export_assessments_csv(admin_client):
 
 def test_unauthenticated_cannot_access_reports(client):
     resp = client.get("/api/reports/pipeline-summary")
-    assert resp.status_code in (401, 403)
+    assert resp.status_code == 403

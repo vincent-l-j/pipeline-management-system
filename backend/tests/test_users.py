@@ -1,5 +1,9 @@
 """Tests for /api/users endpoints and RBAC."""
 
+import pytest
+
+from tests.constants import DENIED, UNKNOWN_ID
+
 
 def test_get_me(admin_client):
     resp = admin_client.get("/api/users/me")
@@ -63,77 +67,68 @@ def test_get_user_by_id(admin_client):
 
 
 def test_get_nonexistent_user(admin_client):
-    resp = admin_client.get("/api/users/00000000-0000-0000-0000-000000000000")
+    resp = admin_client.get(f"/api/users/{UNKNOWN_ID}")
     assert resp.status_code == 404
 
 
-def test_viewer_cannot_create_user(viewer_client):
-    resp = viewer_client.post(
+# --- RBAC: the staff endpoints are admin-only ---
+#
+# Every admin-only operation on /api/users, crossed with the two roles that must
+# not reach it. Written as a grid so the pairing is exhaustive by construction:
+# as a list of separate tests this was missing the assessor/update cell, and the
+# staff listing is an info-disclosure surface where a gap matters.
+
+
+def _list_users(client):
+    return client.get("/api/users")
+
+
+def _get_user(client):
+    return client.get(f"/api/users/{UNKNOWN_ID}")
+
+
+def _create_user(client):
+    return client.post(
         "/api/users",
         json={"email": "blocked@example.com", "display_name": "Blocked", "role": "viewer"},
     )
-    assert resp.status_code == 403
 
 
-def test_viewer_cannot_list_users(viewer_client):
-    # Staff listing is admin-only — closes the info-disclosure hole.
-    resp = viewer_client.get("/api/users")
-    assert resp.status_code == 403
+def _update_user(client):
+    return client.patch(f"/api/users/{UNKNOWN_ID}", json={"display_name": "Nope"})
 
 
-def test_assessor_cannot_list_users(assessor_client):
-    resp = assessor_client.get("/api/users")
-    assert resp.status_code == 403
+ADMIN_ONLY_OPERATIONS = {
+    "list": _list_users,
+    "get": _get_user,
+    "create": _create_user,
+    "update": _update_user,
+}
 
 
-def test_assessor_cannot_create_user(assessor_client):
-    resp = assessor_client.post(
-        "/api/users",
-        json={"email": "nope@example.com", "display_name": "Nope", "role": "viewer"},
-    )
-    assert resp.status_code == 403
-
-
-def test_viewer_cannot_get_user_by_id(viewer_client):
-    resp = viewer_client.get("/api/users/00000000-0000-0000-0000-000000000099")
-    assert resp.status_code == 403
-
-
-def test_assessor_cannot_get_user_by_id(assessor_client):
-    resp = assessor_client.get("/api/users/00000000-0000-0000-0000-000000000099")
-    assert resp.status_code == 403
-
-
-def test_viewer_cannot_update_user(viewer_client):
-    resp = viewer_client.patch(
-        "/api/users/00000000-0000-0000-0000-000000000099",
-        json={"display_name": "Nope"},
-    )
-    assert resp.status_code == 403
+@pytest.mark.parametrize("role", ["viewer", "assessor"])
+@pytest.mark.parametrize("operation", sorted(ADMIN_ONLY_OPERATIONS))
+def test_non_admin_cannot_reach_staff_endpoints(request, role, operation):
+    client = request.getfixturevalue(f"{role}_client")
+    assert ADMIN_ONLY_OPERATIONS[operation](client).status_code == DENIED
 
 
 def test_unauthenticated_list_users_is_rejected(client):
     resp = client.get("/api/users")
-    assert resp.status_code in (401, 403)
+    assert resp.status_code == 403
 
 
 # --- User directory (minimal, available to any authenticated user) ---
 
 
-def test_viewer_can_read_directory(viewer_client):
-    resp = viewer_client.get("/api/users/directory")
+@pytest.mark.parametrize("role", ["viewer", "assessor", "admin"])
+def test_any_authenticated_role_can_read_directory(request, role):
+    """Unlike the staff listing, the directory is open to every role — the
+    lead picker needs it, and it exposes only id + display_name."""
+    client = request.getfixturevalue(f"{role}_client")
+    resp = client.get("/api/users/directory")
     assert resp.status_code == 200
     assert isinstance(resp.json(), list)
-
-
-def test_assessor_can_read_directory(assessor_client):
-    resp = assessor_client.get("/api/users/directory")
-    assert resp.status_code == 200
-
-
-def test_admin_can_read_directory(admin_client):
-    resp = admin_client.get("/api/users/directory")
-    assert resp.status_code == 200
 
 
 def test_directory_entries_expose_only_id_and_display_name(admin_client):
@@ -150,7 +145,7 @@ def test_directory_entries_expose_only_id_and_display_name(admin_client):
 
 def test_unauthenticated_directory_is_rejected(client):
     resp = client.get("/api/users/directory")
-    assert resp.status_code in (401, 403)
+    assert resp.status_code == 403
 
 
 def test_viewer_can_still_get_me(viewer_client):

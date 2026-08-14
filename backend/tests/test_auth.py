@@ -16,13 +16,37 @@ PROTECTED_ENDPOINTS = [
 ]
 
 
+# A request can fail authentication two distinct ways, and they are not
+# interchangeable: HTTPBearer(auto_error=True) rejects a *missing* Authorization
+# header itself with 403, before any of our code runs, while a header that is
+# present but carries a bad token reaches get_current_user and raises 401. Each
+# path gets its own test asserting its own code — `in (401, 403)` would pass
+# whichever way the request happened to fail, so it could not tell us that the
+# header was rejected for the reason we thought.
+
+
 @pytest.mark.parametrize("method,path", PROTECTED_ENDPOINTS)
-def test_unauthenticated_request_rejected(client, method, path):
-    """Every protected endpoint must return 401 or 403, never 200, without a token."""
+def test_request_without_credentials_is_rejected(client, method, path):
+    """No Authorization header at all: refused by HTTPBearer with 403."""
     resp = client.request(method, path)
-    assert resp.status_code in (401, 403), (
+    assert resp.status_code == 403, (
         f"{method} {path} returned {resp.status_code} — expected auth rejection"
     )
+
+
+@pytest.mark.parametrize("method,path", PROTECTED_ENDPOINTS)
+def test_request_with_invalid_token_is_rejected(client, method, path):
+    """A well-formed bearer header whose token does not decode: 401."""
+    resp = client.request(method, path, headers={"Authorization": "Bearer not-a-real-token"})
+    assert resp.status_code == 401, (
+        f"{method} {path} returned {resp.status_code} — expected token rejection"
+    )
+
+
+def test_non_bearer_scheme_is_rejected(client):
+    """Basic auth is not a supported scheme — HTTPBearer refuses the scheme itself."""
+    resp = client.get("/api/pitches", headers={"Authorization": "Basic dXNlcjpwYXNz"})
+    assert resp.status_code == 403
 
 
 def test_health_endpoint_is_public(client):

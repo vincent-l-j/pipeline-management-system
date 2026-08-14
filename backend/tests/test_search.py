@@ -3,7 +3,7 @@
 
 def test_search_requires_auth(client):
     resp = client.get("/api/search?q=test")
-    assert resp.status_code in (401, 403)
+    assert resp.status_code == 403
 
 
 def test_search_returns_all_categories(admin_client):

@@ -5,6 +5,7 @@ from uuid import UUID
 import pytest
 
 from app.models.pitch import PitchSource
+from tests.constants import UNKNOWN_ID
 
 PITCH_PAYLOAD = {"title": "Green Hydrogen Initiative"}
 
@@ -73,7 +74,7 @@ def test_assessor_can_patch_pitch(assessor_client):
 def test_viewer_cannot_patch_pitch(viewer_client):
     # RBAC fires before the DB lookup — a fake UUID still yields 403.
     resp = viewer_client.patch(
-        "/api/pitches/00000000-0000-0000-0000-000000000099",
+        f"/api/pitches/{UNKNOWN_ID}",
         json={"title": "Nope"},
     )
     assert resp.status_code == 403
@@ -81,20 +82,18 @@ def test_viewer_cannot_patch_pitch(viewer_client):
 
 def test_patch_unknown_pitch_returns_404(admin_client):
     resp = admin_client.patch(
-        "/api/pitches/00000000-0000-0000-0000-000000000099",
+        f"/api/pitches/{UNKNOWN_ID}",
         json={"title": "X"},
     )
     assert resp.status_code == 404
 
 
 def test_unauthenticated_patch_is_rejected(client):
-    # HTTPBearer returns 403 for a missing Authorization header; an invalid token
-    # yields 401 from get_current_user. Either way the edit is refused.
     resp = client.patch(
-        "/api/pitches/00000000-0000-0000-0000-000000000099",
+        f"/api/pitches/{UNKNOWN_ID}",
         json={"title": "X"},
     )
-    assert resp.status_code in (401, 403)
+    assert resp.status_code == 403
 
 
 def test_patch_stage_immutable_leaves_stage_and_writes_no_history(admin_client):
@@ -128,15 +127,13 @@ def test_delete_pitch(admin_client):
 
 
 def test_delete_unknown_pitch_returns_404(admin_client):
-    resp = admin_client.delete("/api/pitches/00000000-0000-0000-0000-000000000099")
+    resp = admin_client.delete(f"/api/pitches/{UNKNOWN_ID}")
     assert resp.status_code == 404
 
 
 def test_unauthenticated_delete_is_rejected(client):
-    # HTTPBearer returns 403 for a missing Authorization header; an invalid token
-    # yields 401 from get_current_user. Either way the delete is refused.
-    resp = client.delete("/api/pitches/00000000-0000-0000-0000-000000000099")
-    assert resp.status_code in (401, 403)
+    resp = client.delete(f"/api/pitches/{UNKNOWN_ID}")
+    assert resp.status_code == 403
 
 
 def test_delete_pitch_removes_dependent_rows(admin_client, db_session):
@@ -225,7 +222,7 @@ def test_delete_pitch_keeps_contacts_and_organisations(admin_client, db_session)
 
 
 def test_get_nonexistent_pitch(admin_client):
-    resp = admin_client.get("/api/pitches/00000000-0000-0000-0000-000000000000")
+    resp = admin_client.get(f"/api/pitches/{UNKNOWN_ID}")
     assert resp.status_code == 404
 
 
@@ -470,7 +467,7 @@ def test_stage_history_recorded(admin_client):
 
 def test_stage_transition_on_nonexistent_pitch(admin_client):
     resp = admin_client.post(
-        "/api/pitches/00000000-0000-0000-0000-000000000000/stage",
+        f"/api/pitches/{UNKNOWN_ID}/stage",
         json={"new_stage": "initial_screen"},
     )
     assert resp.status_code == 404
@@ -514,13 +511,11 @@ def test_invalid_new_stage_returns_422(admin_client):
 
 
 def test_unauthenticated_stage_change_is_rejected(client):
-    # Missing credentials -> 403 from HTTPBearer; an invalid token -> 401. Either
-    # way an unauthenticated stage change is refused.
     resp = client.post(
-        "/api/pitches/00000000-0000-0000-0000-000000000099/stage",
+        f"/api/pitches/{UNKNOWN_ID}/stage",
         json={"new_stage": "initial_screen"},
     )
-    assert resp.status_code in (401, 403)
+    assert resp.status_code == 403
 
 
 # --- Filters ---
@@ -611,19 +606,19 @@ def test_viewer_can_list_pitches(viewer_client):
 
 def test_viewer_cannot_delete_pitch(viewer_client):
     # RBAC fires before DB lookup — fake UUID is sufficient to test the 403
-    resp = viewer_client.delete("/api/pitches/00000000-0000-0000-0000-000000000099")
+    resp = viewer_client.delete(f"/api/pitches/{UNKNOWN_ID}")
     assert resp.status_code == 403
 
 
 def test_assessor_cannot_delete_pitch(assessor_client):
     """Delete is admin-only: an assessor may create and edit, but not remove."""
-    resp = assessor_client.delete("/api/pitches/00000000-0000-0000-0000-000000000099")
+    resp = assessor_client.delete(f"/api/pitches/{UNKNOWN_ID}")
     assert resp.status_code == 403
 
 
 def test_viewer_cannot_transition_stage(viewer_client):
     resp = viewer_client.post(
-        "/api/pitches/00000000-0000-0000-0000-000000000099/stage",
+        f"/api/pitches/{UNKNOWN_ID}/stage",
         json={"new_stage": "initial_screen"},
     )
     assert resp.status_code == 403

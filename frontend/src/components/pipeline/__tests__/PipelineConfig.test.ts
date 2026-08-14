@@ -8,7 +8,8 @@ import {
   FUNDING_OPTIONS,
 } from "../PipelineConfig";
 
-describe("PipelineConfig", () => {
+describe("PIPELINE_STAGES", () => {
+  // Pins the count, the order and the uniqueness of the keys in one assertion.
   it("defines the expected ordered set of stages", () => {
     expect(PIPELINE_STAGES.map((s) => s.key)).toEqual([
       "received",
@@ -24,55 +25,48 @@ describe("PipelineConfig", () => {
     ]);
   });
 
-  it("gives every stage a key, label, color, and lightColor", () => {
-    for (const stage of PIPELINE_STAGES) {
-      expect(stage.key).toBeTruthy();
+  // The types already guarantee these fields exist and are strings; what this
+  // adds is that none of them is blank, which would render an empty badge.
+  it.each(PIPELINE_STAGES.map((stage) => [stage.key, stage] as const))(
+    "%s has a non-empty label, color and lightColor",
+    (_key, stage) => {
       expect(stage.label).toBeTruthy();
       expect(stage.color).toBeTruthy();
       expect(stage.lightColor).toBeTruthy();
-    }
-  });
+    },
+  );
+});
 
-  it("uses unique stage keys", () => {
-    const keys = PIPELINE_STAGES.map((s) => s.key);
-    expect(new Set(keys).size).toBe(keys.length);
-  });
-
-  it("builds STAGE_MAP keyed by stage key", () => {
+describe("STAGE_MAP", () => {
+  it("is keyed by stage key, with no extra or missing entries", () => {
     expect(Object.keys(STAGE_MAP).sort()).toEqual(
       PIPELINE_STAGES.map((s) => s.key).sort(),
     );
-    expect(STAGE_MAP.received.label).toBe("Received");
-    expect(STAGE_MAP.completed).toEqual(
-      PIPELINE_STAGES.find((s) => s.key === "completed"),
-    );
   });
 
-  it("exposes the expected source labels", () => {
-    expect(SOURCE_LABELS).toMatchObject({
+  it.each(PIPELINE_STAGES.map((stage) => [stage.key, stage] as const))(
+    "%s looks up the stage object itself",
+    (key, stage) => {
+      expect(STAGE_MAP[key]).toBe(stage);
+    },
+  );
+});
+
+/*
+ * The label maps are the frontend's copy of two backend enums, so these use
+ * toEqual rather than toMatchObject: a subset match cannot fail when a value is
+ * added, which is the drift worth catching. An unlabelled value falls back to
+ * the raw enum key in the UI, e.g. "riac_student".
+ */
+describe("label maps", () => {
+  it("labels exactly the sources PitchSource can return", () => {
+    // Mirrors PitchSource in backend/app/models/pitch.py.
+    expect(SOURCE_LABELS).toEqual({
       referral: "Referral",
       website: "Website",
       event: "Event",
       cold_outreach: "Cold Outreach",
       internal: "Internal",
-    });
-  });
-
-  it("exposes the expected funding labels", () => {
-    expect(FUNDING_LABELS).toMatchObject({
-      crc_bid: "CRC Bid",
-      rdti: "RDTI",
-      philanthropic: "Philanthropic",
-      government_grant: "Government Grant",
-      private: "Private",
-      other: "Other",
-    });
-  });
-
-  it("labels every source the backend can return", () => {
-    // Mirrors PitchSource in backend/app/models/pitch.py. An unlabelled value
-    // falls back to the raw enum key in the UI, e.g. "riac_student".
-    expect(SOURCE_LABELS).toMatchObject({
       riac: "RIAC",
       foundry: "Foundry",
       board: "Board",
@@ -81,22 +75,33 @@ describe("PipelineConfig", () => {
     });
   });
 
-  it("labels every funding pathway the backend can return", () => {
+  it("labels exactly the pathways FundingPathway can return", () => {
     // Mirrors FundingPathway in backend/app/models/pitch.py.
-    expect(FUNDING_LABELS).toMatchObject({
+    expect(FUNDING_LABELS).toEqual({
+      crc_bid: "CRC Bid",
+      rdti: "RDTI",
+      philanthropic: "Philanthropic",
+      government_grant: "Government Grant",
+      private: "Private",
+      other: "Other",
       no_funding_identified: "No Funding Identified",
       internal_funding: "Internal Funding",
     });
   });
+});
 
-  describe.each([
-    ["SOURCE_OPTIONS", SOURCE_LABELS, SOURCE_OPTIONS],
-    ["FUNDING_OPTIONS", FUNDING_LABELS, FUNDING_OPTIONS],
-  ])("%s", (_name, labels, options) => {
-    it("derives one option per label, in map order", () => {
-      expect(options).toEqual(
-        Object.entries(labels).map(([value, label]) => ({ value, label })),
-      );
-    });
+/*
+ * The options are derived from the maps above, so pinning the transform is
+ * enough — the vocabulary itself is already pinned against a literal, and
+ * spot-checking individual options here would only restate that.
+ */
+describe.each([
+  ["SOURCE_OPTIONS", SOURCE_LABELS, SOURCE_OPTIONS],
+  ["FUNDING_OPTIONS", FUNDING_LABELS, FUNDING_OPTIONS],
+])("%s", (_name, labels, options) => {
+  it("derives one option per label, in map order", () => {
+    expect(options).toEqual(
+      Object.entries(labels).map(([value, label]) => ({ value, label })),
+    );
   });
 });

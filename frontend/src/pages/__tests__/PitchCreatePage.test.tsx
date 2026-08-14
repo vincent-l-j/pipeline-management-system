@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import PitchCreatePage from "../PitchCreatePage";
 import { createApiMocks } from "../../test/mocks/api";
 
@@ -59,62 +60,50 @@ describe("PitchCreatePage", () => {
     ).toBeInTheDocument();
   });
 
-  it("offers the new sources and funding pathways in their dropdowns", async () => {
+  // The source, funding and domain vocabularies are pinned where they are now
+  // rendered, in PitchFormFields.test.tsx.
+
+  it("renders the shared pitch fields, including the submission date", async () => {
     render(<PitchCreatePage />);
     await waitFor(() => screen.getByText("New Pitch"));
 
-    for (const source of [
-      "RIAC",
-      "Foundry",
-      "Board",
-      "RIAC Student",
-      "Rozetta Network",
-    ]) {
-      expect(screen.getByRole("option", { name: source })).toBeInTheDocument();
-    }
-    for (const pathway of ["No Funding Identified", "Internal Funding"]) {
-      expect(screen.getByRole("option", { name: pathway })).toBeInTheDocument();
-    }
-    // The original vocabulary is unaffected.
-    expect(
-      screen.getByRole("option", { name: "Referral" }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: "RDTI" })).toBeInTheDocument();
+    expect(screen.getByLabelText(/Title/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Submission Date/)).toBeInTheDocument();
   });
 
-  it("offers exactly the current domains as pills", async () => {
+  it("POSTs the entered pitch and navigates to the new pitch", async () => {
+    const user = userEvent.setup();
+    apiMocks.post.mockResolvedValue({ data: { id: "99" } });
     render(<PitchCreatePage />);
     await waitFor(() => screen.getByText("New Pitch"));
 
-    for (const domain of [
-      "AI",
-      "Energy Transition",
-      "Digital Finance",
-      "Critical Minerals",
-      "Semiconductors",
-      "Health",
-      "Innovation system",
-      "Other",
-    ]) {
-      expect(screen.getByRole("button", { name: domain })).toBeInTheDocument();
-    }
+    await user.type(screen.getByLabelText(/Title/), "Soil Sensors");
+    await user.click(screen.getByRole("button", { name: /Add Pitch/i }));
+
+    expect(apiMocks.post.mock).toHaveBeenCalledWith(
+      "/pitches",
+      expect.objectContaining({ title: "Soil Sensors" }),
+    );
+    const postCalls = apiMocks.post.mock.mock.calls as unknown[][];
+    expect(postCalls[0][1]).toHaveProperty("submission_date");
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith("/pitches/99");
+    });
   });
 
-  it("no longer offers the retired domains", async () => {
+  it("renders a validation error's messages rather than an object", async () => {
+    const user = userEvent.setup();
+    apiMocks.post.mockRejectedValue({
+      response: { status: 422, data: { detail: [{ msg: "title too short" }] } },
+    });
     render(<PitchCreatePage />);
     await waitFor(() => screen.getByText("New Pitch"));
 
-    for (const retired of [
-      "AI Energy Transition",
-      "Climate",
-      "Digital",
-      "Forestry",
-      "Agri",
-      "Education",
-    ]) {
-      expect(
-        screen.queryByRole("button", { name: retired }),
-      ).not.toBeInTheDocument();
-    }
+    await user.type(screen.getByLabelText(/Title/), "S");
+    await user.click(screen.getByRole("button", { name: /Add Pitch/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("title too short")).toBeInTheDocument();
+    });
   });
 });

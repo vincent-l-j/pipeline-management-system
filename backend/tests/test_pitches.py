@@ -389,6 +389,51 @@ def test_submission_date_rejects_malformed_value(admin_client):
     assert resp.status_code == 422
 
 
+def test_patch_updates_submission_date(admin_client):
+    create = admin_client.post(
+        "/api/pitches", json={"title": "Redated", "submission_date": "2024-01-01"}
+    )
+    pitch_id = create.json()["id"]
+
+    resp = admin_client.patch(f"/api/pitches/{pitch_id}", json={"submission_date": "2026-03-09"})
+    assert resp.status_code == 200
+    assert resp.json()["submission_date"] == "2026-03-09"
+
+    fetched = admin_client.get(f"/api/pitches/{pitch_id}")
+    assert fetched.json()["submission_date"] == "2026-03-09"
+
+
+def test_patch_can_clear_submission_date(admin_client):
+    create = admin_client.post(
+        "/api/pitches", json={"title": "Cleared", "submission_date": "2024-01-01"}
+    )
+    pitch_id = create.json()["id"]
+
+    resp = admin_client.patch(f"/api/pitches/{pitch_id}", json={"submission_date": None})
+    assert resp.status_code == 200
+    assert resp.json()["submission_date"] is None
+
+
+def test_patch_leaves_submission_date_untouched_when_omitted(admin_client):
+    """exclude_unset means an unrelated edit must not wipe the date."""
+    create = admin_client.post(
+        "/api/pitches", json={"title": "Kept", "submission_date": "2024-01-01"}
+    )
+    pitch_id = create.json()["id"]
+
+    resp = admin_client.patch(f"/api/pitches/{pitch_id}", json={"title": "Kept v2"})
+    assert resp.status_code == 200
+    assert resp.json()["submission_date"] == "2024-01-01"
+
+
+def test_patch_rejects_malformed_submission_date(admin_client):
+    create = admin_client.post("/api/pitches", json={"title": "Bad Patch Date"})
+    resp = admin_client.patch(
+        f"/api/pitches/{create.json()['id']}", json={"submission_date": "not-a-date"}
+    )
+    assert resp.status_code == 422
+
+
 # --- Stage transitions ---
 
 

@@ -1,6 +1,6 @@
 /**
- * Edit an existing pitch. Reuses the create form, pre-filled from the pitch,
- * and submits a PATCH on save. Pipeline stage is intentionally NOT editable
+ * Edit an existing pitch. Mirrors the create form field-for-field, pre-filled
+ * from the pitch, and submits a PATCH on save. Pipeline stage is NOT editable
  * here — stage changes go through the Kanban board so every transition is
  * audited. Viewers are redirected back to the detail page.
  */
@@ -41,6 +41,7 @@ const FUNDING_PATHWAYS = [
 interface Pitch {
   title: string;
   short_description?: string;
+  submission_date?: string | null;
   source?: string;
   funding_pathway?: string;
   domain_tags?: string;
@@ -53,6 +54,7 @@ interface Pitch {
 interface PitchForm {
   title: string;
   short_description: string;
+  submission_date: string;
   source: string;
   funding_pathway: string;
   domain_tags: string[];
@@ -77,6 +79,7 @@ export default function PitchEditPage(): React.JSX.Element {
   const [form, setForm] = useState<PitchForm>({
     title: "",
     short_description: "",
+    submission_date: "",
     source: "",
     funding_pathway: "",
     domain_tags: [],
@@ -98,6 +101,7 @@ export default function PitchEditPage(): React.JSX.Element {
         setForm({
           title: p.title,
           short_description: p.short_description ?? "",
+          submission_date: p.submission_date ?? "",
           source: p.source ?? "",
           funding_pathway: p.funding_pathway ?? "",
           domain_tags: p.domain_tags
@@ -143,6 +147,7 @@ export default function PitchEditPage(): React.JSX.Element {
     const payload = {
       title: form.title,
       short_description: form.short_description || null,
+      submission_date: form.submission_date || null,
       source: form.source || null,
       funding_pathway: form.funding_pathway || null,
       domain_tags:
@@ -226,8 +231,22 @@ export default function PitchEditPage(): React.JSX.Element {
           />
         </div>
 
-        {/* Source and Funding Pathway — row */}
+        {/* Submission Date and Source — row */}
         <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={labelClass} htmlFor="submission_date">
+              Submission Date
+            </label>
+            <input
+              type="date"
+              id="submission_date"
+              value={form.submission_date}
+              onChange={(e) => {
+                update("submission_date", e.target.value);
+              }}
+              className={inputClass}
+            />
+          </div>
           <div>
             <label className={labelClass}>Source</label>
             <select
@@ -245,6 +264,10 @@ export default function PitchEditPage(): React.JSX.Element {
               ))}
             </select>
           </div>
+        </div>
+
+        {/* Funding Pathway and Organisation — row */}
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>Funding Pathway</label>
             <select
@@ -262,10 +285,6 @@ export default function PitchEditPage(): React.JSX.Element {
               ))}
             </select>
           </div>
-        </div>
-
-        {/* Organisation and Lead — row */}
-        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>Organisation</label>
             <select
@@ -283,23 +302,25 @@ export default function PitchEditPage(): React.JSX.Element {
               ))}
             </select>
           </div>
-          <div>
-            <label className={labelClass}>Rozetta Lead</label>
-            <select
-              value={form.lead_id}
-              onChange={(e) => {
-                update("lead_id", e.target.value);
-              }}
-              className={inputClass}
-            >
-              <option value="">Select lead...</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.display_name}
-                </option>
-              ))}
-            </select>
-          </div>
+        </div>
+
+        {/* Rozetta Lead */}
+        <div>
+          <label className={labelClass}>Rozetta Lead</label>
+          <select
+            value={form.lead_id}
+            onChange={(e) => {
+              update("lead_id", e.target.value);
+            }}
+            className={inputClass}
+          >
+            <option value="">Select lead...</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.display_name}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Domain Tags */}

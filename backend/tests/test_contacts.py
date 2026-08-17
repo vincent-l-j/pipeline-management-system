@@ -119,6 +119,19 @@ def test_create_contact_drops_legacy_name_field(admin_client):
     assert body["email"] == "legacy@example.com"
 
 
+def test_create_contact_drops_last_contacted(admin_client):
+    """`last_contacted` was removed — the allowlist drops it on the way in, and it
+    is absent from the response rather than returned as null."""
+    resp = admin_client.post(
+        "/api/contacts",
+        json={"email": "dropped@example.com", "last_contacted": "2026-01-01"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "last_contacted" not in body
+    assert body["email"] == "dropped@example.com"
+
+
 # --- A contact needs at least one populated field ---
 
 
@@ -373,6 +386,7 @@ def test_patch_contact_ignores_fields_outside_allowlist(admin_client):
         json={
             "first_name": "Allowlisted 2",
             "name": "Legacy Name",
+            "last_contacted": "2026-01-01",
             "created_at": "1999-01-01T00:00:00",
             "bogus": "x",
         },
@@ -383,3 +397,4 @@ def test_patch_contact_ignores_fields_outside_allowlist(admin_client):
     assert body["created_at"] == original_created_at
     assert "bogus" not in body
     assert "name" not in body
+    assert "last_contacted" not in body

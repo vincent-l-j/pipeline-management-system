@@ -235,7 +235,6 @@ def export_contacts(
             "Relationship Owner": users.get(str(c.relationship_owner_id), "")
             if c.relationship_owner_id
             else "",
-            "Last Contacted": str(c.last_contacted) if c.last_contacted else "",
             "Notes": c.notes or "",
         }
         for c in contacts

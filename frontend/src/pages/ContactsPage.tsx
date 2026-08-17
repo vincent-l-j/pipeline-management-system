@@ -14,7 +14,6 @@ interface Contact {
   last_name: string | null;
   role: string | null;
   email: string | null;
-  last_contacted: string | null;
 }
 
 interface ContactForm {
@@ -253,9 +252,6 @@ export default function ContactsPage(): React.JSX.Element {
                 <th className="text-left px-4 py-3 font-semibold text-navy-700">
                   Email
                 </th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Last Contacted
-                </th>
                 {(canEdit || canRemove) && (
                   <th className="text-right px-4 py-3 font-semibold text-navy-700">
                     Actions
@@ -317,9 +313,6 @@ export default function ContactsPage(): React.JSX.Element {
                         className={inputClass}
                       />
                     </td>
-                    <td className="px-4 py-3 text-navy-500">
-                      {c.last_contacted ?? "-"}
-                    </td>
                     <td className="px-4 py-3 text-right">
                       <span className="inline-flex gap-2">
                         <button
@@ -354,9 +347,6 @@ export default function ContactsPage(): React.JSX.Element {
                     <td className="px-4 py-3 text-navy-500">{c.role ?? "-"}</td>
                     <td className="px-4 py-3 text-navy-500">
                       {c.email ?? "-"}
-                    </td>
-                    <td className="px-4 py-3 text-navy-500">
-                      {c.last_contacted ?? "-"}
                     </td>
                     {(canEdit || canRemove) && (
                       <td className="px-4 py-3 text-right">

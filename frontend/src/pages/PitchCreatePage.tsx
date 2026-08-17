@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import PitchFormFields from "../components/pitch/PitchFormFields";
+import OrganisationQuickCreateModal from "../components/organisations/OrganisationQuickCreateModal";
 import {
   newPitchForm,
   pitchPayload,
@@ -16,6 +17,7 @@ import {
 } from "../components/pitch/pitchForm";
 import api from "../services/api";
 import { apiErrorMessage } from "../services/apiError";
+import { useAuth } from "../contexts/AuthContext";
 import { User, Organisation } from "../types";
 
 interface PitchResponse {
@@ -24,8 +26,16 @@ interface PitchResponse {
 
 export default function PitchCreatePage(): React.JSX.Element {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const canCreateOrganisation =
+    user?.role === "admin" || user?.role === "assessor";
+
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [organisationsError, setOrganisationsError] = useState<string | null>(
+    null,
+  );
+  const [creatingOrgFrom, setCreatingOrgFrom] = useState<string | null>(null);
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,8 +47,10 @@ export default function PitchCreatePage(): React.JSX.Element {
       .then(({ data }) => {
         setOrganisations(data);
       })
-      .catch((): void => {
-        /* silently handle error */
+      .catch((err: unknown): void => {
+        setOrganisationsError(
+          apiErrorMessage(err, "Could not load organisations"),
+        );
       });
     api
       .get<User[]>("/users/directory")
@@ -52,6 +64,13 @@ export default function PitchCreatePage(): React.JSX.Element {
 
   const update = (patch: Partial<PitchFormValues>): void => {
     setForm((prev) => ({ ...prev, ...patch }));
+  };
+
+  const organisationCreated = (organisation: Organisation): void => {
+    setOrganisations((prev) => [...prev, organisation]);
+    update({ organisation_id: organisation.id });
+    setCreatingOrgFrom(null);
+    setOrganisationsError(null);
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
@@ -95,6 +114,14 @@ export default function PitchCreatePage(): React.JSX.Element {
           onChange={update}
           organisations={organisations}
           users={users}
+          organisationsError={organisationsError}
+          onCreateOrganisation={
+            canCreateOrganisation
+              ? (query) => {
+                  setCreatingOrgFrom(query);
+                }
+              : undefined
+          }
         />
 
         {/* Submit */}
@@ -117,6 +144,20 @@ export default function PitchCreatePage(): React.JSX.Element {
           </button>
         </div>
       </form>
+
+      {/*
+        A sibling of the form, never nested inside it: a nested form is invalid
+        HTML and this dialog's buttons would submit the pitch.
+      */}
+      {creatingOrgFrom !== null && (
+        <OrganisationQuickCreateModal
+          initialName={creatingOrgFrom}
+          onCreated={organisationCreated}
+          onCancel={() => {
+            setCreatingOrgFrom(null);
+          }}
+        />
+      )}
     </Layout>
   );
 }

@@ -16,6 +16,7 @@ import {
   SOURCE_OPTIONS,
   FUNDING_OPTIONS,
 } from "../pipeline/PipelineConfig";
+import Combobox from "../ui/Combobox";
 import { Organisation, User } from "../../types";
 import { PitchFormValues } from "./pitchForm";
 import { inputClass, labelClass } from "./formStyles";
@@ -25,6 +26,8 @@ interface PitchFormFieldsProps {
   onChange: (patch: Partial<PitchFormValues>) => void;
   organisations: Organisation[];
   users: User[];
+  onCreateOrganisation?: (query: string) => void;
+  organisationsError?: string | null;
   disabled?: boolean;
 }
 
@@ -33,6 +36,8 @@ export default function PitchFormFields({
   onChange,
   organisations,
   users,
+  onCreateOrganisation,
+  organisationsError,
   disabled = false,
 }: PitchFormFieldsProps): React.JSX.Element {
   function toggleDomain(domain: string): void {
@@ -151,22 +156,28 @@ export default function PitchFormFields({
           <label className={labelClass} htmlFor="pitch-organisation">
             Organisation
           </label>
-          <select
+          <Combobox
             id="pitch-organisation"
             disabled={disabled}
             value={values.organisation_id}
-            onChange={(e) => {
-              onChange({ organisation_id: e.target.value });
+            options={organisations.map((organisation) => ({
+              value: organisation.id,
+              label: organisation.name,
+            }))}
+            onChange={(organisation_id) => {
+              onChange({ organisation_id });
             }}
-            className={inputClass}
-          >
-            <option value="">Select organisation...</option>
-            {organisations.map((organisation) => (
-              <option key={organisation.id} value={organisation.id}>
-                {organisation.name}
-              </option>
-            ))}
-          </select>
+            onCreate={onCreateOrganisation}
+            createLabel={(query) =>
+              query
+                ? `Add "${query}" as a new organisation`
+                : "Add a new organisation"
+            }
+            placeholder="Search organisations..."
+          />
+          {organisationsError && (
+            <p className="text-xs text-red-600 mt-1">{organisationsError}</p>
+          )}
         </div>
 
         <div>

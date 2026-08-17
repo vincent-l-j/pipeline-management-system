@@ -3,20 +3,14 @@ import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api";
-import type { Organisation, OrgType, ApiError } from "../types";
+import {
+  ORG_TYPES,
+  orgTypeLabel,
+} from "../components/organisations/OrganisationConfig";
+import type { Organisation, ApiError } from "../types";
 
 const inputClass =
   "w-full border border-navy-200 rounded-lg px-3 py-1.5 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300";
-
-const ORG_TYPES: OrgType[] = [
-  "startup",
-  "university",
-  "ngo",
-  "government",
-  "consortium",
-  "research_centre",
-  "other",
-];
 
 interface OrgForm {
   name: string;
@@ -219,7 +213,7 @@ export default function OrganisationsPage(): React.JSX.Element {
             <option value="">Type (optional)</option>
             {ORG_TYPES.map((type) => (
               <option key={type} value={type}>
-                {type.replace(/_/g, " ")}
+                {orgTypeLabel(type)}
               </option>
             ))}
           </select>
@@ -362,7 +356,7 @@ export default function OrganisationsPage(): React.JSX.Element {
                           <option value="">Type (optional)</option>
                           {ORG_TYPES.map((type) => (
                             <option key={type} value={type}>
-                              {type.replace(/_/g, " ")}
+                              {orgTypeLabel(type)}
                             </option>
                           ))}
                         </select>

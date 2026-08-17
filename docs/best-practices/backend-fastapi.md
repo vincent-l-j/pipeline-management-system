@@ -136,22 +136,58 @@ def test_admin_can_delete_org(admin_client):
     org = admin_client.post("/api/organisations", json={"name": "X"}).json()
     assert admin_client.delete(f"/api/organisations/{org['id']}").status_code == 200
     assert admin_client.get(f"/api/organisations/{org['id']}").status_code == 404
-
-def test_viewer_cannot_delete_org(viewer_client):
-    assert viewer_client.delete(
-        "/api/organisations/00000000-0000-0000-0000-000000000000"
-    ).status_code == 403
 ```
 
 Guidelines:
 
 - **One behaviour per test; name it for the behaviour** (`test_<subject>_<expectation>`).
   This applies SRP to tests — each test should have one reason to fail. Don't
-  combine multiple roles or states into a single test; write one test per scenario.
+  combine multiple roles or states into a single test.
 - Assert **status code first**, then body.
-- **Cover RBAC as separate tests**, not combined: write `test_admin_can_delete`
-  and `test_viewer_cannot_delete` as two distinct tests, not one test that checks
-  both roles. This makes debugging easier when a role's behaviour breaks.
+- **Cover each role as its own case.** One case per (role, operation) — never one
+  test that loops over roles internally, because the first failure hides the rest.
+  Where the cells differ only in data, express them as a `parametrize` grid rather
+  than as copy-pasted functions: pytest still reports one case per cell
+  (`test_contact_rbac[viewer-create-403]`), so a broken role is named in the
+  output, and a missing cell is visible as a hole in the table instead of an
+  absent function nobody notices. `request.getfixturevalue(f"{role}_client")`
+  selects the client fixture from the parametrised role.
+
+```python
+@pytest.mark.parametrize(
+    ("role", "operation", "expected"),
+    [
+        ("assessor", "list", ALLOWED),
+        ("assessor", "create", ALLOWED),
+        ("assessor", "delete", DENIED),
+        ("viewer", "list", ALLOWED),
+        ("viewer", "create", DENIED),
+        ("viewer", "delete", DENIED),
+    ],
+)
+def test_organisation_rbac(request, role, operation, expected):
+    client = request.getfixturevalue(f"{role}_client")
+    assert ORGANISATION_OPERATIONS[operation](client).status_code == expected
+```
+
+- Keep a case out of the grid when it asserts more than a status — the tests that
+  check a response body or that a rejected write left the row untouched stay as
+  their own named functions.
+- **Shared literals live in `tests/constants.py`**, not re-declared per module:
+  `UNKNOWN_ID`, a syntactically valid UUID that must never resolve, plus `ALLOWED`
+  and `DENIED` for the RBAC grids above. Endpoint paths and status codes otherwise
+  stay inline — the path is the thing under test, and naming `200` in an ordinary
+  assertion only adds indirection. `ALLOWED`/`DENIED` earn their names because in a
+  grid that column answers "may this role?", not "what status?"; they are not
+  general aliases, so a grid whose success is not `200` spells the code out.
+- **Assert the exact status; never a set of acceptable ones.** The two ways to
+  fail authentication are distinct and both deterministic: a _missing_
+  Authorization header is refused by `HTTPBearer(auto_error=True)` with **403**
+  before our code runs, while a header carrying a bad token reaches
+  `get_current_user` and raises **401**. Test them as separate cases
+  (`tests/test_auth.py`). An `in (401, 403)` assertion passes whichever way the
+  request failed, so it cannot show that the request was rejected for the reason
+  the test claims.
 - For data-integrity features (orphan/cascade), assert the _side effects_: the
   child survives with a nulled FK, or the join row is gone.
 

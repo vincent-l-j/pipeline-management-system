@@ -1,5 +1,9 @@
 """Tests for /api/meetings CRUD, attendees, filters, and AI note parsing."""
 
+import pytest
+
+from tests.constants import DENIED, UNKNOWN_ID
+
 
 def _create_pitch(client):
     return client.post("/api/pitches", json={"title": "Meeting Test Pitch"}).json()["id"]
@@ -110,7 +114,7 @@ def test_delete_meeting_removes_its_attendees(admin_client, db_session):
 
 
 def test_get_nonexistent_meeting(admin_client):
-    resp = admin_client.get("/api/meetings/00000000-0000-0000-0000-000000000000")
+    resp = admin_client.get(f"/api/meetings/{UNKNOWN_ID}")
     assert resp.status_code == 404
 
 
@@ -209,13 +213,47 @@ def test_parse_notes_empty_rejected(admin_client):
 # --- RBAC ---
 
 
-def test_viewer_cannot_create_meeting(viewer_client):
-    fake_pitch_id = "00000000-0000-0000-0000-000000000099"
-    resp = viewer_client.post(
+# Every write a role must not reach. The guard runs before the handler looks
+# anything up, so an unknown id still yields 403 rather than 404 — which is what
+# makes a single grid enough. The allowed paths need real rows, so they stay as
+# their own tests below.
+
+
+def _create_meeting(client):
+    return client.post(
         "/api/meetings",
-        json={"title": "Blocked", "meeting_date": "2026-07-10", "pitch_id": fake_pitch_id},
+        json={"title": "Blocked", "meeting_date": "2026-07-10", "pitch_id": UNKNOWN_ID},
     )
-    assert resp.status_code == 403
+
+
+def _patch_meeting(client):
+    return client.patch(f"/api/meetings/{UNKNOWN_ID}", json={"title": "Hacked"})
+
+
+def _delete_meeting(client):
+    return client.delete(f"/api/meetings/{UNKNOWN_ID}")
+
+
+MEETING_WRITES = {
+    "create": _create_meeting,
+    "patch": _patch_meeting,
+    "delete": _delete_meeting,
+}
+
+
+@pytest.mark.parametrize(
+    ("role", "operation"),
+    [
+        ("viewer", "create"),
+        ("viewer", "patch"),
+        ("viewer", "delete"),
+        # Delete is admin-only, so an assessor is refused here but not above.
+        ("assessor", "delete"),
+    ],
+)
+def test_meeting_write_is_refused(request, role, operation):
+    client = request.getfixturevalue(f"{role}_client")
+    assert MEETING_WRITES[operation](client).status_code == DENIED
 
 
 def test_viewer_can_list_meetings(viewer_client):

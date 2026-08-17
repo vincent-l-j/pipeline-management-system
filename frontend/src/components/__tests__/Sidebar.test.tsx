@@ -28,23 +28,21 @@ describe("Sidebar", () => {
     expect(screen.getByText("Pipeline Management")).toBeInTheDocument();
   });
 
-  it("renders all primary navigation links", () => {
+  it.each([
+    "Dashboard",
+    "Pipeline",
+    "Pitches",
+    "Organisations",
+    "Contacts",
+    "Meetings",
+    "Assessments",
+    "Search",
+    "Reports",
+  ])("renders the %s navigation link", (label) => {
     renderSidebar();
-    for (const label of [
-      "Dashboard",
-      "Pipeline",
-      "Pitches",
-      "Organisations",
-      "Contacts",
-      "Meetings",
-      "Assessments",
-      "Search",
-      "Reports",
-    ]) {
-      expect(
-        screen.getByRole("link", { name: new RegExp(label) }),
-      ).toBeInTheDocument();
-    }
+    expect(
+      screen.getByRole("link", { name: new RegExp(label) }),
+    ).toBeInTheDocument();
   });
 
   it("points navigation links at the correct routes", () => {

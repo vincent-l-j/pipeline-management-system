@@ -78,8 +78,16 @@ useEffect(() => {
 - Location: co-located `__tests__/` next to the component under test.
 - **One behaviour per test.** Each test should have one reason to fail; if you're
   rendering multiple times with different state in one test, split it. This applies
-  especially to role-gated UI: write one test per role, not one test covering all
-  roles.
+  especially to role-gated UI: write one case per role, not one test covering all
+  roles. Where cases differ only in data — a list of field labels, nav links or
+  stages — use `it.each` rather than a `for` loop inside a single `it`, so the
+  report names the failing item instead of the whole test.
+- **Assert whole lists, not per-item presence,** when the test claims to cover a
+  vocabulary. `getByRole("option", …)` per value still passes once an extra value
+  appears, so it can never mean "exactly"; compare the rendered list to an expected
+  array instead. Spell that array out rather than deriving it from the constant the
+  component renders — a test built from the same source as the code under test
+  cannot fail when that source changes.
 - **Mock the network** by mocking `src/services/api`:
 
 ```jsx

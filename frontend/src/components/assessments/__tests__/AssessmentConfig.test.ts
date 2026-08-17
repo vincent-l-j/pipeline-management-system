@@ -6,24 +6,18 @@ import {
 } from "../AssessmentConfig";
 
 describe("AssessmentConfig", () => {
-  it("defines six scoring criteria", () => {
-    expect(CRITERIA).toHaveLength(6);
-  });
+  // The types already guarantee these fields exist and are strings; what this
+  // adds is that none of them is blank, which would render an empty control.
+  it.each(CRITERIA.map((c) => [c.key, c] as const))(
+    "%s has a non-empty label and description",
+    (_key, criterion) => {
+      expect(criterion.label).toBeTruthy();
+      expect(criterion.description).toBeTruthy();
+    },
+  );
 
-  it("gives every criterion a key, label, and description", () => {
-    for (const c of CRITERIA) {
-      expect(c.key).toBeTruthy();
-      expect(c.label).toBeTruthy();
-      expect(c.description).toBeTruthy();
-    }
-  });
-
-  it("uses unique criterion keys", () => {
-    const keys = CRITERIA.map((c) => c.key);
-    expect(new Set(keys).size).toBe(keys.length);
-  });
-
-  it("includes the expected criterion keys", () => {
+  // Pins the count, the order and the uniqueness of the keys in one assertion.
+  it("defines exactly the six scoring criteria, in order", () => {
     expect(CRITERIA.map((c) => c.key)).toEqual([
       "national_impact",
       "translation_readiness",
@@ -52,10 +46,11 @@ describe("AssessmentConfig", () => {
     ]);
   });
 
-  it("gives every recommendation a label and color", () => {
-    for (const o of RECOMMENDATION_OPTIONS) {
-      expect(o.label).toBeTruthy();
-      expect(o.color).toBeTruthy();
-    }
-  });
+  it.each(RECOMMENDATION_OPTIONS.map((o) => [o.value, o] as const))(
+    "%s has a non-empty label and color",
+    (_value, option) => {
+      expect(option.label).toBeTruthy();
+      expect(option.color).toBeTruthy();
+    },
+  );
 });

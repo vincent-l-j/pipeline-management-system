@@ -1,5 +1,9 @@
 """Tests for /api/organisations CRUD and RBAC."""
 
+import pytest
+
+from tests.constants import ALLOWED, DENIED, UNKNOWN_ID
+
 ORG_PAYLOAD = {"name": "Soil Tech Labs", "sector": "Agriculture"}
 
 
@@ -32,24 +36,8 @@ def test_delete_organisation_orphans_children_not_deletes_them(admin_client):
 
 
 def test_delete_unknown_organisation_returns_404(admin_client):
-    resp = admin_client.delete("/api/organisations/00000000-0000-0000-0000-000000000099")
+    resp = admin_client.delete(f"/api/organisations/{UNKNOWN_ID}")
     assert resp.status_code == 404
-
-
-def test_assessor_cannot_delete_organisation_rbac(assessor_client):
-    """Delete is admin-only; assessor is rejected server-side."""
-    resp = assessor_client.delete("/api/organisations/00000000-0000-0000-0000-000000000099")
-    assert resp.status_code == 403
-
-
-def test_assessor_can_create_organisation_rbac(assessor_client):
-    resp = assessor_client.post("/api/organisations", json={"name": "Assessor RBAC Org"})
-    assert resp.status_code == 200
-
-
-def test_viewer_cannot_create_organisation_rbac(viewer_client):
-    resp = viewer_client.post("/api/organisations", json={"name": "Viewer RBAC Org"})
-    assert resp.status_code == 403
 
 
 def test_list_organisations_authenticated(admin_client):
@@ -96,28 +84,51 @@ def test_delete_organisation(admin_client):
 
 
 def test_get_nonexistent_organisation(admin_client):
-    resp = admin_client.get("/api/organisations/00000000-0000-0000-0000-000000000000")
+    resp = admin_client.get(f"/api/organisations/{UNKNOWN_ID}")
     assert resp.status_code == 404
 
 
-def test_assessor_can_create_organisation(assessor_client):
-    resp = assessor_client.post("/api/organisations", json={"name": "Assessor Org"})
-    assert resp.status_code == 200
+# --- RBAC: which roles may read, create and delete ---
+#
+# One row per (role, operation) cell rather than a test per cell, so a new
+# operation is a row and a gap in the grid is visible. Admin is covered by the
+# CRUD tests above; PATCH keeps its own tests below because they assert on the
+# response body and the untouched row, not just the status.
 
 
-def test_viewer_cannot_create_organisation(viewer_client):
-    resp = viewer_client.post("/api/organisations", json={"name": "Should Fail"})
-    assert resp.status_code == 403
+def _list_organisations(client):
+    return client.get("/api/organisations")
 
 
-def test_viewer_can_list_organisations(viewer_client):
-    resp = viewer_client.get("/api/organisations")
-    assert resp.status_code == 200
+def _create_organisation(client):
+    return client.post("/api/organisations", json={"name": "Rbac Org"})
 
 
-def test_viewer_cannot_delete_organisation(viewer_client):
-    resp = viewer_client.delete("/api/organisations/00000000-0000-0000-0000-000000000099")
-    assert resp.status_code == 403
+def _delete_organisation(client):
+    return client.delete(f"/api/organisations/{UNKNOWN_ID}")
+
+
+ORGANISATION_OPERATIONS = {
+    "list": _list_organisations,
+    "create": _create_organisation,
+    "delete": _delete_organisation,
+}
+
+
+@pytest.mark.parametrize(
+    ("role", "operation", "expected"),
+    [
+        ("assessor", "list", ALLOWED),
+        ("assessor", "create", ALLOWED),
+        ("assessor", "delete", DENIED),
+        ("viewer", "list", ALLOWED),
+        ("viewer", "create", DENIED),
+        ("viewer", "delete", DENIED),
+    ],
+)
+def test_organisation_rbac(request, role, operation, expected):
+    client = request.getfixturevalue(f"{role}_client")
+    assert ORGANISATION_OPERATIONS[operation](client).status_code == expected
 
 
 # --- PATCH /api/organisations/{id}: partial update, allowlist, RBAC ---
@@ -163,18 +174,12 @@ def test_viewer_cannot_patch_organisation_rbac(admin_client, viewer_client):
 
 
 def test_unauthenticated_patch_organisation_is_rejected(client):
-    # Missing credentials -> 403 from HTTPBearer; an invalid token -> 401. Either
-    # way the edit is refused without a valid session.
-    resp = client.patch(
-        "/api/organisations/00000000-0000-0000-0000-000000000099", json={"name": "Nope"}
-    )
-    assert resp.status_code in (401, 403)
+    resp = client.patch(f"/api/organisations/{UNKNOWN_ID}", json={"name": "Nope"})
+    assert resp.status_code == 403
 
 
 def test_patch_unknown_organisation_returns_404(admin_client):
-    resp = admin_client.patch(
-        "/api/organisations/00000000-0000-0000-0000-000000000099", json={"name": "Ghost"}
-    )
+    resp = admin_client.patch(f"/api/organisations/{UNKNOWN_ID}", json={"name": "Ghost"})
     assert resp.status_code == 404
 
 

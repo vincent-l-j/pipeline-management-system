@@ -32,7 +32,7 @@ def test_no_slash_reaches_route_not_redirect(client, path):
     resp = client.get(path)
     assert resp.status_code != 307, f"{path} 307-redirected — the trailing-slash bug is back"
     # Route matched and the auth layer rejected us (no bearer token).
-    assert resp.status_code in (401, 403)
+    assert resp.status_code == 403
 
 
 @pytest.mark.parametrize("path", COLLECTIONS)

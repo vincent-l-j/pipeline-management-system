@@ -2,6 +2,8 @@
 
 import pytest
 
+from tests.constants import UNKNOWN_ID
+
 
 def _create_pitch(client):
     return client.post("/api/pitches", json={"title": "Assessment Target Pitch"}).json()["id"]
@@ -64,7 +66,7 @@ def test_get_assessment(admin_client):
 
 
 def test_get_nonexistent_assessment(admin_client):
-    resp = admin_client.get("/api/assessments/00000000-0000-0000-0000-000000000000")
+    resp = admin_client.get(f"/api/assessments/{UNKNOWN_ID}")
     assert resp.status_code == 404
 
 
@@ -169,7 +171,7 @@ def test_get_pitch_assessments_returns_all_versions(admin_client):
 
 
 def test_viewer_cannot_create_assessment(viewer_client):
-    fake_pitch_id = "00000000-0000-0000-0000-000000000099"
+    fake_pitch_id = UNKNOWN_ID
     resp = viewer_client.post("/api/assessments", json={**SCORE_PAYLOAD, "pitch_id": fake_pitch_id})
     assert resp.status_code == 403
 
@@ -189,7 +191,7 @@ def test_create_assessment_without_credentials_is_rejected(client):
     """Unauthenticated request (no credentials) returns 403."""
     resp = client.post(
         "/api/assessments",
-        json={**SCORE_PAYLOAD, "pitch_id": "00000000-0000-0000-0000-000000000099"},
+        json={**SCORE_PAYLOAD, "pitch_id": UNKNOWN_ID},
     )
     assert resp.status_code == 403
 
@@ -198,7 +200,7 @@ def test_create_assessment_with_invalid_token_is_rejected(client):
     """Request with invalid bearer token returns 401."""
     resp = client.post(
         "/api/assessments",
-        json={**SCORE_PAYLOAD, "pitch_id": "00000000-0000-0000-0000-000000000099"},
+        json={**SCORE_PAYLOAD, "pitch_id": UNKNOWN_ID},
         headers={"Authorization": "Bearer invalid_token"},
     )
     assert resp.status_code == 401
@@ -399,7 +401,7 @@ def test_amend_with_different_pitch_rejected(admin_client):
 def test_amend_with_nonexistent_from_id_rejected(admin_client):
     """Cannot amend from a non-existent assessment."""
     pitch_id = _create_pitch(admin_client)
-    fake_id = "00000000-0000-0000-0000-000000000000"
+    fake_id = UNKNOWN_ID
 
     resp = admin_client.post(
         f"/api/assessments?amending_from_id={fake_id}",

@@ -2,6 +2,10 @@
 
 from uuid import UUID
 
+import pytest
+
+from tests.constants import ALLOWED, DENIED, UNKNOWN_ID
+
 
 def test_delete_contact_cascade_removes_join_rows(admin_client, db_session):
     """Deleting a contact removes its PitchContact and MeetingAttendee join rows
@@ -54,28 +58,8 @@ def test_delete_contact_cascade_removes_join_rows(admin_client, db_session):
 
 
 def test_delete_unknown_contact_returns_404(admin_client):
-    resp = admin_client.delete("/api/contacts/00000000-0000-0000-0000-000000000099")
+    resp = admin_client.delete(f"/api/contacts/{UNKNOWN_ID}")
     assert resp.status_code == 404
-
-
-def test_assessor_cannot_delete_contact_rbac(assessor_client):
-    """Delete is admin-only; assessor rejected server-side."""
-    resp = assessor_client.delete("/api/contacts/00000000-0000-0000-0000-000000000099")
-    assert resp.status_code == 403
-
-
-def test_assessor_can_create_contact_rbac(assessor_client):
-    resp = assessor_client.post(
-        "/api/contacts", json={"first_name": "Assessor", "last_name": "RBAC Contact"}
-    )
-    assert resp.status_code == 200
-
-
-def test_viewer_cannot_create_contact_rbac(viewer_client):
-    resp = viewer_client.post(
-        "/api/contacts", json={"first_name": "Viewer", "last_name": "RBAC Contact"}
-    )
-    assert resp.status_code == 403
 
 
 def test_list_contacts_authenticated(admin_client):
@@ -246,30 +230,51 @@ def test_delete_contact(admin_client):
 
 
 def test_get_nonexistent_contact(admin_client):
-    resp = admin_client.get("/api/contacts/00000000-0000-0000-0000-000000000000")
+    resp = admin_client.get(f"/api/contacts/{UNKNOWN_ID}")
     assert resp.status_code == 404
 
 
-def test_assessor_can_create_contact(assessor_client):
-    resp = assessor_client.post(
-        "/api/contacts", json={"first_name": "Assessor", "last_name": "Contact"}
-    )
-    assert resp.status_code == 200
+# --- RBAC: which roles may read, create and delete ---
+#
+# One row per (role, operation) cell rather than a test per cell, so a new
+# operation is a row and a gap in the grid is visible. Admin is covered by the
+# CRUD tests above; PATCH keeps its own tests below because they assert on the
+# response body and the untouched row, not just the status.
 
 
-def test_viewer_cannot_create_contact(viewer_client):
-    resp = viewer_client.post("/api/contacts", json={"first_name": "Should", "last_name": "Fail"})
-    assert resp.status_code == 403
+def _list_contacts(client):
+    return client.get("/api/contacts")
 
 
-def test_viewer_can_list_contacts(viewer_client):
-    resp = viewer_client.get("/api/contacts")
-    assert resp.status_code == 200
+def _create_contact(client):
+    return client.post("/api/contacts", json={"first_name": "Rbac", "last_name": "Contact"})
 
 
-def test_viewer_cannot_delete_contact(viewer_client):
-    resp = viewer_client.delete("/api/contacts/00000000-0000-0000-0000-000000000099")
-    assert resp.status_code == 403
+def _delete_contact(client):
+    return client.delete(f"/api/contacts/{UNKNOWN_ID}")
+
+
+CONTACT_OPERATIONS = {
+    "list": _list_contacts,
+    "create": _create_contact,
+    "delete": _delete_contact,
+}
+
+
+@pytest.mark.parametrize(
+    ("role", "operation", "expected"),
+    [
+        ("assessor", "list", ALLOWED),
+        ("assessor", "create", ALLOWED),
+        ("assessor", "delete", DENIED),
+        ("viewer", "list", ALLOWED),
+        ("viewer", "create", DENIED),
+        ("viewer", "delete", DENIED),
+    ],
+)
+def test_contact_rbac(request, role, operation, expected):
+    client = request.getfixturevalue(f"{role}_client")
+    assert CONTACT_OPERATIONS[operation](client).status_code == expected
 
 
 # --- PATCH /api/contacts/{id}: partial update, allowlist, RBAC ---
@@ -348,18 +353,12 @@ def test_viewer_cannot_patch_contact_rbac(admin_client, viewer_client):
 
 
 def test_unauthenticated_patch_contact_is_rejected(client):
-    # Missing credentials -> 403 from HTTPBearer; an invalid token -> 401. Either
-    # way the edit is refused without a valid session.
-    resp = client.patch(
-        "/api/contacts/00000000-0000-0000-0000-000000000099", json={"first_name": "Nope"}
-    )
-    assert resp.status_code in (401, 403)
+    resp = client.patch(f"/api/contacts/{UNKNOWN_ID}", json={"first_name": "Nope"})
+    assert resp.status_code == 403
 
 
 def test_patch_unknown_contact_returns_404(admin_client):
-    resp = admin_client.patch(
-        "/api/contacts/00000000-0000-0000-0000-000000000099", json={"first_name": "Ghost"}
-    )
+    resp = admin_client.patch(f"/api/contacts/{UNKNOWN_ID}", json={"first_name": "Ghost"})
     assert resp.status_code == 404
 
 

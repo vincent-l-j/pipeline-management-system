@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PitchFormFields from "../PitchFormFields";
 import { EMPTY_PITCH_FORM, PitchFormValues } from "../pitchForm";
@@ -33,21 +33,19 @@ function setup(
 }
 
 describe("PitchFormFields", () => {
-  it("labels every field so it is reachable without a display value", () => {
+  it.each([
+    "Title",
+    "Short Description",
+    "Submission Date",
+    "Source",
+    "Funding Pathway",
+    "Organisation",
+    "Rozetta Lead",
+    "Masterplan Alignment",
+    "Mark as confidential",
+  ])("labels %s so it is reachable without a display value", (label) => {
     setup();
-    for (const label of [
-      /Title/,
-      /Short Description/,
-      /Submission Date/,
-      /Source/,
-      /Funding Pathway/,
-      /Organisation/,
-      /Rozetta Lead/,
-      /Masterplan Alignment/,
-      /Mark as confidential/,
-    ]) {
-      expect(screen.getByLabelText(label)).toBeInTheDocument();
-    }
+    expect(screen.getByLabelText(new RegExp(label))).toBeInTheDocument();
   });
 
   it("renders no form element and no submit button, so the page owns submission", () => {
@@ -125,39 +123,62 @@ describe("PitchFormFields", () => {
     );
   });
 
-  it("offers every source and funding pathway the backend can return", () => {
-    setup();
-    for (const source of [
-      "Referral",
-      "Website",
-      "Event",
-      "Cold Outreach",
-      "Internal",
-      "RIAC",
-      "Foundry",
-      "Board",
-      "RIAC Student",
-      "Rozetta Network",
-    ]) {
-      expect(screen.getByRole("option", { name: source })).toBeInTheDocument();
-    }
-    for (const pathway of [
-      "CRC Bid",
-      "RDTI",
-      "Philanthropic",
-      "Government Grant",
-      "Private",
-      "Other",
-      "No Funding Identified",
-      "Internal Funding",
-    ]) {
-      expect(screen.getByRole("option", { name: pathway })).toBeInTheDocument();
-    }
-  });
+  /*
+   * These assert the whole option list, not the presence of each value: a
+   * presence check passes just as happily when an extra value has crept in, so
+   * it cannot say "exactly". The expected lists are spelled out rather than
+   * derived from SOURCE_LABELS/FUNDING_LABELS, so that dropping a value from
+   * the label map fails here instead of quietly changing both sides at once.
+   */
+  it.each([
+    [
+      "Source",
+      [
+        "Select source...",
+        "Referral",
+        "Website",
+        "Event",
+        "Cold Outreach",
+        "Internal",
+        "RIAC",
+        "Foundry",
+        "Board",
+        "RIAC Student",
+        "Rozetta Network",
+      ],
+    ],
+    [
+      "Funding Pathway",
+      [
+        "Select funding pathway...",
+        "CRC Bid",
+        "RDTI",
+        "Philanthropic",
+        "Government Grant",
+        "Private",
+        "Other",
+        "No Funding Identified",
+        "Internal Funding",
+      ],
+    ],
+  ])(
+    "offers exactly the %s values the backend can return",
+    (label, expected) => {
+      setup();
+      const select = screen.getByLabelText(new RegExp(label));
+      const options = within(select).getAllByRole("option");
+      expect(options.map((option) => option.textContent)).toEqual(expected);
+    },
+  );
 
-  it("offers exactly the current domains as pills", () => {
+  it("offers exactly the current domains as pills, in order", () => {
+    // The pills are the only buttons this component renders. An exact list also
+    // covers the retired vocabulary — "AI Energy Transition", "Climate",
+    // "Digital", "Forestry", "Agri" and "Education" cannot reappear unnoticed.
     setup();
-    for (const domain of [
+    expect(
+      screen.getAllByRole("button").map((pill) => pill.textContent),
+    ).toEqual([
       "AI",
       "Energy Transition",
       "Digital Finance",
@@ -166,25 +187,7 @@ describe("PitchFormFields", () => {
       "Health",
       "Innovation system",
       "Other",
-    ]) {
-      expect(screen.getByRole("button", { name: domain })).toBeInTheDocument();
-    }
-  });
-
-  it("no longer offers the retired domains", () => {
-    setup();
-    for (const retired of [
-      "AI Energy Transition",
-      "Climate",
-      "Digital",
-      "Forestry",
-      "Agri",
-      "Education",
-    ]) {
-      expect(
-        screen.queryByRole("button", { name: retired }),
-      ).not.toBeInTheDocument();
-    }
+    ]);
   });
 
   it("lists the supplied organisations and users as options", () => {

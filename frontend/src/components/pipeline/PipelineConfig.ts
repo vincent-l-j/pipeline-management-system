@@ -109,6 +109,29 @@ export const SOURCE_LABELS: Record<string, string> = {
 } as const;
 
 /**
+ * A value/label pair for a `<select>` or a picker.
+ */
+export interface SelectOption {
+  value: string;
+  label: string;
+}
+
+/**
+ * Turn a label map into the option list a form field renders.
+ *
+ * Deriving the options means adding a backend enum value is a one-line change to
+ * the label map above, and the map stays the single place the vocabulary is
+ * pinned. Insertion order is preserved, so the maps also fix the display order.
+ */
+function optionsFrom(labels: Record<string, string>): SelectOption[] {
+  return Object.entries(labels).map(([value, label]) => ({ value, label }));
+}
+
+/** Source options for the pitch forms, derived from {@link SOURCE_LABELS}. */
+export const SOURCE_OPTIONS: readonly SelectOption[] =
+  optionsFrom(SOURCE_LABELS);
+
+/**
  * Domain vocabulary offered by the pitch forms and the pipeline filter.
  * Stored on a pitch as a comma-separated free-text string, so retiring a value
  * here leaves existing pitches tagged with it untouched.
@@ -138,3 +161,7 @@ export const FUNDING_LABELS: Record<string, string> = {
   no_funding_identified: "No Funding Identified",
   internal_funding: "Internal Funding",
 } as const;
+
+/** Funding options for the pitch forms, derived from {@link FUNDING_LABELS}. */
+export const FUNDING_OPTIONS: readonly SelectOption[] =
+  optionsFrom(FUNDING_LABELS);

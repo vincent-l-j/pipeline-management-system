@@ -8,7 +8,6 @@ interface Contact {
   id: string;
   first_name: string | null;
   last_name: string | null;
-  role: string | null;
   email: string | null;
 }
 
@@ -38,7 +37,6 @@ const CONTACTS: Contact[] = [
     id: "c1",
     first_name: "Jane",
     last_name: "Doe",
-    role: "CTO",
     email: "jane@example.com",
   },
 ];
@@ -72,6 +70,24 @@ describe("ContactsPage", () => {
     expect(
       screen.queryByRole("columnheader", { name: "Last Contacted" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("no longer renders the Role column", async () => {
+    setupGet();
+    render(<ContactsPage />);
+    await waitFor(() => screen.getByText("Jane"));
+    expect(
+      screen.queryByRole("columnheader", { name: "Role" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("the Add form offers no Role field", async () => {
+    const user = userEvent.setup();
+    setupGet([]);
+    render(<ContactsPage />);
+    await waitFor(() => screen.getByRole("button", { name: /Add Contact/i }));
+    await user.click(screen.getByRole("button", { name: /Add Contact/i }));
+    expect(screen.queryByPlaceholderText("Role")).not.toBeInTheDocument();
   });
 
   it("renders a placeholder when a contact has no last name", async () => {
@@ -127,7 +143,6 @@ describe("ContactsPage", () => {
         id: "c2",
         first_name: "New",
         last_name: "Person",
-        role: null,
         email: null,
       },
     });
@@ -177,7 +192,6 @@ describe("ContactsPage", () => {
         id: "c4",
         first_name: null,
         last_name: "Ashworth",
-        role: null,
         email: null,
       },
     });
@@ -203,7 +217,6 @@ describe("ContactsPage", () => {
         id: "c3",
         first_name: "Mononym",
         last_name: null,
-        role: null,
         email: null,
       },
     });
@@ -292,7 +305,6 @@ describe("ContactsPage", () => {
     await user.click(screen.getByRole("button", { name: "Edit" }));
     expect(screen.getByDisplayValue("Jane")).toBeInTheDocument();
     expect(screen.getByDisplayValue("Doe")).toBeInTheDocument();
-    expect(screen.getByDisplayValue("CTO")).toBeInTheDocument();
     expect(screen.getByDisplayValue("jane@example.com")).toBeInTheDocument();
   });
 
@@ -377,7 +389,6 @@ describe("ContactsPage", () => {
     for (const label of [
       "Contact first name",
       "Contact last name",
-      "Contact role",
       "Contact email",
     ]) {
       await user.clear(screen.getByLabelText(label));

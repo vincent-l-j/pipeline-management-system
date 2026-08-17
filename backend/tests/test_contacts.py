@@ -132,6 +132,15 @@ def test_create_contact_drops_last_contacted(admin_client):
     assert body["email"] == "dropped@example.com"
 
 
+def test_create_contact_drops_role(admin_client):
+    """`role` was removed — same allowlist behaviour as the other dropped fields."""
+    resp = admin_client.post("/api/contacts", json={"email": "norole@example.com", "role": "CTO"})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "role" not in body
+    assert body["email"] == "norole@example.com"
+
+
 # --- A contact needs at least one populated field ---
 
 
@@ -143,6 +152,13 @@ def test_create_empty_contact_is_rejected(admin_client):
 def test_create_contact_with_only_dropped_fields_is_rejected(admin_client):
     """Every field here is outside the allowlist, so nothing survives to store."""
     resp = admin_client.post("/api/contacts", json={"name": "Legacy Only", "bogus": "x"})
+    assert resp.status_code == 422
+
+
+def test_create_contact_with_only_role_is_rejected(admin_client):
+    """`role` no longer exists, so a payload carrying nothing else leaves an empty
+    row — this used to be a storable, nameless contact."""
+    resp = admin_client.post("/api/contacts", json={"role": "CTO"})
     assert resp.status_code == 422
 
 
@@ -180,13 +196,13 @@ def test_create_contact_with_email(admin_client):
             "first_name": "Bob",
             "last_name": "Smith",
             "email": "bob@example.com",
-            "role": "CTO",
+            "phone": "555",
         },
     )
     assert resp.status_code == 200
     body = resp.json()
     assert body["email"] == "bob@example.com"
-    assert body["role"] == "CTO"
+    assert body["phone"] == "555"
 
 
 def test_create_contact_linked_to_org(admin_client):
@@ -347,9 +363,9 @@ def test_assessor_can_patch_contact_rbac(assessor_client):
     contact_id = assessor_client.post(
         "/api/contacts", json={"first_name": "Assessor", "last_name": "Editable"}
     ).json()["id"]
-    resp = assessor_client.patch(f"/api/contacts/{contact_id}", json={"role": "Advisor"})
+    resp = assessor_client.patch(f"/api/contacts/{contact_id}", json={"phone": "555"})
     assert resp.status_code == 200
-    assert resp.json()["role"] == "Advisor"
+    assert resp.json()["phone"] == "555"
 
 
 def test_viewer_cannot_patch_contact_rbac(admin_client, viewer_client):
@@ -386,6 +402,7 @@ def test_patch_contact_ignores_fields_outside_allowlist(admin_client):
         json={
             "first_name": "Allowlisted 2",
             "name": "Legacy Name",
+            "role": "CTO",
             "last_contacted": "2026-01-01",
             "created_at": "1999-01-01T00:00:00",
             "bogus": "x",
@@ -397,4 +414,5 @@ def test_patch_contact_ignores_fields_outside_allowlist(admin_client):
     assert body["created_at"] == original_created_at
     assert "bogus" not in body
     assert "name" not in body
+    assert "role" not in body
     assert "last_contacted" not in body

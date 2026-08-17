@@ -126,6 +126,60 @@ describe("PitchEditPage", () => {
     });
   });
 
+  it("pre-fills the submission date from the pitch", async () => {
+    setupGet();
+    render(<PitchEditPage />);
+    await waitFor(() => screen.getByDisplayValue("Original Title"));
+
+    expect(screen.getByDisplayValue("2026-01-01")).toBeInTheDocument();
+  });
+
+  it("leaves the submission date blank when the pitch has none", async () => {
+    apiMocks.get.mockImplementation((url: string) => {
+      if (url === "/pitches/42")
+        return Promise.resolve({ data: { ...PITCH, submission_date: null } });
+      return Promise.resolve({ data: [] });
+    });
+    render(<PitchEditPage />);
+    await waitFor(() => screen.getByDisplayValue("Original Title"));
+
+    expect(screen.getByLabelText(/submission date/i)).toHaveValue("");
+  });
+
+  it("PATCHes the edited submission date", async () => {
+    const user = userEvent.setup();
+    setupGet();
+    apiMocks.patch.mockResolvedValue({ data: PITCH });
+    render(<PitchEditPage />);
+    await waitFor(() => screen.getByDisplayValue("Original Title"));
+
+    const dateInput = screen.getByLabelText(/submission date/i);
+    await user.clear(dateInput);
+    await user.type(dateInput, "2026-03-09");
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    expect(apiMocks.patch.mock).toHaveBeenCalledWith(
+      "/pitches/42",
+      expect.objectContaining({ submission_date: "2026-03-09" }),
+    );
+  });
+
+  it("sends a null submission date when the field is cleared", async () => {
+    const user = userEvent.setup();
+    setupGet();
+    apiMocks.patch.mockResolvedValue({ data: PITCH });
+    render(<PitchEditPage />);
+    await waitFor(() => screen.getByDisplayValue("Original Title"));
+
+    await user.clear(screen.getByLabelText(/submission date/i));
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    expect(apiMocks.patch.mock).toHaveBeenCalledWith(
+      "/pitches/42",
+      expect.objectContaining({ submission_date: null }),
+    );
+  });
+
   it("Cancel returns to the detail route without calling the API", async () => {
     const user = userEvent.setup();
     setupGet();

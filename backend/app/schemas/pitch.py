@@ -26,6 +26,7 @@ class PitchUpdate(BaseModel):
     # a PitchStageHistory row. Do not widen this schema to include current_stage.
     title: str | None = None
     short_description: str | None = None
+    submission_date: date | None = None
     source: PitchSource | None = None
     domain_tags: str | None = None
     funding_pathway: FundingPathway | None = None

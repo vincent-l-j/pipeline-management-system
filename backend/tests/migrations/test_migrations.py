@@ -105,7 +105,7 @@ def _seed_connected_graph(url: str) -> None:
                     to_stage=PipelineStage.INITIAL_SCREEN,
                     changed_by_id=user.id,
                 ),
-                PitchContact(pitch_id=pitch.id, contact_id=contact.id, role_in_pitch="founder"),
+                PitchContact(pitch_id=pitch.id, contact_id=contact.id),
                 Assessment(
                     national_impact=4,
                     translation_readiness=3,
@@ -192,3 +192,40 @@ def test_split_contact_name_preserves_existing_names(alembic, clean_db, pg_url):
     assert _contact_rows(pg_url, "name") == [
         (" ".join(part for part in (first, last) if part),) for _, first, last in _SPLIT_CASES
     ]
+
+
+# --- Level 2 (per-revision): single-column drops -----------------------------
+
+_ROZETTA_NETWORK = "e6a4d81c37b2"
+
+# (revision, table, column) in apply order. Each of these revisions drops exactly
+# one column, which is what keeps `alembic downgrade -1` granular — one column
+# comes back per step rather than a whole batch. Asserted below rather than left
+# to the revisions' file names.
+_COLUMN_DROPS = [
+    ("f7b5c2e93a41", "pitch_contacts", "role_in_pitch"),
+]
+
+
+def _columns(url: str, table: str) -> set[str]:
+    from sqlalchemy import create_engine, inspect
+
+    engine = create_engine(url)
+    names = {c["name"] for c in inspect(engine).get_columns(table)}
+    engine.dispose()
+    return names
+
+
+def test_each_drop_is_a_separate_single_column_revision(alembic, clean_db, pg_url):
+    """Stepping forward one revision drops one column; stepping back restores it."""
+    alembic("upgrade", _ROZETTA_NETWORK)
+
+    for revision, table, column in _COLUMN_DROPS:
+        assert column in _columns(pg_url, table)
+        alembic("upgrade", revision)
+        assert column not in _columns(pg_url, table)
+
+    for _revision, table, column in reversed(_COLUMN_DROPS):
+        assert column not in _columns(pg_url, table)
+        alembic("downgrade", "-1")
+        assert column in _columns(pg_url, table)

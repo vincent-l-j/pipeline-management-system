@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr
@@ -12,7 +12,6 @@ class ContactCreate(BaseModel):
     phone: str | None = None
     linkedin: str | None = None
     notes: str | None = None
-    last_contacted: date | None = None
     organisation_id: UUID | None = None
     relationship_owner_id: UUID | None = None
 
@@ -25,7 +24,6 @@ class ContactUpdate(BaseModel):
     phone: str | None = None
     linkedin: str | None = None
     notes: str | None = None
-    last_contacted: date | None = None
     organisation_id: UUID | None = None
     relationship_owner_id: UUID | None = None
 
@@ -39,7 +37,6 @@ class ContactOut(BaseModel):
     phone: str | None
     linkedin: str | None
     notes: str | None
-    last_contacted: date | None
     organisation_id: UUID | None
     relationship_owner_id: UUID | None
     created_at: datetime

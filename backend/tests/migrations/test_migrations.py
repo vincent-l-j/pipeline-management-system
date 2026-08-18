@@ -204,6 +204,7 @@ _ROZETTA_NETWORK = "e6a4d81c37b2"
 # to the revisions' file names.
 _COLUMN_DROPS = [
     ("f7b5c2e93a41", "pitch_contacts", "role_in_pitch"),
+    ("0c9e4a17d5b2", "contacts", "last_contacted"),
 ]
 
 
@@ -229,3 +230,38 @@ def test_each_drop_is_a_separate_single_column_revision(alembic, clean_db, pg_ur
         assert column not in _columns(pg_url, table)
         alembic("downgrade", "-1")
         assert column in _columns(pg_url, table)
+
+
+def _seed_contact_with_dropped_columns(url: str) -> None:
+    from sqlalchemy import create_engine, text
+
+    engine = create_engine(url)
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "INSERT INTO contacts (id, first_name, last_contacted) VALUES (:id, :first, :seen)"
+            ),
+            {
+                "id": "00000000-0000-0000-0000-00000000ff01",
+                "first": "Kept",
+                "seen": dt.date(2026, 1, 1),
+            },
+        )
+    engine.dispose()
+
+
+def test_dropped_column_values_do_not_survive_a_downgrade(alembic, clean_db, pg_url):
+    """The downgrades restore column *shape*, not contents — asserted so the
+    lossiness stays a known property rather than a surprise mid-rollback.
+
+    Recovering the values means restoring from backup/PITR, which is why each
+    revision's docstring says so.
+    """
+    alembic("upgrade", _ROZETTA_NETWORK)
+    _seed_contact_with_dropped_columns(pg_url)
+
+    alembic("upgrade", "head")
+    alembic("downgrade", _ROZETTA_NETWORK)
+
+    # Untouched columns keep their values; the dropped one comes back empty.
+    assert _contact_rows(pg_url, "first_name, last_contacted") == [("Kept", None)]

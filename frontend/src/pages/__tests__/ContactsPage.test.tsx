@@ -10,7 +10,6 @@ interface Contact {
   last_name: string | null;
   role: string | null;
   email: string | null;
-  last_contacted: string | null;
 }
 
 interface MockUser {
@@ -41,7 +40,6 @@ const CONTACTS: Contact[] = [
     last_name: "Doe",
     role: "CTO",
     email: "jane@example.com",
-    last_contacted: "2026-01-01",
   },
 ];
 
@@ -65,6 +63,15 @@ describe("ContactsPage", () => {
     expect(
       screen.getByRole("columnheader", { name: "Last Name" }),
     ).toBeInTheDocument();
+  });
+
+  it("no longer renders the Last Contacted column", async () => {
+    setupGet();
+    render(<ContactsPage />);
+    await waitFor(() => screen.getByText("Jane"));
+    expect(
+      screen.queryByRole("columnheader", { name: "Last Contacted" }),
+    ).not.toBeInTheDocument();
   });
 
   it("renders a placeholder when a contact has no last name", async () => {
@@ -122,7 +129,6 @@ describe("ContactsPage", () => {
         last_name: "Person",
         role: null,
         email: null,
-        last_contacted: null,
       },
     });
     render(<ContactsPage />);
@@ -173,7 +179,6 @@ describe("ContactsPage", () => {
         last_name: "Ashworth",
         role: null,
         email: null,
-        last_contacted: null,
       },
     });
     render(<ContactsPage />);
@@ -200,7 +205,6 @@ describe("ContactsPage", () => {
         last_name: null,
         role: null,
         email: null,
-        last_contacted: null,
       },
     });
     render(<ContactsPage />);

@@ -80,7 +80,7 @@ class ContactUpdate(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
     email: EmailStr | None = None
-    organisation_id: UUID | None = None
+    phone: str | None = None
 
 # in the route:
 for field, value in data.model_dump(exclude_unset=True).items():

@@ -1,4 +1,12 @@
-import { useState, useEffect } from "react";
+/**
+ * The organisation directory.
+ *
+ * The People column is the mirror of the Contacts page's Organisations column:
+ * affiliations are stored on the contact, so this page loads contacts too and
+ * groups them by organisation to answer "who is here" without a second endpoint.
+ */
+
+import { useState, useEffect, Fragment } from "react";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import { useAuth } from "../contexts/AuthContext";
@@ -7,7 +15,10 @@ import {
   ORG_TYPES,
   orgTypeLabel,
 } from "../components/organisations/OrganisationConfig";
-import type { Organisation, ApiError } from "../types";
+import OrganisationPeople, {
+  peopleAt,
+} from "../components/organisations/OrganisationPeople";
+import type { Contact, Organisation, ApiError } from "../types";
 
 const inputClass =
   "w-full border border-navy-200 rounded-lg px-3 py-1.5 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300";
@@ -47,6 +58,8 @@ export default function OrganisationsPage(): React.JSX.Element {
     notes: "",
   });
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
 
   const canAdd = user?.role === "admin" || user?.role === "assessor";
@@ -63,7 +76,32 @@ export default function OrganisationsPage(): React.JSX.Element {
       .catch(() => {
         setLoading(false);
       });
+    api
+      .get<Contact[]>("/contacts")
+      .then(({ data }) => {
+        setContacts(data);
+      })
+      .catch(() => {
+        // Every count reads zero rather than the page failing outright.
+      });
   }, []);
+
+  // Affiliations live on the contact, so removing an organisation must also drop
+  // it from the contacts held here — otherwise a deleted org keeps its people.
+  function forgetOrganisation(id: string): void {
+    setContacts((prev) =>
+      prev.map((contact) =>
+        contact.organisation_ids.includes(id)
+          ? {
+              ...contact,
+              organisation_ids: contact.organisation_ids.filter(
+                (orgId) => orgId !== id,
+              ),
+            }
+          : contact,
+      ),
+    );
+  }
 
   async function addOrg(): Promise<void> {
     if (!form.name.trim()) return;
@@ -151,11 +189,14 @@ export default function OrganisationsPage(): React.JSX.Element {
     }
   }
 
+  const columnCount = canEdit || canRemove ? 6 : 5;
+
   async function removeOrg(id: string): Promise<void> {
     setError("");
     try {
       await api.delete(`/organisations/${id}`);
       setOrgs((prev) => prev.filter((o) => o.id !== id));
+      forgetOrganisation(id);
     } catch (err) {
       const apiError = err as ApiError;
       setError(
@@ -316,6 +357,9 @@ export default function OrganisationsPage(): React.JSX.Element {
                 <th className="text-left px-4 py-3 font-semibold text-navy-700">
                   State
                 </th>
+                <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                  People
+                </th>
                 {(canEdit || canRemove) && (
                   <th className="text-right px-4 py-3 font-semibold text-navy-700">
                     Actions
@@ -327,7 +371,7 @@ export default function OrganisationsPage(): React.JSX.Element {
               {orgs.map((org) =>
                 editingId === org.id ? (
                   <tr key={org.id} className="bg-navy-50/50">
-                    <td colSpan={5} className="px-4 py-3">
+                    <td colSpan={columnCount} className="px-4 py-3">
                       <div className="space-y-2">
                         <input
                           type="text"
@@ -443,71 +487,107 @@ export default function OrganisationsPage(): React.JSX.Element {
                     </td>
                   </tr>
                 ) : (
-                  <tr
-                    key={org.id}
-                    className="hover:bg-navy-50/50 transition-colors"
-                  >
-                    <td className="px-4 py-3 font-medium text-navy-900">
-                      {org.name}
-                    </td>
-                    <td className="px-4 py-3 text-navy-500 capitalize">
-                      {org.org_type?.replace("_", " ") ?? "-"}
-                    </td>
-                    <td className="px-4 py-3 text-navy-500">
-                      {org.sector ?? "-"}
-                    </td>
-                    <td className="px-4 py-3 text-navy-500">
-                      {org.state_territory ?? "-"}
-                    </td>
-                    {(canEdit || canRemove) && (
-                      <td className="px-4 py-3 text-right">
-                        {confirmingId === org.id ? (
-                          <span className="inline-flex gap-2">
-                            <button
-                              onClick={() => {
-                                void removeOrg(org.id);
-                              }}
-                              className="text-xs text-red-600 hover:text-red-800 font-medium"
-                            >
-                              Confirm
-                            </button>
-                            <button
-                              onClick={() => {
-                                setConfirmingId(null);
-                              }}
-                              className="text-xs text-navy-500 hover:text-navy-700"
-                            >
-                              Cancel
-                            </button>
-                          </span>
-                        ) : (
-                          <span className="inline-flex gap-3">
-                            {canEdit && (
-                              <button
-                                onClick={() => {
-                                  startEdit(org);
-                                }}
-                                className="text-xs text-navy-600 hover:text-navy-900"
-                              >
-                                Edit
-                              </button>
-                            )}
-                            {canRemove && (
-                              <button
-                                onClick={() => {
-                                  setConfirmingId(org.id);
-                                  setError("");
-                                }}
-                                className="text-xs text-red-500 hover:text-red-700"
-                              >
-                                Remove
-                              </button>
-                            )}
-                          </span>
-                        )}
+                  <Fragment key={org.id}>
+                    <tr className="hover:bg-navy-50/50 transition-colors">
+                      <td className="px-4 py-3 font-medium text-navy-900">
+                        {org.name}
                       </td>
+                      <td className="px-4 py-3 text-navy-500 capitalize">
+                        {org.org_type?.replace("_", " ") ?? "-"}
+                      </td>
+                      <td className="px-4 py-3 text-navy-500">
+                        {org.sector ?? "-"}
+                      </td>
+                      <td className="px-4 py-3 text-navy-500">
+                        {org.state_territory ?? "-"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          aria-expanded={expandedId === org.id}
+                          aria-label={`${expandedId === org.id ? "Hide" : "Show"} people at ${org.name}`}
+                          onClick={() => {
+                            setExpandedId((prev) =>
+                              prev === org.id ? null : org.id,
+                            );
+                          }}
+                          className="inline-flex items-center gap-1 text-navy-600 hover:text-navy-900"
+                        >
+                          <span className="text-xs" aria-hidden="true">
+                            {expandedId === org.id ? "▾" : "▸"}
+                          </span>
+                          {peopleAt(contacts, org.id).length}
+                        </button>
+                      </td>
+                      {(canEdit || canRemove) && (
+                        <td className="px-4 py-3 text-right">
+                          {confirmingId === org.id ? (
+                            <span className="inline-flex gap-2">
+                              <button
+                                onClick={() => {
+                                  void removeOrg(org.id);
+                                }}
+                                className="text-xs text-red-600 hover:text-red-800 font-medium"
+                              >
+                                Confirm
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setConfirmingId(null);
+                                }}
+                                className="text-xs text-navy-500 hover:text-navy-700"
+                              >
+                                Cancel
+                              </button>
+                            </span>
+                          ) : (
+                            <span className="inline-flex gap-3">
+                              {canEdit && (
+                                <button
+                                  onClick={() => {
+                                    startEdit(org);
+                                  }}
+                                  className="text-xs text-navy-600 hover:text-navy-900"
+                                >
+                                  Edit
+                                </button>
+                              )}
+                              {canRemove && (
+                                <button
+                                  onClick={() => {
+                                    setConfirmingId(org.id);
+                                    setError("");
+                                  }}
+                                  className="text-xs text-red-500 hover:text-red-700"
+                                >
+                                  Remove
+                                </button>
+                              )}
+                            </span>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                    {expandedId === org.id && (
+                      <tr className="bg-navy-50/30">
+                        <td colSpan={columnCount} className="px-4 py-3">
+                          <OrganisationPeople
+                            organisation={org}
+                            contacts={contacts}
+                            canEdit={canEdit}
+                            onChanged={(contact) => {
+                              setContacts((prev) =>
+                                prev.map((c) =>
+                                  c.id === contact.id ? contact : c,
+                                ),
+                              );
+                              setError("");
+                            }}
+                            onError={setError}
+                          />
+                        </td>
+                      </tr>
                     )}
-                  </tr>
+                  </Fragment>
                 ),
               )}
             </tbody>

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import OrganisationsPage from "../OrganisationsPage";
 import { createApiMocks } from "../../test/mocks/api";
@@ -50,8 +50,49 @@ const ORGS: Organisation[] = [
   },
 ];
 
-function setupGet(list: Organisation[] = ORGS) {
-  apiMocks.get.mockResolvedValue({ data: list });
+interface Contact {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  organisation_ids: string[];
+}
+
+const CONTACTS: Contact[] = [
+  {
+    id: "c1",
+    first_name: "Jane",
+    last_name: "Doe",
+    email: "jane@example.com",
+    organisation_ids: ["o1"],
+  },
+  {
+    id: "c2",
+    first_name: "Sam",
+    last_name: "Stone",
+    email: null,
+    organisation_ids: ["o1", "o2"],
+  },
+  {
+    id: "c3",
+    first_name: "Free",
+    last_name: "Agent",
+    email: null,
+    organisation_ids: [],
+  },
+];
+
+/** The page loads organisations and contacts, so the mock answers per URL. */
+function setupGet(list: Organisation[] = ORGS, people: Contact[] = CONTACTS) {
+  apiMocks.get.mockImplementation((url: string) =>
+    Promise.resolve({ data: url === "/contacts" ? people : list }),
+  );
+}
+
+/** Scoped to the people picker's popup: the org-type <select> in the add/edit
+ *  forms has options of the same role. */
+function pickerOption(name: string | RegExp): HTMLElement {
+  return within(screen.getByRole("listbox")).getByRole("option", { name });
 }
 
 describe("OrganisationsPage", () => {
@@ -330,5 +371,188 @@ describe("OrganisationsPage", () => {
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.getByText("Agriculture")).toBeInTheDocument();
     expect(screen.queryByText("Energy")).not.toBeInTheDocument();
+  });
+
+  // --- The people at each organisation ---
+
+  const TWO_ORGS: Organisation[] = [
+    ORGS[0],
+    { ...ORGS[0], id: "o2", name: "Wind Co", sector: "Energy" },
+    { ...ORGS[0], id: "o3", name: "Empty Trust", sector: "Nobody" },
+  ];
+
+  function showPeople(name: string) {
+    return screen.getByRole("button", { name: `Show people at ${name}` });
+  }
+
+  /** Matches whichever way round the toggle currently reads. */
+  function peopleToggle(name: string) {
+    return screen.getByRole("button", {
+      name: new RegExp(`people at ${name}$`),
+    });
+  }
+
+  it("counts the people at each organisation", async () => {
+    setupGet(TWO_ORGS);
+    render(<OrganisationsPage />);
+    await waitFor(() => screen.getByText("Soil Tech Labs"));
+    expect(
+      screen.getByRole("columnheader", { name: "People" }),
+    ).toBeInTheDocument();
+    expect(showPeople("Soil Tech Labs")).toHaveTextContent("2");
+    expect(showPeople("Wind Co")).toHaveTextContent("1");
+    expect(showPeople("Empty Trust")).toHaveTextContent("0");
+  });
+
+  it("expanding an organisation lists its people", async () => {
+    const user = userEvent.setup();
+    setupGet(TWO_ORGS);
+    render(<OrganisationsPage />);
+    await waitFor(() => screen.getByText("Soil Tech Labs"));
+    expect(screen.queryByText("Jane Doe")).not.toBeInTheDocument();
+
+    await user.click(showPeople("Soil Tech Labs"));
+    expect(screen.getByText("Jane Doe")).toBeInTheDocument();
+    expect(screen.getByText("Sam Stone")).toBeInTheDocument();
+    // Somebody else's affiliation stays out of it.
+    expect(screen.queryByText("Free Agent")).not.toBeInTheDocument();
+  });
+
+  it("collapsing hides them again", async () => {
+    const user = userEvent.setup();
+    setupGet(TWO_ORGS);
+    render(<OrganisationsPage />);
+    await waitFor(() => screen.getByText("Soil Tech Labs"));
+    await user.click(showPeople("Soil Tech Labs"));
+    await user.click(
+      screen.getByRole("button", { name: "Hide people at Soil Tech Labs" }),
+    );
+    expect(screen.queryByText("Jane Doe")).not.toBeInTheDocument();
+  });
+
+  it("says so when an organisation has nobody", async () => {
+    const user = userEvent.setup();
+    setupGet(TWO_ORGS);
+    render(<OrganisationsPage />);
+    await waitFor(() => screen.getByText("Empty Trust"));
+    await user.click(showPeople("Empty Trust"));
+    expect(screen.getByText("No contacts here yet.")).toBeInTheDocument();
+  });
+
+  it("adding a person here patches that contact's affiliations", async () => {
+    const user = userEvent.setup();
+    setupGet(TWO_ORGS);
+    apiMocks.patch.mockResolvedValue({
+      data: { ...CONTACTS[2], organisation_ids: ["o1"] },
+    });
+    render(<OrganisationsPage />);
+    await waitFor(() => screen.getByText("Soil Tech Labs"));
+    await user.click(showPeople("Soil Tech Labs"));
+    await user.click(screen.getByRole("combobox", { name: "Add person" }));
+    await user.click(pickerOption(/Free Agent/));
+
+    expect(apiMocks.patch.mock).toHaveBeenCalledWith("/contacts/c3", {
+      organisation_ids: ["o1"],
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Free Agent")).toBeInTheDocument();
+    });
+    expect(peopleToggle("Soil Tech Labs")).toHaveTextContent("3");
+  });
+
+  it("offers only the contacts who are not already here", async () => {
+    const user = userEvent.setup();
+    setupGet(TWO_ORGS);
+    render(<OrganisationsPage />);
+    await waitFor(() => screen.getByText("Soil Tech Labs"));
+    await user.click(showPeople("Soil Tech Labs"));
+    await user.click(screen.getByRole("combobox", { name: "Add person" }));
+    expect(pickerOption(/Free Agent/)).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("listbox")).queryByRole("option", {
+        name: /Jane Doe/,
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("removing a person here keeps their other affiliations", async () => {
+    const user = userEvent.setup();
+    setupGet(TWO_ORGS);
+    apiMocks.patch.mockResolvedValue({
+      data: { ...CONTACTS[1], organisation_ids: ["o2"] },
+    });
+    render(<OrganisationsPage />);
+    await waitFor(() => screen.getByText("Soil Tech Labs"));
+    await user.click(showPeople("Soil Tech Labs"));
+    await user.click(
+      screen.getByRole("button", {
+        name: "Remove Sam Stone from Soil Tech Labs",
+      }),
+    );
+
+    expect(apiMocks.patch.mock).toHaveBeenCalledWith("/contacts/c2", {
+      organisation_ids: ["o2"],
+    });
+    await waitFor(() => {
+      expect(screen.queryByText("Sam Stone")).not.toBeInTheDocument();
+    });
+    // Still counted at the other organisation.
+    expect(showPeople("Wind Co")).toHaveTextContent("1");
+  });
+
+  it("a rejected unlink shows an error and leaves the person listed", async () => {
+    const user = userEvent.setup();
+    setupGet(TWO_ORGS);
+    apiMocks.patch.mockRejectedValue({
+      response: { data: { detail: "Unlink failed" } },
+    });
+    render(<OrganisationsPage />);
+    await waitFor(() => screen.getByText("Soil Tech Labs"));
+    await user.click(showPeople("Soil Tech Labs"));
+    await user.click(
+      screen.getByRole("button", {
+        name: "Remove Jane Doe from Soil Tech Labs",
+      }),
+    );
+    await waitFor(() => {
+      expect(screen.getByText(/Unlink failed/)).toBeInTheDocument();
+    });
+    expect(screen.getByText("Jane Doe")).toBeInTheDocument();
+  });
+
+  it("a viewer sees who is here but cannot change it", async () => {
+    const user = userEvent.setup();
+    mockUser = { role: "viewer" };
+    setupGet(TWO_ORGS);
+    render(<OrganisationsPage />);
+    await waitFor(() => screen.getByText("Soil Tech Labs"));
+    await user.click(showPeople("Soil Tech Labs"));
+    expect(screen.getByText("Jane Doe")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("combobox", { name: "Add person" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: "Remove Jane Doe from Soil Tech Labs",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("a nameless contact is still listed, by email", async () => {
+    const user = userEvent.setup();
+    setupGet(TWO_ORGS, [
+      {
+        id: "c9",
+        first_name: null,
+        last_name: null,
+        email: "anon@example.com",
+        organisation_ids: ["o1"],
+      },
+    ]);
+    render(<OrganisationsPage />);
+    await waitFor(() => screen.getByText("Soil Tech Labs"));
+    await user.click(showPeople("Soil Tech Labs"));
+    expect(screen.getByText("Unnamed contact")).toBeInTheDocument();
+    expect(screen.getByText("anon@example.com")).toBeInTheDocument();
   });
 });

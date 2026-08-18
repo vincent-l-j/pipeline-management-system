@@ -86,9 +86,9 @@ def test_search_contact_title_omits_missing_first_name(admin_client):
 
 def test_search_nameless_contact_falls_back_to_a_label(admin_client):
     """A contact with no name at all still yields a clickable, labelled result."""
-    admin_client.post("/api/contacts", json={"role": "Namelessrole2026"})
+    admin_client.post("/api/contacts", json={"notes": "Namelessnote2026"})
 
-    resp = admin_client.get("/api/search?q=Namelessrole2026")
+    resp = admin_client.get("/api/search?q=Namelessnote2026")
     assert resp.status_code == 200
     contacts = resp.json()["contacts"]
     assert any(c["title"] == "Unnamed contact" for c in contacts)

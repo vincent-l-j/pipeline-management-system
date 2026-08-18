@@ -12,28 +12,24 @@ interface Contact {
   id: number;
   first_name: string | null;
   last_name: string | null;
-  role: string | null;
   email: string | null;
 }
 
 interface ContactForm {
   first_name: string;
   last_name: string;
-  role: string;
   email: string;
 }
 
 const EMPTY_FORM: ContactForm = {
   first_name: "",
   last_name: "",
-  role: "",
   email: "",
 };
 
 const EDITABLE_FIELDS: (keyof ContactForm)[] = [
   "first_name",
   "last_name",
-  "role",
   "email",
 ];
 
@@ -77,7 +73,6 @@ export default function ContactsPage(): React.JSX.Element {
       const { data } = await api.post<Contact>("/contacts", {
         first_name: form.first_name.trim() || null,
         last_name: form.last_name.trim() || null,
-        role: form.role.trim() || null,
         email: form.email.trim() || null,
       });
       setContacts((prev) => [...prev, data]);
@@ -94,7 +89,6 @@ export default function ContactsPage(): React.JSX.Element {
     setEditForm({
       first_name: contact.first_name ?? "",
       last_name: contact.last_name ?? "",
-      role: contact.role ?? "",
       email: contact.email ?? "",
     });
   };
@@ -186,26 +180,15 @@ export default function ContactsPage(): React.JSX.Element {
               className={inputClass}
             />
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              type="text"
-              value={form.role}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                setForm((p) => ({ ...p, role: e.target.value }));
-              }}
-              placeholder="Role"
-              className={inputClass}
-            />
-            <input
-              type="email"
-              value={form.email}
-              onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                setForm((p) => ({ ...p, email: e.target.value }));
-              }}
-              placeholder="Email"
-              className={inputClass}
-            />
-          </div>
+          <input
+            type="email"
+            value={form.email}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => {
+              setForm((p) => ({ ...p, email: e.target.value }));
+            }}
+            placeholder="Email"
+            className={inputClass}
+          />
           <div className="flex gap-2">
             <button
               onClick={() => {
@@ -245,9 +228,6 @@ export default function ContactsPage(): React.JSX.Element {
                 </th>
                 <th className="text-left px-4 py-3 font-semibold text-navy-700">
                   Last Name
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Role
                 </th>
                 <th className="text-left px-4 py-3 font-semibold text-navy-700">
                   Email
@@ -293,17 +273,6 @@ export default function ContactsPage(): React.JSX.Element {
                     </td>
                     <td className="px-4 py-3">
                       <input
-                        type="text"
-                        value={editForm.role}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                          setEditForm((p) => ({ ...p, role: e.target.value }));
-                        }}
-                        aria-label="Contact role"
-                        className={inputClass}
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <input
                         type="email"
                         value={editForm.email}
                         onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -344,7 +313,6 @@ export default function ContactsPage(): React.JSX.Element {
                     <td className="px-4 py-3 font-medium text-navy-900">
                       {c.last_name ?? "-"}
                     </td>
-                    <td className="px-4 py-3 text-navy-500">{c.role ?? "-"}</td>
                     <td className="px-4 py-3 text-navy-500">
                       {c.email ?? "-"}
                     </td>

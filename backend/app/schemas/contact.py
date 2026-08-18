@@ -7,7 +7,6 @@ from pydantic import BaseModel, EmailStr
 class ContactCreate(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
-    role: str | None = None
     email: EmailStr | None = None
     phone: str | None = None
     linkedin: str | None = None
@@ -19,7 +18,6 @@ class ContactCreate(BaseModel):
 class ContactUpdate(BaseModel):
     first_name: str | None = None
     last_name: str | None = None
-    role: str | None = None
     email: EmailStr | None = None
     phone: str | None = None
     linkedin: str | None = None
@@ -32,7 +30,6 @@ class ContactOut(BaseModel):
     id: UUID
     first_name: str | None
     last_name: str | None
-    role: str | None
     email: str | None
     phone: str | None
     linkedin: str | None

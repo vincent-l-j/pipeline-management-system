@@ -227,7 +227,6 @@ def export_contacts(
         {
             "First Name": c.first_name or "",
             "Last Name": c.last_name or "",
-            "Role": c.role or "",
             "Email": c.email or "",
             "Phone": c.phone or "",
             "LinkedIn": c.linkedin or "",

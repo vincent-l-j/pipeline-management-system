@@ -79,7 +79,7 @@ def search_all(
         for o in orgs
     ]
 
-    # Contacts — search first/last name (and the two combined), role, email, notes
+    # Contacts — search first/last name (and the two combined), email, notes
     full_name = func.trim(
         func.coalesce(Contact.first_name, "") + " " + func.coalesce(Contact.last_name, "")
     )
@@ -90,7 +90,6 @@ def search_all(
                 Contact.first_name.ilike(term),
                 Contact.last_name.ilike(term),
                 full_name.ilike(term),
-                Contact.role.ilike(term),
                 Contact.email.ilike(term),
                 Contact.notes.ilike(term),
             )
@@ -102,7 +101,7 @@ def search_all(
         {
             "id": str(c.id),
             "title": c.full_name or "Unnamed contact",
-            "subtitle": c.role or c.email or "",
+            "subtitle": c.email or "",
             "badge": "",
             "type": "contact",
         }

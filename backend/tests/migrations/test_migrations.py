@@ -205,6 +205,7 @@ _ROZETTA_NETWORK = "e6a4d81c37b2"
 _COLUMN_DROPS = [
     ("f7b5c2e93a41", "pitch_contacts", "role_in_pitch"),
     ("0c9e4a17d5b2", "contacts", "last_contacted"),
+    ("1d8f5b26e6c3", "contacts", "role"),
 ]
 
 
@@ -239,11 +240,13 @@ def _seed_contact_with_dropped_columns(url: str) -> None:
     with engine.begin() as conn:
         conn.execute(
             text(
-                "INSERT INTO contacts (id, first_name, last_contacted) VALUES (:id, :first, :seen)"
+                "INSERT INTO contacts (id, first_name, role, last_contacted) "
+                "VALUES (:id, :first, :role, :seen)"
             ),
             {
                 "id": "00000000-0000-0000-0000-00000000ff01",
                 "first": "Kept",
+                "role": "CTO",
                 "seen": dt.date(2026, 1, 1),
             },
         )
@@ -263,5 +266,5 @@ def test_dropped_column_values_do_not_survive_a_downgrade(alembic, clean_db, pg_
     alembic("upgrade", "head")
     alembic("downgrade", _ROZETTA_NETWORK)
 
-    # Untouched columns keep their values; the dropped one comes back empty.
-    assert _contact_rows(pg_url, "first_name, last_contacted") == [("Kept", None)]
+    # Untouched columns keep their values; the dropped ones come back empty.
+    assert _contact_rows(pg_url, "first_name, role, last_contacted") == [("Kept", None, None)]

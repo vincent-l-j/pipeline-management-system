@@ -19,6 +19,15 @@ export interface Organisation {
   created_at: string;
 }
 
+export interface Contact {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  /** Affiliations, unordered — a contact may belong to any number of organisations. */
+  organisation_ids: string[];
+}
+
 export interface Pitch {
   id: string;
   title: string;

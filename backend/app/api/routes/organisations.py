@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import get_current_user, require_role
-from app.models.contact import Contact
+from app.models.contact import ContactOrganisation
 from app.models.organisation import Organisation
 from app.models.pitch import Pitch
 from app.models.user import User, UserRole
@@ -76,11 +76,12 @@ def delete_organisation(
     if not org:
         raise HTTPException(status_code=404, detail="Organisation not found")
 
-    # Orphan references before deleting: child contacts and pitches survive with
-    # their organisation link cleared (enforced in app code, not via DB cascade —
-    # SQLite tests don't enforce FKs).
-    db.query(Contact).filter(Contact.organisation_id == org_id).update(
-        {Contact.organisation_id: None}, synchronize_session=False
+    # Orphan references before deleting: contacts and pitches survive with their
+    # link to this organisation cleared (enforced in app code, not via DB cascade —
+    # SQLite tests don't enforce FKs). A contact affiliated with other
+    # organisations keeps those; only this one's join row goes.
+    db.query(ContactOrganisation).filter(ContactOrganisation.organisation_id == org_id).delete(
+        synchronize_session=False
     )
     db.query(Pitch).filter(Pitch.organisation_id == org_id).update(
         {Pitch.organisation_id: None}, synchronize_session=False

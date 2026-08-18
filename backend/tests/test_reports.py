@@ -106,6 +106,23 @@ def test_export_contacts_csv(admin_client):
     assert "Csv,Exported" in resp.text
 
 
+def test_export_contacts_csv_lists_every_organisation(admin_client):
+    """One cell holds all affiliations, semicolon-separated so the comma-delimited
+    CSV does not split them across columns."""
+    org_ids = [
+        admin_client.post("/api/organisations", json={"name": name}).json()["id"]
+        for name in ("Export Org A", "Export Org B")
+    ]
+    admin_client.post(
+        "/api/contacts",
+        json={"first_name": "Multi", "last_name": "Affiliated", "organisation_ids": org_ids},
+    )
+
+    resp = admin_client.get("/api/reports/export/contacts")
+    assert resp.status_code == 200
+    assert "Export Org A; Export Org B" in resp.text
+
+
 def test_export_meetings_csv(admin_client):
     resp = admin_client.get("/api/reports/export/meetings")
     assert resp.status_code == 200

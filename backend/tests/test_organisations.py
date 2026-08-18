@@ -8,12 +8,12 @@ ORG_PAYLOAD = {"name": "Soil Tech Labs", "sector": "Agriculture"}
 
 
 def test_delete_organisation_orphans_children_not_deletes_them(admin_client):
-    """Deleting an org nulls organisation_id on child contacts and pitches
-    but leaves those records in place."""
+    """Deleting an org drops its contact affiliations and nulls organisation_id on
+    child pitches, but leaves those records in place."""
     org_id = admin_client.post("/api/organisations", json={"name": "Parent Org"}).json()["id"]
     contact_id = admin_client.post(
         "/api/contacts",
-        json={"first_name": "Linked", "last_name": "Contact", "organisation_id": org_id},
+        json={"first_name": "Linked", "last_name": "Contact", "organisation_ids": [org_id]},
     ).json()["id"]
     pitch_id = admin_client.post(
         "/api/pitches", json={"title": "Linked Pitch", "organisation_id": org_id}
@@ -28,11 +28,28 @@ def test_delete_organisation_orphans_children_not_deletes_them(admin_client):
     # Children survive with their organisation link cleared (no dangling FK).
     contact = admin_client.get(f"/api/contacts/{contact_id}")
     assert contact.status_code == 200
-    assert contact.json()["organisation_id"] is None
+    assert contact.json()["organisation_ids"] == []
 
     pitch = admin_client.get(f"/api/pitches/{pitch_id}")
     assert pitch.status_code == 200
     assert pitch.json()["organisation_id"] is None
+
+
+def test_delete_organisation_keeps_a_contacts_other_affiliations(admin_client):
+    """Only the deleted organisation's affiliation goes; the rest of a
+    multi-organisation contact is untouched."""
+    doomed_id = admin_client.post("/api/organisations", json={"name": "Doomed Org"}).json()["id"]
+    kept_id = admin_client.post("/api/organisations", json={"name": "Kept Org"}).json()["id"]
+    contact_id = admin_client.post(
+        "/api/contacts",
+        json={"first_name": "Dual", "organisation_ids": [doomed_id, kept_id]},
+    ).json()["id"]
+
+    assert admin_client.delete(f"/api/organisations/{doomed_id}").status_code == 200
+
+    contact = admin_client.get(f"/api/contacts/{contact_id}")
+    assert contact.status_code == 200
+    assert contact.json()["organisation_ids"] == [kept_id]
 
 
 def test_delete_unknown_organisation_returns_404(admin_client):

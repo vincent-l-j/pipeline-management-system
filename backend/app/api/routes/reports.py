@@ -7,7 +7,7 @@ from datetime import date, datetime
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -220,8 +220,18 @@ def export_contacts(
     current_user: User = Depends(get_current_user),
 ):
     users = {str(u.id): u.display_name for u in db.query(User).all()}
-    orgs = {str(o.id): o.name for o in db.query(Organisation).all()}
-    contacts = db.query(Contact).order_by(Contact.first_name, Contact.last_name).all()
+    orgs = {o.id: o.name for o in db.query(Organisation).all()}
+    contacts = (
+        db.query(Contact)
+        .options(selectinload(Contact.organisation_links))
+        .order_by(Contact.first_name, Contact.last_name)
+        .all()
+    )
+
+    def organisation_names(contact: Contact) -> str:
+        # Semicolons, not commas: the cell would otherwise read as extra columns to
+        # anything splitting the CSV naively.
+        return "; ".join(sorted(orgs[org_id] for org_id in contact.organisation_ids))
 
     rows = [
         {
@@ -230,7 +240,7 @@ def export_contacts(
             "Email": c.email or "",
             "Phone": c.phone or "",
             "LinkedIn": c.linkedin or "",
-            "Organisation": orgs.get(str(c.organisation_id), "") if c.organisation_id else "",
+            "Organisation": organisation_names(c),
             "Relationship Owner": users.get(str(c.relationship_owner_id), "")
             if c.relationship_owner_id
             else "",

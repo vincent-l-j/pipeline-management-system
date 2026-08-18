@@ -8,13 +8,17 @@ from tests.constants import ALLOWED, DENIED, UNKNOWN_ID
 
 
 def test_delete_contact_cascade_removes_join_rows(admin_client, db_session):
-    """Deleting a contact removes its PitchContact and MeetingAttendee join rows
-    in the same transaction; the parent pitch and meeting survive."""
+    """Deleting a contact removes its ContactOrganisation, PitchContact and
+    MeetingAttendee join rows in the same transaction; the parent organisation,
+    pitch and meeting survive."""
+    from app.models.contact import ContactOrganisation
     from app.models.meeting import MeetingAttendee
     from app.models.pitch import PitchContact
 
+    org_id = admin_client.post("/api/organisations", json={"name": "Surviving Org"}).json()["id"]
     contact_id = admin_client.post(
-        "/api/contacts", json={"first_name": "Joined", "last_name": "Contact"}
+        "/api/contacts",
+        json={"first_name": "Joined", "last_name": "Contact", "organisation_ids": [org_id]},
     ).json()["id"]
     pitch_id = admin_client.post("/api/pitches", json={"title": "Pitch With Contact"}).json()["id"]
     meeting_id = admin_client.post(
@@ -40,6 +44,12 @@ def test_delete_contact_cascade_removes_join_rows(admin_client, db_session):
     # No dangling join rows remain.
     db_session.expire_all()
     assert (
+        db_session.query(ContactOrganisation)
+        .filter(ContactOrganisation.contact_id == UUID(contact_id))
+        .count()
+        == 0
+    )
+    assert (
         db_session.query(PitchContact).filter(PitchContact.contact_id == UUID(contact_id)).count()
         == 0
     )
@@ -50,7 +60,8 @@ def test_delete_contact_cascade_removes_join_rows(admin_client, db_session):
         == 0
     )
 
-    # Parent pitch and meeting remain retrievable.
+    # Parent organisation, pitch and meeting remain retrievable.
+    assert admin_client.get(f"/api/organisations/{org_id}").status_code == 200
     assert admin_client.get(f"/api/pitches/{pitch_id}").status_code == 200
     assert admin_client.get(f"/api/meetings/{meeting_id}").status_code == 200
 
@@ -206,15 +217,175 @@ def test_create_contact_with_email(admin_client):
 
 
 def test_create_contact_linked_to_org(admin_client):
-    org = admin_client.post("/api/organisations", json={"name": "Contact Test Org"}).json()
-    org_id = org["id"]
+    org_id = admin_client.post("/api/organisations", json={"name": "Contact Test Org"}).json()["id"]
 
     resp = admin_client.post(
         "/api/contacts",
-        json={"first_name": "Org", "last_name": "Contact", "organisation_id": org_id},
+        json={"first_name": "Org", "last_name": "Contact", "organisation_ids": [org_id]},
     )
     assert resp.status_code == 200
-    assert resp.json()["organisation_id"] == org_id
+    assert resp.json()["organisation_ids"] == [org_id]
+
+
+# --- Organisation affiliations (many-to-many) ---
+#
+# A contact belongs to any number of organisations, all equal — there is no
+# primary. The API takes and returns the whole set, so a PATCH replaces rather
+# than appends.
+
+
+def _make_orgs(client, *names):
+    return [client.post("/api/organisations", json={"name": name}).json()["id"] for name in names]
+
+
+def test_create_contact_with_several_organisations(admin_client):
+    """The case the single FK could not express: one person, three affiliations."""
+    org_ids = _make_orgs(admin_client, "Acme Labs", "UNSW", "CSIRO")
+
+    resp = admin_client.post(
+        "/api/contacts",
+        json={"first_name": "Multi", "last_name": "Org", "organisation_ids": org_ids},
+    )
+    assert resp.status_code == 200
+    assert sorted(resp.json()["organisation_ids"]) == sorted(org_ids)
+
+
+def test_create_contact_defaults_to_no_organisations(admin_client):
+    resp = admin_client.post("/api/contacts", json={"first_name": "Unaffiliated"})
+    assert resp.status_code == 200
+    assert resp.json()["organisation_ids"] == []
+
+
+def test_create_contact_deduplicates_organisation_ids(admin_client):
+    """The same organisation twice is one affiliation, not two identical rows."""
+    (org_id,) = _make_orgs(admin_client, "Repeated Org")
+
+    resp = admin_client.post(
+        "/api/contacts",
+        json={"first_name": "Duped", "organisation_ids": [org_id, org_id]},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["organisation_ids"] == [org_id]
+
+
+def test_create_contact_with_unknown_organisation_is_rejected(admin_client):
+    """A link to a non-existent organisation is refused, not silently stored."""
+    resp = admin_client.post(
+        "/api/contacts",
+        json={"first_name": "Ghost", "organisation_ids": [str(UNKNOWN_ID)]},
+    )
+    assert resp.status_code == 422
+
+
+def test_create_nameless_contact_with_only_an_organisation(admin_client):
+    """An organisation identifies a contact, so it alone is enough detail — the
+    behaviour the column-walking blank check used to give for organisation_id."""
+    (org_id,) = _make_orgs(admin_client, "Sole Identifier Org")
+
+    resp = admin_client.post("/api/contacts", json={"organisation_ids": [org_id]})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["first_name"] is None
+    assert body["organisation_ids"] == [org_id]
+
+
+def test_create_contact_drops_legacy_organisation_id(admin_client):
+    """`organisation_id` is gone from the schema — the allowlist drops it."""
+    resp = admin_client.post(
+        "/api/contacts",
+        json={"email": "legacy-org@example.com", "organisation_id": str(UNKNOWN_ID)},
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert "organisation_id" not in body
+    assert body["organisation_ids"] == []
+
+
+def test_patch_replaces_organisations_rather_than_appending(admin_client):
+    keep_id, drop_id, add_id = _make_orgs(admin_client, "Keep Org", "Drop Org", "Add Org")
+    contact_id = admin_client.post(
+        "/api/contacts",
+        json={"first_name": "Swapped", "organisation_ids": [keep_id, drop_id]},
+    ).json()["id"]
+
+    resp = admin_client.patch(
+        f"/api/contacts/{contact_id}", json={"organisation_ids": [keep_id, add_id]}
+    )
+    assert resp.status_code == 200
+    assert sorted(resp.json()["organisation_ids"]) == sorted([keep_id, add_id])
+
+
+def test_patch_omitting_organisation_ids_preserves_them(admin_client):
+    """Absent means untouched — editing a phone number must not unlink anything."""
+    org_ids = _make_orgs(admin_client, "Preserved A", "Preserved B")
+    contact_id = admin_client.post(
+        "/api/contacts", json={"first_name": "Preserve", "organisation_ids": org_ids}
+    ).json()["id"]
+
+    resp = admin_client.patch(f"/api/contacts/{contact_id}", json={"phone": "555"})
+    assert resp.status_code == 200
+    assert sorted(resp.json()["organisation_ids"]) == sorted(org_ids)
+
+
+def test_patch_can_clear_organisations_when_other_detail_remains(admin_client):
+    (org_id,) = _make_orgs(admin_client, "Clearable Org")
+    contact_id = admin_client.post(
+        "/api/contacts", json={"first_name": "Named", "organisation_ids": [org_id]}
+    ).json()["id"]
+
+    resp = admin_client.patch(f"/api/contacts/{contact_id}", json={"organisation_ids": []})
+    assert resp.status_code == 200
+    assert resp.json()["organisation_ids"] == []
+
+
+def test_patch_cannot_clear_the_only_remaining_organisation(admin_client):
+    """Unlinking the last organisation from an otherwise blank contact would leave
+    an empty row, so it is refused and the affiliation survives."""
+    (org_id,) = _make_orgs(admin_client, "Only Detail Org")
+    contact_id = admin_client.post("/api/contacts", json={"organisation_ids": [org_id]}).json()[
+        "id"
+    ]
+
+    resp = admin_client.patch(f"/api/contacts/{contact_id}", json={"organisation_ids": []})
+    assert resp.status_code == 422
+    assert admin_client.get(f"/api/contacts/{contact_id}").json()["organisation_ids"] == [org_id]
+
+
+def test_patch_cannot_clear_last_name_when_only_organisation_would_remain(admin_client):
+    """The mirror case: an organisation keeps a now-nameless contact valid."""
+    (org_id,) = _make_orgs(admin_client, "Rescuing Org")
+    contact_id = admin_client.post(
+        "/api/contacts", json={"first_name": "Nameable", "organisation_ids": [org_id]}
+    ).json()["id"]
+
+    resp = admin_client.patch(f"/api/contacts/{contact_id}", json={"first_name": None})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["first_name"] is None
+    assert body["organisation_ids"] == [org_id]
+
+
+def test_patch_with_unknown_organisation_is_rejected(admin_client):
+    (org_id,) = _make_orgs(admin_client, "Untouched Org")
+    contact_id = admin_client.post(
+        "/api/contacts", json={"first_name": "Safe", "organisation_ids": [org_id]}
+    ).json()["id"]
+
+    resp = admin_client.patch(
+        f"/api/contacts/{contact_id}", json={"organisation_ids": [str(UNKNOWN_ID)]}
+    )
+    assert resp.status_code == 422
+    assert admin_client.get(f"/api/contacts/{contact_id}").json()["organisation_ids"] == [org_id]
+
+
+def test_list_contacts_includes_organisation_ids(admin_client):
+    org_ids = _make_orgs(admin_client, "Listed Org A", "Listed Org B")
+    contact_id = admin_client.post(
+        "/api/contacts", json={"first_name": "Listed", "organisation_ids": org_ids}
+    ).json()["id"]
+
+    listed = next(c for c in admin_client.get("/api/contacts").json() if c["id"] == contact_id)
+    assert sorted(listed["organisation_ids"]) == sorted(org_ids)
 
 
 def test_get_contact(admin_client):

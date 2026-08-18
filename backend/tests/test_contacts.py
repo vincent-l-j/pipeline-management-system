@@ -23,9 +23,7 @@ def test_delete_contact_cascade_removes_join_rows(admin_client, db_session):
     ).json()["id"]
 
     # PitchContact has no create endpoint — insert the join row directly.
-    db_session.add(
-        PitchContact(pitch_id=UUID(pitch_id), contact_id=UUID(contact_id), role_in_pitch="lead")
-    )
+    db_session.add(PitchContact(pitch_id=UUID(pitch_id), contact_id=UUID(contact_id)))
     db_session.commit()
 
     # MeetingAttendee via the API.

@@ -5,6 +5,7 @@
 
 import { useState, useEffect, ReactNode } from "react";
 import api from "../../services/api";
+import { contactName } from "../contacts/contactName";
 import { useAuth } from "../../contexts/AuthContext";
 
 interface User {
@@ -17,13 +18,6 @@ interface Contact {
   id: string;
   first_name: string | null;
   last_name: string | null;
-}
-
-function contactName(contact: Contact): string {
-  const name = [contact.first_name, contact.last_name]
-    .filter(Boolean)
-    .join(" ");
-  return name || "Unnamed contact";
 }
 
 interface Attendee {

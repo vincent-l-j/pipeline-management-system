@@ -5,7 +5,7 @@
  * affiliated with any number of them, and until they are on screen there is no
  * way to tell a consultant working across three companies from a lone founder.
  * They are loaded separately and joined by id here, so the page holds one
- * organisation list that serves the column, the filter and the pickers alike.
+ * organisation list that serves both the column and the pickers.
  */
 
 import { useState, useEffect, ChangeEvent } from "react";
@@ -22,10 +22,6 @@ import type { Contact, Organisation } from "../types";
 
 const inputClass =
   "w-full border border-navy-200 rounded-lg px-3 py-1.5 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300";
-
-/** The filter value standing for "affiliated with nothing". Not an id, so it
- *  cannot collide with one. */
-const NO_ORGANISATION = "none";
 
 interface ContactForm {
   first_name: string;
@@ -78,7 +74,6 @@ export default function ContactsPage(): React.JSX.Element {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<ContactForm>(EMPTY_FORM);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
-  const [organisationFilter, setOrganisationFilter] = useState("");
   const [creating, setCreating] = useState<CreateTarget | null>(null);
   const [error, setError] = useState("");
 
@@ -102,7 +97,7 @@ export default function ContactsPage(): React.JSX.Element {
         setOrganisations(data);
       })
       .catch(() => {
-        // The column and filter simply stay empty; contacts are still usable.
+        // The column simply stays empty; contacts are still usable.
       });
   }, []);
 
@@ -110,13 +105,6 @@ export default function ContactsPage(): React.JSX.Element {
     pickedOrganisations(organisations, contact.organisation_ids)
       .map((organisation) => organisation.name)
       .join(", ");
-
-  const visibleContacts = contacts.filter((contact) => {
-    if (!organisationFilter) return true;
-    if (organisationFilter === NO_ORGANISATION)
-      return contact.organisation_ids.length === 0;
-    return contact.organisation_ids.includes(organisationFilter);
-  });
 
   const addContact = async (): Promise<void> => {
     if (!hasAnyDetail(form)) return;
@@ -294,51 +282,11 @@ export default function ContactsPage(): React.JSX.Element {
         </div>
       )}
 
-      {organisations.length > 0 && (
-        <div className="flex flex-wrap items-center gap-3 mb-4">
-          <label className="sr-only" htmlFor="contact-organisation-filter">
-            Filter by organisation
-          </label>
-          <select
-            id="contact-organisation-filter"
-            value={organisationFilter}
-            onChange={(e) => {
-              setOrganisationFilter(e.target.value);
-            }}
-            className="text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-300"
-          >
-            <option value="">All organisations</option>
-            <option value={NO_ORGANISATION}>No organisation</option>
-            {[...organisations]
-              .sort((a, b) => a.name.localeCompare(b.name))
-              .map((organisation) => (
-                <option key={organisation.id} value={organisation.id}>
-                  {organisation.name}
-                </option>
-              ))}
-          </select>
-          {organisationFilter && (
-            <button
-              onClick={() => {
-                setOrganisationFilter("");
-              }}
-              className="text-xs text-navy-500 hover:text-navy-700 underline"
-            >
-              Clear filter
-            </button>
-          )}
-        </div>
-      )}
-
       {loading ? (
         <p className="text-navy-400">Loading...</p>
       ) : contacts.length === 0 ? (
         <div className="bg-white rounded-xl border border-navy-100 p-8 text-center">
           <p className="text-navy-500">No contacts yet.</p>
-        </div>
-      ) : visibleContacts.length === 0 ? (
-        <div className="bg-white rounded-xl border border-navy-100 p-8 text-center">
-          <p className="text-navy-500">No contacts match this filter.</p>
         </div>
       ) : (
         // Deliberately not overflow-hidden: the organisation picker's dropdown
@@ -371,7 +319,7 @@ export default function ContactsPage(): React.JSX.Element {
               </tr>
             </thead>
             <tbody className="divide-y divide-navy-50">
-              {visibleContacts.map((c) =>
+              {contacts.map((c) =>
                 editingId === c.id ? (
                   <tr key={c.id} className="bg-navy-50/50">
                     <td className="px-4 py-3 align-top">

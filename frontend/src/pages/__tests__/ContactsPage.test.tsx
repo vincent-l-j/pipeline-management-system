@@ -72,8 +72,8 @@ function setupGet(
   );
 }
 
-/** Scoped to the picker's popup: the organisation filter is a <select>, whose
- *  <option>s carry the same role and names. */
+/** Scoped to the picker's popup, so a chip or a table cell of the same name
+ *  cannot be mistaken for an option. */
 function pickerOption(name: string | RegExp): HTMLElement {
   return within(screen.getByRole("listbox")).getByRole("option", { name });
 }
@@ -557,55 +557,12 @@ describe("ContactsPage", () => {
     expect(row).toHaveTextContent("—");
   });
 
-  it("filters the table down to one organisation's people", async () => {
-    const user = userEvent.setup();
+  it("lists every contact, affiliated or not", async () => {
     setupGet(AFFILIATED);
     render(<ContactsPage />);
     await waitFor(() => screen.getByText("Jane"));
-
-    await user.selectOptions(
-      screen.getByLabelText("Filter by organisation"),
-      "o2",
-    );
-    expect(screen.getByText("Jane")).toBeInTheDocument();
-    expect(screen.queryByText("Solo")).not.toBeInTheDocument();
-    expect(screen.queryByText("Free")).not.toBeInTheDocument();
-  });
-
-  it("can filter down to the contacts with no organisation at all", async () => {
-    const user = userEvent.setup();
-    setupGet(AFFILIATED);
-    render(<ContactsPage />);
-    await waitFor(() => screen.getByText("Jane"));
-
-    await user.selectOptions(
-      screen.getByLabelText("Filter by organisation"),
-      "none",
-    );
-    expect(screen.getByText("Free")).toBeInTheDocument();
-    expect(screen.queryByText("Jane")).not.toBeInTheDocument();
-  });
-
-  it("clearing the filter brings every contact back", async () => {
-    const user = userEvent.setup();
-    setupGet(AFFILIATED);
-    render(<ContactsPage />);
-    await waitFor(() => screen.getByText("Jane"));
-
-    const filter = screen.getByLabelText("Filter by organisation");
-    await user.selectOptions(filter, "o2");
-    await user.click(screen.getByRole("button", { name: "Clear filter" }));
     expect(screen.getByText("Solo")).toBeInTheDocument();
     expect(screen.getByText("Free")).toBeInTheDocument();
-  });
-
-  it("no filter is offered when there are no organisations to filter by", async () => {
-    setupGet(CONTACTS, []);
-    render(<ContactsPage />);
-    await waitFor(() => screen.getByText("Jane"));
-    expect(
-      screen.queryByLabelText("Filter by organisation"),
-    ).not.toBeInTheDocument();
   });
 
   it("the Add form posts the organisations picked for the new contact", async () => {

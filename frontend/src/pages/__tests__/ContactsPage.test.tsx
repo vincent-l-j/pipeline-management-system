@@ -554,7 +554,7 @@ describe("ContactsPage", () => {
     render(<ContactsPage />);
     await waitFor(() => screen.getByText("Free"));
     const row = screen.getByText("Free").closest("tr");
-    expect(row).toHaveTextContent("—");
+    expect(row).toHaveTextContent("-");
   });
 
   it("lists every contact, affiliated or not", async () => {

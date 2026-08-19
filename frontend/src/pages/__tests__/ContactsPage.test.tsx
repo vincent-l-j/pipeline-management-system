@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ContactsPage from "../ContactsPage";
 import { createApiMocks } from "../../test/mocks/api";
@@ -9,6 +9,7 @@ interface Contact {
   first_name: string | null;
   last_name: string | null;
   email: string | null;
+  organisation_ids: string[];
 }
 
 interface MockUser {
@@ -38,11 +39,43 @@ const CONTACTS: Contact[] = [
     first_name: "Jane",
     last_name: "Doe",
     email: "jane@example.com",
+    organisation_ids: [],
   },
 ];
 
-function setupGet(list: Contact[] = CONTACTS) {
-  apiMocks.get.mockResolvedValue({ data: list });
+function organisation(id: string, name: string) {
+  return {
+    id,
+    name,
+    org_type: null,
+    sector: null,
+    state_territory: null,
+    website: null,
+    abn: null,
+    notes: null,
+    created_at: "2026-01-01T00:00:00Z",
+  };
+}
+
+const ORGANISATIONS = [
+  organisation("o1", "Zeta Labs"),
+  organisation("o2", "Alpha Institute"),
+];
+
+/** The page loads contacts and organisations, so the mock answers per URL. */
+function setupGet(
+  list: Contact[] = CONTACTS,
+  orgs: ReturnType<typeof organisation>[] = ORGANISATIONS,
+) {
+  apiMocks.get.mockImplementation((url: string) =>
+    Promise.resolve({ data: url === "/organisations" ? orgs : list }),
+  );
+}
+
+/** Scoped to the picker's popup, so a chip or a table cell of the same name
+ *  cannot be mistaken for an option. */
+function pickerOption(name: string | RegExp): HTMLElement {
+  return within(screen.getByRole("listbox")).getByRole("option", { name });
 }
 
 describe("ContactsPage", () => {
@@ -144,6 +177,7 @@ describe("ContactsPage", () => {
         first_name: "New",
         last_name: "Person",
         email: null,
+        organisation_ids: [],
       },
     });
     render(<ContactsPage />);
@@ -193,6 +227,7 @@ describe("ContactsPage", () => {
         first_name: null,
         last_name: "Ashworth",
         email: null,
+        organisation_ids: [],
       },
     });
     render(<ContactsPage />);
@@ -218,6 +253,7 @@ describe("ContactsPage", () => {
         first_name: "Mononym",
         last_name: null,
         email: null,
+        organisation_ids: [],
       },
     });
     render(<ContactsPage />);
@@ -481,5 +517,205 @@ describe("ContactsPage", () => {
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.getByText("Jane")).toBeInTheDocument();
     expect(screen.queryByText("Janet")).not.toBeInTheDocument();
+  });
+
+  // --- Organisation affiliations ---
+
+  const AFFILIATED: Contact[] = [
+    { ...CONTACTS[0], organisation_ids: ["o1", "o2"] },
+    {
+      id: "c2",
+      first_name: "Solo",
+      last_name: "Worker",
+      email: null,
+      organisation_ids: ["o1"],
+    },
+    {
+      id: "c3",
+      first_name: "Free",
+      last_name: "Agent",
+      email: null,
+      organisation_ids: [],
+    },
+  ];
+
+  it("lists every organisation a contact belongs to, name-sorted", async () => {
+    setupGet(AFFILIATED);
+    render(<ContactsPage />);
+    await waitFor(() => screen.getByText("Jane"));
+    expect(
+      screen.getByRole("columnheader", { name: "Organisations" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Alpha Institute, Zeta Labs")).toBeInTheDocument();
+  });
+
+  it("shows a placeholder for a contact with no organisation", async () => {
+    setupGet(AFFILIATED);
+    render(<ContactsPage />);
+    await waitFor(() => screen.getByText("Free"));
+    const row = screen.getByText("Free").closest("tr");
+    expect(row).toHaveTextContent("-");
+  });
+
+  it("lists every contact, affiliated or not", async () => {
+    setupGet(AFFILIATED);
+    render(<ContactsPage />);
+    await waitFor(() => screen.getByText("Jane"));
+    expect(screen.getByText("Solo")).toBeInTheDocument();
+    expect(screen.getByText("Free")).toBeInTheDocument();
+  });
+
+  it("the Add form posts the organisations picked for the new contact", async () => {
+    const user = userEvent.setup();
+    setupGet([]);
+    apiMocks.post.mockResolvedValue({
+      data: {
+        id: "c9",
+        first_name: "Linked",
+        last_name: null,
+        email: null,
+        organisation_ids: ["o2"],
+      },
+    });
+    render(<ContactsPage />);
+    await waitFor(() => screen.getByRole("button", { name: /Add Contact/i }));
+    await user.click(screen.getByRole("button", { name: /Add Contact/i }));
+    await user.type(screen.getByPlaceholderText("First name"), "Linked");
+    await user.click(
+      screen.getByRole("combobox", { name: "Add organisation" }),
+    );
+    await user.click(pickerOption("Alpha Institute"));
+    await user.click(screen.getByRole("button", { name: "Create" }));
+
+    expect(apiMocks.post.mock).toHaveBeenCalledWith(
+      "/contacts",
+      expect.objectContaining({ organisation_ids: ["o2"] }),
+    );
+    await waitFor(() => {
+      expect(screen.getByText("Linked").closest("tr")).toHaveTextContent(
+        "Alpha Institute",
+      );
+    });
+  });
+
+  it("an organisation alone is enough detail to create a contact", async () => {
+    const user = userEvent.setup();
+    setupGet([]);
+    render(<ContactsPage />);
+    await waitFor(() => screen.getByRole("button", { name: /Add Contact/i }));
+    await user.click(screen.getByRole("button", { name: /Add Contact/i }));
+    expect(screen.getByRole("button", { name: "Create" })).toBeDisabled();
+
+    await user.click(
+      screen.getByRole("combobox", { name: "Add organisation" }),
+    );
+    await user.click(pickerOption("Zeta Labs"));
+    expect(screen.getByRole("button", { name: "Create" })).toBeEnabled();
+  });
+
+  it("adding an affiliation while editing patches the whole set", async () => {
+    const user = userEvent.setup();
+    setupGet([AFFILIATED[1]]);
+    apiMocks.patch.mockResolvedValue({
+      data: { ...AFFILIATED[1], organisation_ids: ["o1", "o2"] },
+    });
+    render(<ContactsPage />);
+    await waitFor(() => screen.getByText("Solo"));
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Add organisation" }),
+    );
+    await user.click(pickerOption("Alpha Institute"));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(apiMocks.patch.mock).toHaveBeenCalledWith("/contacts/c2", {
+      organisation_ids: ["o1", "o2"],
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByText("Alpha Institute, Zeta Labs"),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("removing an affiliation while editing patches the remainder", async () => {
+    const user = userEvent.setup();
+    setupGet([AFFILIATED[0]]);
+    apiMocks.patch.mockResolvedValue({
+      data: { ...AFFILIATED[0], organisation_ids: ["o1"] },
+    });
+    render(<ContactsPage />);
+    await waitFor(() => screen.getByText("Jane"));
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+    await user.click(
+      screen.getByRole("button", { name: "Remove Alpha Institute" }),
+    );
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(apiMocks.patch.mock).toHaveBeenCalledWith("/contacts/c1", {
+      organisation_ids: ["o1"],
+    });
+  });
+
+  it("an edit that leaves the affiliations alone does not send them", async () => {
+    const user = userEvent.setup();
+    setupGet([AFFILIATED[0]]);
+    apiMocks.patch.mockResolvedValue({
+      data: { ...AFFILIATED[0], first_name: "Janet" },
+    });
+    render(<ContactsPage />);
+    await waitFor(() => screen.getByText("Jane"));
+    await user.click(screen.getByRole("button", { name: "Edit" }));
+    const firstNameInput = screen.getByLabelText("Contact first name");
+    await user.clear(firstNameInput);
+    await user.type(firstNameInput, "Janet");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(apiMocks.patch.mock).toHaveBeenCalledWith("/contacts/c1", {
+      first_name: "Janet",
+    });
+  });
+
+  it("a viewer sees the affiliations but is offered no picker", async () => {
+    mockUser = { role: "viewer" };
+    setupGet(AFFILIATED);
+    render(<ContactsPage />);
+    await waitFor(() => screen.getByText("Jane"));
+    expect(screen.getByText("Alpha Institute, Zeta Labs")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("combobox", { name: "Add organisation" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("an organisation created from the picker is selected straight away", async () => {
+    const user = userEvent.setup();
+    setupGet([]);
+    apiMocks.post.mockResolvedValue({
+      data: organisation("o9", "Brand New Org"),
+    });
+    render(<ContactsPage />);
+    await waitFor(() => screen.getByRole("button", { name: /Add Contact/i }));
+    await user.click(screen.getByRole("button", { name: /Add Contact/i }));
+    await user.click(
+      screen.getByRole("combobox", { name: "Add organisation" }),
+    );
+    await user.type(
+      screen.getByRole("combobox", { name: "Add organisation" }),
+      "Brand New Org",
+    );
+    await user.click(pickerOption('Add "Brand New Org"'));
+
+    await user.click(
+      await screen.findByRole("button", { name: "Add organisation" }),
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("organisation-chip")).toHaveTextContent(
+        "Brand New Org",
+      );
+    });
+    expect(apiMocks.post.mock).toHaveBeenCalledWith(
+      "/organisations",
+      expect.objectContaining({ name: "Brand New Org" }),
+    );
   });
 });

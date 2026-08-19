@@ -19,6 +19,14 @@ export interface Organisation {
   created_at: string;
 }
 
+export interface Contact {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  organisation_ids: string[];
+}
+
 export interface Pitch {
   id: string;
   title: string;

@@ -268,3 +268,109 @@ def test_dropped_column_values_do_not_survive_a_downgrade(alembic, clean_db, pg_
 
     # Untouched columns keep their values; the dropped ones come back empty.
     assert _contact_rows(pg_url, "first_name, role, last_contacted") == [("Kept", None, None)]
+
+
+# --- Level 2 (per-revision): c8d1f0a45e29 moves the org link to a join table ---
+
+_CONTACT_ROLE_DROPPED = "1d8f5b26e6c3"
+_CONTACT_ORGANISATIONS = "c8d1f0a45e29"
+
+_ZETA_ORG = "00000000-0000-0000-0000-00000000a001"
+_ALPHA_ORG = "00000000-0000-0000-0000-00000000a002"
+_LINKED_CONTACT = "00000000-0000-0000-0000-00000000b001"
+_UNLINKED_CONTACT = "00000000-0000-0000-0000-00000000b002"
+
+
+def _execute(url: str, statements: list[tuple[str, dict]]) -> None:
+    from sqlalchemy import create_engine, text
+
+    engine = create_engine(url)
+    with engine.begin() as conn:
+        for statement, params in statements:
+            conn.execute(text(statement), params)
+    engine.dispose()
+
+
+def _rows(url: str, query: str) -> list[tuple]:
+    from sqlalchemy import create_engine, text
+
+    engine = create_engine(url)
+    with engine.begin() as conn:
+        result = conn.execute(text(query)).all()
+    engine.dispose()
+    return [tuple(r) for r in result]
+
+
+def test_contact_organisations_backfills_the_existing_link(alembic, clean_db, pg_url):
+    """Upgrading carries each contact's single organisation into a join row rather
+    than dropping the column and losing the affiliation."""
+    alembic("upgrade", _CONTACT_ROLE_DROPPED)
+    _execute(
+        pg_url,
+        [
+            ("INSERT INTO organisations (id, name) VALUES (:id, 'Zeta Org')", {"id": _ZETA_ORG}),
+            ("INSERT INTO organisations (id, name) VALUES (:id, 'Alpha Org')", {"id": _ALPHA_ORG}),
+            (
+                "INSERT INTO contacts (id, first_name, organisation_id) "
+                "VALUES (:id, 'Linked', :org)",
+                {"id": _LINKED_CONTACT, "org": _ZETA_ORG},
+            ),
+            (
+                "INSERT INTO contacts (id, first_name) VALUES (:id, 'Unlinked')",
+                {"id": _UNLINKED_CONTACT},
+            ),
+        ],
+    )
+
+    alembic("upgrade", _CONTACT_ORGANISATIONS)
+
+    assert _rows(
+        pg_url,
+        "SELECT contact_id::text, organisation_id::text FROM contact_organisations",
+    ) == [(_LINKED_CONTACT, _ZETA_ORG)]
+    assert "organisation_id" not in _columns(pg_url, "contacts")
+
+
+def test_contact_organisations_downgrade_keeps_one_affiliation(alembic, clean_db, pg_url):
+    """The downgrade is lossy by design — asserted so it stays a known property.
+
+    A contact with several affiliations comes back with the one whose organisation
+    name sorts first; the rest are gone and need a backup/PITR restore.
+    """
+    alembic("upgrade", _CONTACT_ROLE_DROPPED)
+    _execute(
+        pg_url,
+        [
+            ("INSERT INTO organisations (id, name) VALUES (:id, 'Zeta Org')", {"id": _ZETA_ORG}),
+            ("INSERT INTO organisations (id, name) VALUES (:id, 'Alpha Org')", {"id": _ALPHA_ORG}),
+            (
+                "INSERT INTO contacts (id, first_name, organisation_id) "
+                "VALUES (:id, 'Linked', :org)",
+                {"id": _LINKED_CONTACT, "org": _ZETA_ORG},
+            ),
+            (
+                "INSERT INTO contacts (id, first_name) VALUES (:id, 'Unlinked')",
+                {"id": _UNLINKED_CONTACT},
+            ),
+        ],
+    )
+    alembic("upgrade", _CONTACT_ORGANISATIONS)
+
+    # A second affiliation — the state the old column could never hold.
+    _execute(
+        pg_url,
+        [
+            (
+                "INSERT INTO contact_organisations (id, contact_id, organisation_id) "
+                "VALUES (gen_random_uuid(), :contact, :org)",
+                {"contact": _LINKED_CONTACT, "org": _ALPHA_ORG},
+            )
+        ],
+    )
+
+    alembic("downgrade", _CONTACT_ROLE_DROPPED)
+
+    assert _rows(pg_url, "SELECT first_name, organisation_id::text FROM contacts ORDER BY id") == [
+        ("Linked", _ALPHA_ORG),
+        ("Unlinked", None),
+    ]

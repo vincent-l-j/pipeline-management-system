@@ -33,5 +33,5 @@ class Organisation(Base, TimestampMixin):
     notes: Mapped[str | None] = mapped_column(Text)
 
     # Relationships
-    contacts = relationship("Contact", back_populates="organisation")
+    contact_links = relationship("ContactOrganisation", back_populates="organisation")
     pitches = relationship("Pitch", back_populates="organisation")

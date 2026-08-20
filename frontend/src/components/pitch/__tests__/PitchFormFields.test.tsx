@@ -339,6 +339,31 @@ describe("PitchFormFields", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("offers a create-contact row when the page supplies a handler", async () => {
+    const user = userEvent.setup();
+    const onCreateContact = vi.fn();
+    render(
+      <PitchFormFields
+        values={EMPTY_PITCH_FORM}
+        onChange={vi.fn()}
+        organisations={ORGANISATIONS}
+        contacts={CONTACTS}
+        users={USERS}
+        onCreateContact={onCreateContact}
+      />,
+    );
+    const picker = screen.getByRole("combobox", { name: "Add contact" });
+    await user.click(picker);
+    await user.type(picker, "Nora Nobody");
+    await user.click(
+      screen.getByRole("option", {
+        name: 'Add "Nora Nobody" as a new contact',
+      }),
+    );
+
+    expect(onCreateContact).toHaveBeenCalledWith("Nora Nobody");
+  });
+
   it("surfaces a contact load failure under the picker", () => {
     render(
       <PitchFormFields

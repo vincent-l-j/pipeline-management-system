@@ -266,6 +266,43 @@ describe("PitchEditPage", () => {
     );
   });
 
+  it("creates a contact inline and adds them to the pitch's existing ones", async () => {
+    const user = userEvent.setup();
+    setupGet();
+    apiMocks.post.mockResolvedValue({
+      data: {
+        id: "c9",
+        first_name: "Nora",
+        last_name: "Nobody",
+        email: null,
+        organisation_ids: [],
+      },
+    });
+    apiMocks.patch.mockResolvedValue({ data: PITCH });
+    render(<PitchEditPage />);
+    await waitFor(() => screen.getByDisplayValue("Original Title"));
+
+    const picker = screen.getByRole("combobox", { name: "Add contact" });
+    await user.click(picker);
+    await user.type(picker, "Nora Nobody");
+    await user.click(
+      screen.getByRole("option", {
+        name: 'Add "Nora Nobody" as a new contact',
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: /^Add contact$/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    expect(apiMocks.patch.mock).toHaveBeenCalledWith(
+      "/pitches/42",
+      expect.objectContaining({ contact_ids: ["c1", "c9"] }),
+    );
+  });
+
   it("copes with a pitch that has no contacts", async () => {
     setupGet({ ...PITCH, contact_ids: [] });
     render(<PitchEditPage />);

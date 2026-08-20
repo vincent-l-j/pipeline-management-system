@@ -10,6 +10,7 @@ import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import PitchFormFields from "../components/pitch/PitchFormFields";
 import OrganisationQuickCreateModal from "../components/organisations/OrganisationQuickCreateModal";
+import ContactQuickCreateModal from "../components/contacts/ContactQuickCreateModal";
 import {
   newPitchForm,
   pitchPayload,
@@ -27,8 +28,9 @@ interface PitchResponse {
 export default function PitchCreatePage(): React.JSX.Element {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const canCreateOrganisation =
-    user?.role === "admin" || user?.role === "assessor";
+  // One gate for both dialogs: POST /organisations and POST /contacts are open
+  // to the same roles, and the backend enforces it either way.
+  const canCreateRecords = user?.role === "admin" || user?.role === "assessor";
 
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -38,6 +40,9 @@ export default function PitchCreatePage(): React.JSX.Element {
   );
   const [contactsError, setContactsError] = useState<string | null>(null);
   const [creatingOrgFrom, setCreatingOrgFrom] = useState<string | null>(null);
+  const [creatingContactFrom, setCreatingContactFrom] = useState<string | null>(
+    null,
+  );
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -81,6 +86,19 @@ export default function PitchCreatePage(): React.JSX.Element {
     update({ organisation_id: organisation.id });
     setCreatingOrgFrom(null);
     setOrganisationsError(null);
+  };
+
+  /** A newly created contact joins the picker's list and this pitch. Appended
+   *  through the setter, not a patch built from `form`, so it cannot drop a
+   *  contact picked in the same render. */
+  const contactCreated = (contact: Contact): void => {
+    setContacts((prev) => [...prev, contact]);
+    setForm((prev) => ({
+      ...prev,
+      contact_ids: [...prev.contact_ids, contact.id],
+    }));
+    setCreatingContactFrom(null);
+    setContactsError(null);
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
@@ -132,9 +150,16 @@ export default function PitchCreatePage(): React.JSX.Element {
           organisationsError={organisationsError}
           contactsError={contactsError}
           onCreateOrganisation={
-            canCreateOrganisation
+            canCreateRecords
               ? (query) => {
                   setCreatingOrgFrom(query);
+                }
+              : undefined
+          }
+          onCreateContact={
+            canCreateRecords
+              ? (query) => {
+                  setCreatingContactFrom(query);
                 }
               : undefined
           }
@@ -171,6 +196,16 @@ export default function PitchCreatePage(): React.JSX.Element {
           onCreated={organisationCreated}
           onCancel={() => {
             setCreatingOrgFrom(null);
+          }}
+        />
+      )}
+
+      {creatingContactFrom !== null && (
+        <ContactQuickCreateModal
+          initialQuery={creatingContactFrom}
+          onCreated={contactCreated}
+          onCancel={() => {
+            setCreatingContactFrom(null);
           }}
         />
       )}

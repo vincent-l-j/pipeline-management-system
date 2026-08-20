@@ -17,7 +17,7 @@
 
 import { useState } from "react";
 import Combobox from "../ui/Combobox";
-import { contactName } from "../contacts/contactName";
+import { contactLabel, contactName } from "../contacts/contactName";
 import api from "../../services/api";
 import { apiErrorMessage } from "../../services/apiError";
 import type { Contact, Organisation } from "../../types";
@@ -33,12 +33,6 @@ interface OrganisationPeopleProps {
   onCreate?: (query: string) => void;
   onError: (message: string) => void;
   canEdit: boolean;
-}
-
-/** Name first, email as the tie-breaker for the many similarly-named people. */
-function pickerLabel(contact: Contact): string {
-  const name = contactName(contact);
-  return contact.email ? `${name} (${contact.email})` : name;
 }
 
 export function peopleAt(
@@ -133,7 +127,7 @@ export default function OrganisationPeople({
             id={`add-person-${organisation.id}`}
             options={elsewhere.map((contact) => ({
               value: contact.id,
-              label: pickerLabel(contact),
+              label: contactLabel(contact),
             }))}
             // Held at "": this picks somebody to add, it has no current value.
             value=""

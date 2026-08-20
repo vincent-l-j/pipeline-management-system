@@ -8,6 +8,11 @@
  * it: a form within a form is invalid, and the submit button here would
  * otherwise save the pitch.
  *
+ * Being a sibling is not enough on its own. The dialog takes focus when it
+ * opens, because the picker that opened it sits inside that form and Enter in a
+ * still-focused picker submits it — saving the pitch behind a dialog the user is
+ * only halfway through. Enter in a field here commits this dialog instead.
+ *
  * Only the fields that tell two similar organisations apart in a picker are
  * offered. Sector, ABN and notes belong on the Organisations page — asking for
  * them here would turn a two-second detour into a form.
@@ -38,6 +43,7 @@ export default function OrganisationQuickCreateModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const firstFieldRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent): void {
@@ -48,6 +54,11 @@ export default function OrganisationQuickCreateModal({
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [onCancel]);
+
+  // Once, on open: taking focus is what stops Enter reaching the form behind.
+  useEffect(() => {
+    firstFieldRef.current?.focus();
+  }, []);
 
   async function save(): Promise<void> {
     if (!name.trim()) {
@@ -70,6 +81,15 @@ export default function OrganisationQuickCreateModal({
     }
   }
 
+  /** Enter in a field commits the dialog, as it would in a form of its own.
+   *  Buttons handle their own Enter, so they are left to it. */
+  function onKeyDown(e: React.KeyboardEvent<HTMLDivElement>): void {
+    if (e.key === "Enter" && e.target instanceof HTMLInputElement && !saving) {
+      e.preventDefault();
+      void save();
+    }
+  }
+
   const inputClass =
     "w-full border border-navy-200 rounded-lg px-3 py-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300";
   const labelClass = "block text-sm font-medium text-navy-700 mb-1";
@@ -86,6 +106,7 @@ export default function OrganisationQuickCreateModal({
         ref={panelRef}
         role="dialog"
         aria-modal="true"
+        onKeyDown={onKeyDown}
         aria-labelledby="organisation-quick-create-heading"
         className="bg-white rounded-xl border border-navy-100 shadow-lg w-full max-w-md p-6"
       >
@@ -107,6 +128,7 @@ export default function OrganisationQuickCreateModal({
             </label>
             <input
               id="quick-org-name"
+              ref={firstFieldRef}
               type="text"
               value={name}
               onChange={(e) => {

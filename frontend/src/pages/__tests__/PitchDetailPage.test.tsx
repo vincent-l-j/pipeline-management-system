@@ -222,6 +222,112 @@ describe("PitchDetailPage", () => {
     expect(within(card).getByText("Zoe Zimmer")).toBeInTheDocument();
   });
 
+  it("attaches contacts from the card itself, without going to the edit form", async () => {
+    const user = userEvent.setup();
+    setupGet({ ...BASE_PITCH, contact_ids: ["c1"] });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    const card = screen.getByTestId("pitch-contacts");
+    // A button, not a link: nothing here navigates away.
+    await user.click(within(card).getByRole("button", { name: "+ Add" }));
+
+    expect(screen.getByRole("dialog")).toHaveAccessibleName("Add contacts");
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("offers a viewer no way to attach one", async () => {
+    mockUser = { role: "viewer" };
+    setupGet({ ...BASE_PITCH, contact_ids: ["c1"] });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    const card = screen.getByTestId("pitch-contacts");
+    expect(
+      within(card).queryByRole("button", { name: "+ Add" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows a newly attached contact in the card without a reload", async () => {
+    const user = userEvent.setup();
+    setupGet({ ...BASE_PITCH, contact_ids: ["c1"] });
+    apiMocks.patch.mockResolvedValue({
+      data: { ...BASE_PITCH, contact_ids: ["c1", "c2"] },
+    });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    await user.click(screen.getByRole("button", { name: "+ Add" }));
+    await user.click(screen.getByRole("combobox", { name: "Add contact" }));
+    await user.click(screen.getByRole("option", { name: "Ada Adams" }));
+    await user.click(screen.getByRole("button", { name: "Add to pitch" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    const card = screen.getByTestId("pitch-contacts");
+    expect(card).toHaveTextContent("Contacts (2)");
+    expect(within(card).getByText("Ada Adams")).toBeInTheDocument();
+    expect(within(card).getByText("Zoe Zimmer")).toBeInTheDocument();
+  });
+
+  it("names a contact created in the dialog once they are on the pitch", async () => {
+    const user = userEvent.setup();
+    setupGet();
+    apiMocks.post.mockResolvedValue({
+      data: {
+        id: "c9",
+        first_name: "Nora",
+        last_name: "Nobody",
+        email: null,
+        organisation_ids: [],
+      },
+    });
+    apiMocks.patch.mockResolvedValue({
+      data: { ...BASE_PITCH, contact_ids: ["c9"] },
+    });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    await user.click(screen.getByRole("button", { name: "+ Add" }));
+    await user.type(
+      screen.getByRole("combobox", { name: "Add contact" }),
+      "Nora Nobody",
+    );
+    await user.click(
+      screen.getByRole("option", {
+        name: 'Add "Nora Nobody" as a new contact',
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: "Add contact" }));
+    await waitFor(() => screen.getByTestId("contact-chip"));
+    await user.click(screen.getByRole("button", { name: "Add to pitch" }));
+
+    // The card resolves names from the directory, so the new contact has to
+    // have been folded into it — not just sent to the server.
+    const card = screen.getByTestId("pitch-contacts");
+    await waitFor(() => {
+      expect(within(card).getByText("Nora Nobody")).toBeInTheDocument();
+    });
+    expect(card).toHaveTextContent("Contacts (1)");
+  });
+
+  it("leaves the card alone when the dialog is cancelled", async () => {
+    const user = userEvent.setup();
+    setupGet({ ...BASE_PITCH, contact_ids: ["c1"] });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    await user.click(screen.getByRole("button", { name: "+ Add" }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(apiMocks.patch.mock).not.toHaveBeenCalled();
+    expect(screen.getByTestId("pitch-contacts")).toHaveTextContent(
+      "Contacts (1)",
+    );
+  });
+
   it("reports a failed contact load instead of claiming there are none", async () => {
     apiMocks.get.mockImplementation((url: string) => {
       if (url === "/pitches/42")

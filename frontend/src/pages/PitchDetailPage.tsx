@@ -17,6 +17,7 @@ import PageHeader from "../components/PageHeader";
 import ActivityTimeline from "../components/pitch/ActivityTimeline";
 import DeletePitchModal from "../components/pitch/DeletePitchModal";
 import FileLinks from "../components/pitch/FileLinks";
+import AddPitchContactsModal from "../components/pitch/AddPitchContactsModal";
 import { pickedContacts } from "../components/contacts/ContactPicker";
 import { contactName } from "../components/contacts/contactName";
 import {
@@ -54,6 +55,7 @@ export default function PitchDetailPage(): React.JSX.Element {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [addingContacts, setAddingContacts] = useState<boolean>(false);
   const [showDelete, setShowDelete] = useState<boolean>(false);
   const [deleting, setDeleting] = useState<boolean>(false);
   const [deleteError, setDeleteError] = useState<string>("");
@@ -136,6 +138,21 @@ export default function PitchDetailPage(): React.JSX.Element {
     }
   }
 
+  /** The dialog hands back the contact set the server confirmed, so the card is
+   *  corrected without re-fetching the pitch. */
+  function contactsAttached(contactIds: string[]): void {
+    setPitch((prev): ExtendedPitch | null =>
+      prev ? { ...prev, contact_ids: contactIds } : prev,
+    );
+    setAddingContacts(false);
+  }
+
+  /** A contact created inside the dialog is not in the directory this page
+   *  fetched, and the card resolves its names from that directory. */
+  function contactCreated(contact: Contact): void {
+    setContacts((prev): Contact[] => [...prev, contact]);
+  }
+
   function getUserName(userId: string | undefined): string | null {
     if (!userId) return null;
     const u = users.find((u): boolean => u.id === userId);
@@ -214,6 +231,19 @@ export default function PitchDetailPage(): React.JSX.Element {
           }}
           onConfirm={() => {
             void deletePitch();
+          }}
+        />
+      )}
+
+      {addingContacts && (
+        <AddPitchContactsModal
+          pitchId={pitchId}
+          contacts={contacts}
+          attachedIds={contactIds}
+          onContactCreated={contactCreated}
+          onSaved={contactsAttached}
+          onCancel={() => {
+            setAddingContacts(false);
           }}
         />
       )}
@@ -318,6 +348,17 @@ export default function PitchDetailPage(): React.JSX.Element {
               <h2 className="text-sm font-semibold text-navy-500 uppercase tracking-wide">
                 Contacts ({String(contactIds.length)})
               </h2>
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAddingContacts(true);
+                  }}
+                  className="text-xs text-navy-600 hover:text-navy-900 font-medium"
+                >
+                  + Add
+                </button>
+              )}
             </div>
             {contactsError ? (
               <p className="text-sm text-red-600">{contactsError}</p>

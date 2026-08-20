@@ -524,6 +524,64 @@ def test_duplicate_contact_ids_collapse_to_one_link(admin_client, db_session):
     assert db_session.query(PitchContact).filter_by(pitch_id=UUID(pitch_id)).count() == 1
 
 
+def test_the_same_pair_cannot_be_stored_twice(admin_client, db_session):
+    """The uniqueness of a link is the database's rule, not just the route's.
+
+    The app-code collapse above only holds while every write replaces the whole
+    set. A per-link attach endpoint, or any second writer, would otherwise be
+    free to insert the same pair again — and two rows for one pair means a
+    doubled name and count everywhere `contact_ids` is read.
+    """
+    from sqlalchemy.exc import IntegrityError
+
+    from app.models.pitch import PitchContact
+
+    ada = _contact(admin_client, "Ada")
+    pitch_id = admin_client.post(
+        "/api/pitches", json={"title": "Once Only", "contact_ids": [ada]}
+    ).json()["id"]
+
+    db_session.add(PitchContact(pitch_id=UUID(pitch_id), contact_id=UUID(ada)))
+    with pytest.raises(IntegrityError):
+        db_session.flush()
+    db_session.rollback()
+
+
+def test_patch_keeping_a_contact_while_adding_another(admin_client):
+    """The overlapping case: Ada stays, Grace joins.
+
+    Worth its own test because it is the one that meets the uniqueness rule
+    head-on. Replacing the set means the kept link is written again, so a naive
+    replace inserts a second (pitch, Ada) row before deleting the first and
+    trips the constraint on a request that asked for nothing unusual.
+    """
+    ada = _contact(admin_client, "Ada")
+    grace = _contact(admin_client, "Grace")
+    pitch_id = admin_client.post(
+        "/api/pitches", json={"title": "Ada Stays", "contact_ids": [ada]}
+    ).json()["id"]
+
+    resp = admin_client.patch(f"/api/pitches/{pitch_id}", json={"contact_ids": [ada, grace]})
+    assert resp.status_code == 200
+    assert sorted(resp.json()["contact_ids"]) == sorted([ada, grace])
+
+
+def test_patch_keeping_one_contact_and_dropping_another(admin_client, db_session):
+    """The mirror of the above: Ada stays, Grace goes, and no row is left over."""
+    from app.models.pitch import PitchContact
+
+    ada = _contact(admin_client, "Ada")
+    grace = _contact(admin_client, "Grace")
+    pitch_id = admin_client.post(
+        "/api/pitches", json={"title": "Grace Goes", "contact_ids": [ada, grace]}
+    ).json()["id"]
+
+    resp = admin_client.patch(f"/api/pitches/{pitch_id}", json={"contact_ids": [ada]})
+    assert resp.status_code == 200
+    assert resp.json()["contact_ids"] == [ada]
+    assert db_session.query(PitchContact).filter_by(pitch_id=UUID(pitch_id)).count() == 1
+
+
 def test_create_with_unknown_contact_is_rejected(admin_client):
     resp = admin_client.post(
         "/api/pitches", json={"title": "Ghost Contact", "contact_ids": [UNKNOWN_ID]}

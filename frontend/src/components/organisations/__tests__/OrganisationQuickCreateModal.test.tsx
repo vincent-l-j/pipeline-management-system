@@ -31,6 +31,28 @@ describe("OrganisationQuickCreateModal", () => {
     expect(dialog).toHaveAccessibleName("Add organisation");
   });
 
+  it("takes focus when it opens, so Enter cannot reach the form behind it", () => {
+    setup("Rozetta Institute");
+    expect(screen.getByLabelText(/Name/)).toHaveFocus();
+  });
+
+  it("creates the organisation when Enter is pressed in a field", async () => {
+    const user = userEvent.setup();
+    const created = { id: "org-9", name: "Rozetta Institute" };
+    apiMocks.post.mockResolvedValue({ data: created });
+    const { onCreated } = setup("Rozetta Institute");
+
+    await user.keyboard("{Enter}");
+
+    expect(apiMocks.post.mock).toHaveBeenCalledWith(
+      "/organisations",
+      expect.objectContaining({ name: "Rozetta Institute" }),
+    );
+    await waitFor(() => {
+      expect(onCreated).toHaveBeenCalledWith(created);
+    });
+  });
+
   it("seeds the name with what the user already typed into the picker", () => {
     setup("Rozetta Institute (NSW)");
     expect(screen.getByLabelText(/Name/)).toHaveValue(

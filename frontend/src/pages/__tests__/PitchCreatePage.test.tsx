@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PitchCreatePage from "../PitchCreatePage";
 import { createApiMocks } from "../../test/mocks/api";
@@ -188,6 +188,57 @@ describe("PitchCreatePage", () => {
       "/pitches",
       expect.objectContaining({ organisation_id: "org-2" }),
     );
+  });
+
+  it("Enter in the organisation dialog commits the organisation, not the pitch", async () => {
+    const user = userEvent.setup();
+    apiMocks.get.mockResolvedValue({ data: [] });
+    apiMocks.post.mockResolvedValue({ data: { id: "org-9", name: "Acme" } });
+    render(<PitchCreatePage />);
+    await waitFor(() => screen.getByText("New Pitch"));
+    await user.type(screen.getByLabelText(/Title/), "Soil Sensors");
+
+    const picker = screen.getByRole("combobox", { name: /Organisation/ });
+    await user.click(picker);
+    await user.type(picker, "Acme");
+    await user.click(
+      screen.getByRole("option", { name: 'Add "Acme" as a new organisation' }),
+    );
+
+    // The dialog holds focus, so Enter belongs to it and not the form behind.
+    expect(screen.getByLabelText(/Name/)).toHaveFocus();
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    const posted = (apiMocks.post.mock.mock.calls as unknown[][]).map(
+      (call) => call[0],
+    );
+    expect(posted).toEqual(["/organisations"]);
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("does not save the pitch while the organisation dialog is open", async () => {
+    const user = userEvent.setup();
+    render(<PitchCreatePage />);
+    await waitFor(() => screen.getByText("New Pitch"));
+
+    await user.click(screen.getByRole("combobox", { name: /Organisation/ }));
+    await user.click(
+      screen.getByRole("option", { name: "Add a new organisation" }),
+    );
+
+    // A submit that arrives from anywhere while the dialog is up is ignored:
+    // the dialog is a decision in progress, not a pitch to save.
+    const form = screen
+      .getByRole("button", { name: /Add Pitch/i })
+      .closest("form");
+    if (!form) throw new Error("the create page rendered no form");
+    fireEvent.submit(form);
+
+    expect(apiMocks.post.mock).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
   it("offers a viewer no way to create an organisation from the form", async () => {

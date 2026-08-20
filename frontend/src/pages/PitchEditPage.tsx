@@ -72,6 +72,8 @@ export default function PitchEditPage(): React.JSX.Element {
   async function handleSubmit(e: FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault();
     if (!pitchId) return;
+    // See PitchCreatePage: never save the pitch behind an open dialog.
+    if (creatingOrgFrom !== null) return;
     setSaving(true);
     setError(null);
 

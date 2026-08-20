@@ -4,7 +4,7 @@ import enum
 import uuid
 from datetime import UTC, date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, Text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -115,9 +115,18 @@ class PitchStageHistory(Base):
 
 
 class PitchContact(Base):
-    """Links contacts to pitches (many-to-many)."""
+    """Links contacts to pitches (many-to-many).
+
+    A pair is unique: one person is on a pitch or is not, and two rows for the
+    same pair would double their name and the count everywhere `contact_ids` is
+    read. The rule is the database's rather than the route's, because the app-code
+    collapse in `_set_contacts` only holds while every write replaces the whole
+    set — a per-link attach endpoint, or a second writer, would otherwise be free
+    to insert the pair again.
+    """
 
     __tablename__ = "pitch_contacts"
+    __table_args__ = (UniqueConstraint("pitch_id", "contact_id", name="uq_pitch_contacts_pair"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     pitch_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pitches.id"))

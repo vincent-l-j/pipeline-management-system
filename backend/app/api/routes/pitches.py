@@ -31,9 +31,16 @@ def _set_contacts(pitch: Pitch, contact_ids: list[UUID], db: Session) -> None:
     Duplicates collapse — the same person twice is one link. The set is
     unordered; callers that display it should sort by whatever they show.
 
-    Assigning through the relationship (rather than deleting rows by query) lets
-    delete-orphan clear the old links and keeps the in-memory pitch consistent,
-    so the response reports what was just asked for.
+    Worked through the relationship (rather than deleting rows by query) so
+    delete-orphan clears the dropped links and the in-memory pitch stays
+    consistent, letting the response report what was just asked for.
+
+    Applied as a diff rather than a wholesale rebuild, which matters because of
+    the unique constraint on (pitch_id, contact_id): reassigning the collection
+    makes a fresh row for every *kept* pair too, and SQLAlchemy orders those
+    inserts before the delete of the rows they replace. That trips the constraint
+    on a request as ordinary as "keep Ada, add Grace" — which is every add from
+    the pitch detail page, since it resends the people already attached.
     """
     wanted = list(dict.fromkeys(contact_ids))
     if wanted:
@@ -48,7 +55,14 @@ def _set_contacts(pitch: Pitch, contact_ids: list[UUID], db: Session) -> None:
                 detail=f"Unknown contact: {', '.join(str(contact_id) for contact_id in missing)}",
             )
 
-    pitch.contact_links = [PitchContact(contact_id=contact_id) for contact_id in wanted]
+    keep = set(wanted)
+    current = {link.contact_id: link for link in pitch.contact_links}
+    for contact_id, link in current.items():
+        if contact_id not in keep:
+            pitch.contact_links.remove(link)
+    for contact_id in wanted:
+        if contact_id not in current:
+            pitch.contact_links.append(PitchContact(contact_id=contact_id))
 
 
 @router.get("", response_model=list[PitchOut])

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PitchDetailPage from "../PitchDetailPage";
 import { createApiMocks } from "../../test/mocks/api";
@@ -17,7 +17,40 @@ interface Pitch {
   submission_date: string | null;
   masterplan_alignment: string | null;
   organisation_id: string | null;
+  contact_ids: string[];
 }
+
+interface Contact {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  organisation_ids: string[];
+}
+
+const CONTACTS: Contact[] = [
+  {
+    id: "c1",
+    first_name: "Zoe",
+    last_name: "Zimmer",
+    email: "zoe@example.com",
+    organisation_ids: [],
+  },
+  {
+    id: "c2",
+    first_name: "Ada",
+    last_name: "Adams",
+    email: null,
+    organisation_ids: [],
+  },
+  {
+    id: "c3",
+    first_name: "Not",
+    last_name: "Here",
+    email: null,
+    organisation_ids: [],
+  },
+];
 
 interface MockUser {
   role: string;
@@ -80,12 +113,14 @@ const BASE_PITCH: Pitch = {
   submission_date: null,
   masterplan_alignment: null,
   organisation_id: null,
+  contact_ids: [],
 };
 
-function setupGet(pitch: Pitch = BASE_PITCH) {
+function setupGet(pitch: Pitch = BASE_PITCH, contacts: Contact[] = CONTACTS) {
   apiMocks.get.mockImplementation((url: string) => {
     if (url === "/pitches/42") return Promise.resolve({ data: pitch });
     if (url === "/users") return Promise.resolve({ data: [] });
+    if (url === "/contacts") return Promise.resolve({ data: contacts });
     if (url.startsWith("/meetings")) return Promise.resolve({ data: [] });
     if (url.startsWith("/assessments")) return Promise.resolve({ data: [] });
     if (url.startsWith("/organisations/"))
@@ -123,6 +158,109 @@ describe("PitchDetailPage", () => {
     expect(
       screen.queryByRole("link", { name: "Edit" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("lists the pitch's contacts, name-sorted, with their emails", async () => {
+    setupGet({ ...BASE_PITCH, contact_ids: ["c1", "c2"] });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    const card = screen.getByTestId("pitch-contacts");
+    expect(card).toHaveTextContent("Contacts (2)");
+    expect(
+      within(card)
+        .getAllByRole("listitem")
+        .map((item) => item.textContent),
+    ).toEqual([
+      expect.stringContaining("Ada Adams"),
+      expect.stringContaining("Zoe Zimmer"),
+    ]);
+    expect(within(card).getByText("zoe@example.com")).toBeInTheDocument();
+  });
+
+  it("leaves out the contacts who are not on this pitch", async () => {
+    setupGet({ ...BASE_PITCH, contact_ids: ["c1"] });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    expect(screen.queryByText("Not Here")).not.toBeInTheDocument();
+  });
+
+  it("says so when a pitch has no contacts", async () => {
+    setupGet();
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    const card = screen.getByTestId("pitch-contacts");
+    expect(card).toHaveTextContent("Contacts (0)");
+    expect(within(card).getByText("No contacts recorded.")).toBeInTheDocument();
+  });
+
+  it("names a contact with neither name part rather than showing a blank row", async () => {
+    setupGet({ ...BASE_PITCH, contact_ids: ["c9"] }, [
+      {
+        id: "c9",
+        first_name: null,
+        last_name: null,
+        email: "anon@example.com",
+        organisation_ids: [],
+      },
+    ]);
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    expect(screen.getByText("Unnamed contact")).toBeInTheDocument();
+  });
+
+  it("shows them to a viewer too, since reading them is not restricted", async () => {
+    mockUser = { role: "viewer" };
+    setupGet({ ...BASE_PITCH, contact_ids: ["c1"] });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    const card = screen.getByTestId("pitch-contacts");
+    expect(within(card).getByText("Zoe Zimmer")).toBeInTheDocument();
+  });
+
+  it("reports a failed contact load instead of claiming there are none", async () => {
+    apiMocks.get.mockImplementation((url: string) => {
+      if (url === "/pitches/42")
+        return Promise.resolve({
+          data: { ...BASE_PITCH, contact_ids: ["c1"] },
+        });
+      if (url === "/contacts")
+        return Promise.reject(
+          Object.assign(new Error("Request failed"), {
+            response: { status: 500, data: { detail: "contacts unavailable" } },
+          }),
+        );
+      if (url.startsWith("/organisations/"))
+        return Promise.resolve({ data: { name: "Org" } });
+      return Promise.resolve({ data: [] });
+    });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    const card = screen.getByTestId("pitch-contacts");
+    expect(within(card).getByText("contacts unavailable")).toBeInTheDocument();
+    expect(
+      within(card).queryByText("No contacts recorded."),
+    ).not.toBeInTheDocument();
+  });
+
+  it("still renders the pitch when the contact load fails", async () => {
+    apiMocks.get.mockImplementation((url: string) => {
+      if (url === "/pitches/42") return Promise.resolve({ data: BASE_PITCH });
+      if (url === "/contacts") return Promise.reject(new Error("boom"));
+      if (url.startsWith("/organisations/"))
+        return Promise.resolve({ data: { name: "Org" } });
+      return Promise.resolve({ data: [] });
+    });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    // A failed lookup must not bounce the reader back to the pitch list.
+    expect(mockNavigate).not.toHaveBeenCalledWith("/pitches");
   });
 
   it("renders a Confidential badge and remains openable by a viewer", async () => {

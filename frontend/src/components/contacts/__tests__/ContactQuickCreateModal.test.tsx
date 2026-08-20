@@ -32,6 +32,34 @@ describe("ContactQuickCreateModal", () => {
     expect(dialog).toHaveAccessibleName("Add contact");
   });
 
+  it("takes focus when it opens, so Enter cannot reach the form behind it", () => {
+    setup("Jane Doe");
+    expect(screen.getByLabelText("First name")).toHaveFocus();
+  });
+
+  it("creates the contact when Enter is pressed in a field", async () => {
+    const user = userEvent.setup();
+    const created = {
+      id: "c9",
+      first_name: "Jane",
+      last_name: "Doe",
+      email: null,
+      organisation_ids: [],
+    };
+    apiMocks.post.mockResolvedValue({ data: created });
+    const { onCreated } = setup("Jane Doe");
+
+    await user.keyboard("{Enter}");
+
+    expect(apiMocks.post.mock).toHaveBeenCalledWith(
+      "/contacts",
+      expect.objectContaining({ first_name: "Jane", last_name: "Doe" }),
+    );
+    await waitFor(() => {
+      expect(onCreated).toHaveBeenCalledWith(created);
+    });
+  });
+
   it("seeds the name from what the user typed into the picker", () => {
     setup("Jane Doe");
     expect(screen.getByLabelText("First name")).toHaveValue("Jane");

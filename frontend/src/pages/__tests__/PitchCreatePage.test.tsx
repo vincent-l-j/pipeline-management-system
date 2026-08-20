@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PitchCreatePage from "../PitchCreatePage";
 import { createApiMocks } from "../../test/mocks/api";
@@ -121,6 +127,205 @@ describe("PitchCreatePage", () => {
       "/pitches",
       expect.objectContaining({ contact_ids: ["c1"] }),
     );
+  });
+
+  it("creates a contact inline, attaches them, and keeps what was already typed", async () => {
+    const user = userEvent.setup();
+    apiMocks.get.mockResolvedValue({ data: [] });
+    apiMocks.post.mockImplementation((url: string) =>
+      url === "/contacts"
+        ? Promise.resolve({
+            data: {
+              id: "c9",
+              first_name: "Nora",
+              last_name: "Nobody",
+              email: null,
+              organisation_ids: [],
+            },
+          })
+        : Promise.resolve({ data: { id: "99" } }),
+    );
+    render(<PitchCreatePage />);
+    await waitFor(() => screen.getByText("New Pitch"));
+
+    await user.type(screen.getByLabelText(/Title/), "Soil Sensors");
+
+    const picker = screen.getByRole("combobox", { name: "Add contact" });
+    await user.click(picker);
+    await user.type(picker, "Nora Nobody");
+    await user.click(
+      screen.getByRole("option", {
+        name: 'Add "Nora Nobody" as a new contact',
+      }),
+    );
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /^Add contact$/i }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    expect(apiMocks.post.mock).toHaveBeenCalledWith(
+      "/contacts",
+      expect.objectContaining({ first_name: "Nora", last_name: "Nobody" }),
+    );
+    // Attached to the pitch, and nothing already typed was lost.
+    expect(screen.getByTestId("contact-chip")).toHaveTextContent("Nora Nobody");
+    expect(screen.getByLabelText(/Title/)).toHaveValue("Soil Sensors");
+
+    // And they are who gets saved.
+    await user.click(screen.getByRole("button", { name: /Add Pitch/i }));
+    expect(apiMocks.post.mock).toHaveBeenCalledWith(
+      "/pitches",
+      expect.objectContaining({ contact_ids: ["c9"] }),
+    );
+  });
+
+  it("keeps the contacts already picked when another is created", async () => {
+    const user = userEvent.setup();
+    apiMocks.get.mockImplementation((url: string) =>
+      Promise.resolve({
+        data:
+          url === "/contacts"
+            ? [
+                {
+                  id: "c1",
+                  first_name: "Ada",
+                  last_name: "Adams",
+                  email: null,
+                  organisation_ids: [],
+                },
+              ]
+            : [],
+      }),
+    );
+    apiMocks.post.mockResolvedValue({
+      data: {
+        id: "c9",
+        first_name: "Nora",
+        last_name: "Nobody",
+        email: null,
+        organisation_ids: [],
+      },
+    });
+    render(<PitchCreatePage />);
+    await waitFor(() => screen.getByText("New Pitch"));
+
+    const picker = screen.getByRole("combobox", { name: "Add contact" });
+    await user.click(picker);
+    await user.click(screen.getByRole("option", { name: "Ada Adams" }));
+
+    const reopened = screen.getByRole("combobox", { name: "Add contact" });
+    await user.click(reopened);
+    await user.type(reopened, "Nora Nobody");
+    await user.click(
+      screen.getByRole("option", {
+        name: 'Add "Nora Nobody" as a new contact',
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: /^Add contact$/i }));
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId("contact-chip")).toHaveLength(2);
+    });
+    expect(
+      screen.getAllByTestId("contact-chip").map((chip) => chip.textContent),
+    ).toEqual([
+      expect.stringContaining("Ada Adams"),
+      expect.stringContaining("Nora Nobody"),
+    ]);
+  });
+
+  it("Enter in the contact dialog commits the contact, not the pitch", async () => {
+    const user = userEvent.setup();
+    apiMocks.get.mockResolvedValue({ data: [] });
+    apiMocks.post.mockImplementation((url: string) =>
+      url === "/contacts"
+        ? Promise.resolve({
+            data: {
+              id: "c9",
+              first_name: "Nora",
+              last_name: "Nobody",
+              email: null,
+              organisation_ids: [],
+            },
+          })
+        : Promise.resolve({ data: { id: "99" } }),
+    );
+    render(<PitchCreatePage />);
+    await waitFor(() => screen.getByText("New Pitch"));
+    await user.type(screen.getByLabelText(/Title/), "Soil Sensors");
+
+    const picker = screen.getByRole("combobox", { name: "Add contact" });
+    await user.click(picker);
+    await user.type(picker, "Nora Nobody");
+    await user.click(
+      screen.getByRole("option", {
+        name: 'Add "Nora Nobody" as a new contact',
+      }),
+    );
+
+    // The dialog holds focus, so Enter belongs to it and not the form behind.
+    expect(screen.getByLabelText("First name")).toHaveFocus();
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    const posted = (apiMocks.post.mock.mock.calls as unknown[][]).map(
+      (call) => call[0],
+    );
+    expect(posted).toEqual(["/contacts"]);
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("does not save the pitch while the contact dialog is open", async () => {
+    const user = userEvent.setup();
+    render(<PitchCreatePage />);
+    await waitFor(() => screen.getByText("New Pitch"));
+
+    await user.click(screen.getByRole("combobox", { name: "Add contact" }));
+    await user.click(screen.getByRole("option", { name: "Add a new contact" }));
+
+    const form = screen
+      .getByRole("button", { name: /Add Pitch/i })
+      .closest("form");
+    if (!form) throw new Error("the create page rendered no form");
+    fireEvent.submit(form);
+
+    expect(apiMocks.post.mock).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
+  it("offers a viewer no way to create a contact from the form", async () => {
+    const user = userEvent.setup();
+    mockUser = { role: "viewer" };
+    render(<PitchCreatePage />);
+    await waitFor(() => screen.getByText("New Pitch"));
+
+    await user.click(screen.getByRole("combobox", { name: "Add contact" }));
+    expect(
+      screen.queryByRole("option", { name: /Add a new contact/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("cancelling the contact dialog attaches nobody", async () => {
+    const user = userEvent.setup();
+    render(<PitchCreatePage />);
+    await waitFor(() => screen.getByText("New Pitch"));
+
+    await user.click(screen.getByRole("combobox", { name: "Add contact" }));
+    await user.click(screen.getByRole("option", { name: "Add a new contact" }));
+    // Scoped to the dialog: the pitch form has a Cancel button of its own.
+    await user.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: /Cancel/i,
+      }),
+    );
+
+    expect(apiMocks.post.mock).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("contact-chip")).not.toBeInTheDocument();
+    expect(screen.getByText("No contacts")).toBeInTheDocument();
   });
 
   it("explains a failed contact load instead of showing an empty picker", async () => {

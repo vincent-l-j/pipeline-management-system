@@ -11,6 +11,7 @@ import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import PitchFormFields from "../components/pitch/PitchFormFields";
 import OrganisationQuickCreateModal from "../components/organisations/OrganisationQuickCreateModal";
+import ContactQuickCreateModal from "../components/contacts/ContactQuickCreateModal";
 import {
   EMPTY_PITCH_FORM,
   pitchFormFromApi,
@@ -33,6 +34,9 @@ export default function PitchEditPage(): React.JSX.Element {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [creatingOrgFrom, setCreatingOrgFrom] = useState<string | null>(null);
+  const [creatingContactFrom, setCreatingContactFrom] = useState<string | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,11 +73,23 @@ export default function PitchEditPage(): React.JSX.Element {
     setCreatingOrgFrom(null);
   }
 
+  /** A newly created contact joins the picker's list and this pitch. Appended
+   *  through the setter, not a patch built from `form`, so it cannot drop a
+   *  contact picked in the same render. */
+  function contactCreated(contact: Contact): void {
+    setContacts((prev) => [...prev, contact]);
+    setForm((prev) => ({
+      ...prev,
+      contact_ids: [...prev.contact_ids, contact.id],
+    }));
+    setCreatingContactFrom(null);
+  }
+
   async function handleSubmit(e: FormEvent<HTMLFormElement>): Promise<void> {
     e.preventDefault();
     if (!pitchId) return;
     // See PitchCreatePage: never save the pitch behind an open dialog.
-    if (creatingOrgFrom !== null) return;
+    if (creatingOrgFrom !== null || creatingContactFrom !== null) return;
     setSaving(true);
     setError(null);
 
@@ -125,6 +141,9 @@ export default function PitchEditPage(): React.JSX.Element {
           onCreateOrganisation={(query) => {
             setCreatingOrgFrom(query);
           }}
+          onCreateContact={(query) => {
+            setCreatingContactFrom(query);
+          }}
         />
 
         {/* Actions */}
@@ -148,13 +167,23 @@ export default function PitchEditPage(): React.JSX.Element {
         </div>
       </form>
 
-      {/* A sibling of the form, never nested inside it — see PitchCreatePage. */}
+      {/* Siblings of the form, never nested inside it — see PitchCreatePage. */}
       {creatingOrgFrom !== null && (
         <OrganisationQuickCreateModal
           initialName={creatingOrgFrom}
           onCreated={organisationCreated}
           onCancel={() => {
             setCreatingOrgFrom(null);
+          }}
+        />
+      )}
+
+      {creatingContactFrom !== null && (
+        <ContactQuickCreateModal
+          initialQuery={creatingContactFrom}
+          onCreated={contactCreated}
+          onCancel={() => {
+            setCreatingContactFrom(null);
           }}
         />
       )}

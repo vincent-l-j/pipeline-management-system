@@ -2,7 +2,11 @@
  * Pitch detail page — the single view for everything about a pitch.
  *
  * Left column: pitch info, description, stage badge, tags, metadata
- * Right column: activity timeline, file links, linked meetings & assessments
+ * Right column: contacts, linked meetings & assessments, file links
+ *
+ * Contacts are fetched on their own rather than in the page's main chain: a
+ * pitch is still worth reading if the directory lookup fails, so that failure
+ * becomes a note in one card instead of a redirect back to the pitch list.
  */
 
 import { useState, useEffect } from "react";
@@ -13,6 +17,8 @@ import PageHeader from "../components/PageHeader";
 import ActivityTimeline from "../components/pitch/ActivityTimeline";
 import DeletePitchModal from "../components/pitch/DeletePitchModal";
 import FileLinks from "../components/pitch/FileLinks";
+import { pickedContacts } from "../components/contacts/ContactPicker";
+import { contactName } from "../components/contacts/contactName";
 import {
   STAGE_MAP,
   SOURCE_LABELS,
@@ -21,7 +27,7 @@ import {
 import api from "../services/api";
 import { apiErrorMessage } from "../services/apiError";
 import { useAuth } from "../contexts/AuthContext";
-import type { Assessment, Pitch, User, Organisation } from "../types";
+import type { Assessment, Contact, Pitch, User, Organisation } from "../types";
 
 interface Meeting {
   id: string;
@@ -33,6 +39,7 @@ interface ExtendedPitch extends Pitch {
   organisation_id?: string;
   is_confidential?: boolean;
   masterplan_alignment?: string;
+  contact_ids?: string[];
 }
 
 export default function PitchDetailPage(): React.JSX.Element {
@@ -42,6 +49,8 @@ export default function PitchDetailPage(): React.JSX.Element {
   const [pitch, setPitch] = useState<ExtendedPitch | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [org, setOrg] = useState<Organisation | null>(null);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [contactsError, setContactsError] = useState<string | null>(null);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -104,6 +113,15 @@ export default function PitchDetailPage(): React.JSX.Element {
       .catch((): void => {
         void navigate("/pitches");
       });
+
+    api
+      .get<Contact[]>("/contacts")
+      .then(({ data }): void => {
+        setContacts(data);
+      })
+      .catch((err: unknown): void => {
+        setContactsError(apiErrorMessage(err, "Could not load contacts"));
+      });
   }, [pitchId, navigate]);
 
   async function deletePitch(): Promise<void> {
@@ -134,6 +152,10 @@ export default function PitchDetailPage(): React.JSX.Element {
 
   const stage = STAGE_MAP[pitch.current_stage];
   const leadName = getUserName(pitch.lead_id);
+  // Counted from the pitch, not from the resolved names: the count is right
+  // even when the directory lookup failed and no name can be shown.
+  const contactIds = pitch.contact_ids ?? [];
+  const people = pickedContacts(contacts, contactIds);
 
   return (
     <Layout>
@@ -287,6 +309,36 @@ export default function PitchDetailPage(): React.JSX.Element {
 
         {/* Right sidebar */}
         <div className="space-y-6">
+          {/* Contacts on this pitch */}
+          <div
+            data-testid="pitch-contacts"
+            className="bg-white rounded-xl border border-navy-100 p-6"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-navy-500 uppercase tracking-wide">
+                Contacts ({String(contactIds.length)})
+              </h2>
+            </div>
+            {contactsError ? (
+              <p className="text-sm text-red-600">{contactsError}</p>
+            ) : people.length === 0 ? (
+              <p className="text-sm text-navy-400">No contacts recorded.</p>
+            ) : (
+              <ul className="space-y-2">
+                {people.map((c: Contact) => (
+                  <li key={c.id}>
+                    <p className="text-sm font-medium text-navy-900">
+                      {contactName(c)}
+                    </p>
+                    {c.email && (
+                      <p className="text-xs text-navy-500">{c.email}</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
           {/* Meetings for this pitch */}
           <div className="bg-white rounded-xl border border-navy-100 p-6">
             <div className="flex items-center justify-between mb-3">

@@ -16,8 +16,34 @@ interface Pitch {
   is_confidential: boolean;
   organisation_id: string | null;
   lead_id: string | null;
+  contact_ids: string[];
   current_stage: string;
 }
+
+interface Contact {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  organisation_ids: string[];
+}
+
+const CONTACTS: Contact[] = [
+  {
+    id: "c1",
+    first_name: "Ada",
+    last_name: "Adams",
+    email: null,
+    organisation_ids: [],
+  },
+  {
+    id: "c2",
+    first_name: "Bob",
+    last_name: "Brown",
+    email: null,
+    organisation_ids: [],
+  },
+];
 
 interface MockUser {
   role: string;
@@ -65,13 +91,15 @@ const PITCH: Pitch = {
   is_confidential: false,
   organisation_id: "",
   lead_id: "",
+  contact_ids: ["c1"],
   current_stage: "initial_screen",
 };
 
-function setupGet() {
+function setupGet(pitch: Pitch = PITCH) {
   apiMocks.get.mockImplementation((url: string) => {
-    if (url === "/pitches/42") return Promise.resolve({ data: PITCH });
+    if (url === "/pitches/42") return Promise.resolve({ data: pitch });
     if (url === "/organisations") return Promise.resolve({ data: [] });
+    if (url === "/contacts") return Promise.resolve({ data: CONTACTS });
     if (url === "/users/directory") return Promise.resolve({ data: [] });
     return Promise.resolve({ data: [] });
   });
@@ -192,6 +220,59 @@ describe("PitchEditPage", () => {
       "/pitches/42",
       expect.objectContaining({ submission_date: null }),
     );
+  });
+
+  it("pre-fills the contacts already on the pitch", async () => {
+    setupGet();
+    render(<PitchEditPage />);
+    await waitFor(() => screen.getByDisplayValue("Original Title"));
+
+    expect(screen.getByTestId("contact-chip")).toHaveTextContent("Ada Adams");
+    // Somebody who isn't on this pitch is offered, not shown as attached.
+    expect(screen.queryByText("Bob Brown")).not.toBeInTheDocument();
+  });
+
+  it("sends the contacts as edited, added and removed", async () => {
+    const user = userEvent.setup();
+    setupGet();
+    apiMocks.patch.mockResolvedValue({ data: PITCH });
+    render(<PitchEditPage />);
+    await waitFor(() => screen.getByDisplayValue("Original Title"));
+
+    await user.click(screen.getByRole("combobox", { name: "Add contact" }));
+    await user.click(screen.getByRole("option", { name: "Bob Brown" }));
+    await user.click(screen.getByRole("button", { name: "Remove Ada Adams" }));
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    expect(apiMocks.patch.mock).toHaveBeenCalledWith(
+      "/pitches/42",
+      expect.objectContaining({ contact_ids: ["c2"] }),
+    );
+  });
+
+  it("unlinking the last contact sends an empty list, not an omitted field", async () => {
+    const user = userEvent.setup();
+    setupGet();
+    apiMocks.patch.mockResolvedValue({ data: PITCH });
+    render(<PitchEditPage />);
+    await waitFor(() => screen.getByDisplayValue("Original Title"));
+
+    await user.click(screen.getByRole("button", { name: "Remove Ada Adams" }));
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    expect(apiMocks.patch.mock).toHaveBeenCalledWith(
+      "/pitches/42",
+      expect.objectContaining({ contact_ids: [] }),
+    );
+  });
+
+  it("copes with a pitch that has no contacts", async () => {
+    setupGet({ ...PITCH, contact_ids: [] });
+    render(<PitchEditPage />);
+    await waitFor(() => screen.getByDisplayValue("Original Title"));
+
+    expect(screen.getByText("No contacts")).toBeInTheDocument();
+    expect(screen.queryByTestId("contact-chip")).not.toBeInTheDocument();
   });
 
   it("renders a validation error's messages rather than an object", async () => {

@@ -18,7 +18,7 @@ import {
 import api from "../services/api";
 import { apiErrorMessage } from "../services/apiError";
 import { useAuth } from "../contexts/AuthContext";
-import { User, Organisation } from "../types";
+import { Contact, User, Organisation } from "../types";
 
 interface PitchResponse {
   id: string;
@@ -31,10 +31,12 @@ export default function PitchCreatePage(): React.JSX.Element {
     user?.role === "admin" || user?.role === "assessor";
 
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [organisationsError, setOrganisationsError] = useState<string | null>(
     null,
   );
+  const [contactsError, setContactsError] = useState<string | null>(null);
   const [creatingOrgFrom, setCreatingOrgFrom] = useState<string | null>(null);
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +53,14 @@ export default function PitchCreatePage(): React.JSX.Element {
         setOrganisationsError(
           apiErrorMessage(err, "Could not load organisations"),
         );
+      });
+    api
+      .get<Contact[]>("/contacts")
+      .then(({ data }) => {
+        setContacts(data);
+      })
+      .catch((err: unknown): void => {
+        setContactsError(apiErrorMessage(err, "Could not load contacts"));
       });
     api
       .get<User[]>("/users/directory")
@@ -113,8 +123,10 @@ export default function PitchCreatePage(): React.JSX.Element {
           values={form}
           onChange={update}
           organisations={organisations}
+          contacts={contacts}
           users={users}
           organisationsError={organisationsError}
+          contactsError={contactsError}
           onCreateOrganisation={
             canCreateOrganisation
               ? (query) => {

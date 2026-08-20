@@ -20,7 +20,9 @@ describe("newPitchForm", () => {
     const a = newPitchForm();
     const b = newPitchForm();
     a.domain_tags.push("AI");
+    a.contact_ids.push("c1");
     expect(b.domain_tags).toEqual([]);
+    expect(b.contact_ids).toEqual([]);
   });
 });
 
@@ -38,6 +40,7 @@ describe("pitchFormFromApi", () => {
         is_confidential: true,
         organisation_id: "org-1",
         lead_id: "user-1",
+        contact_ids: ["c1", "c2"],
       }),
     ).toEqual({
       title: "Soil Sensors",
@@ -50,6 +53,7 @@ describe("pitchFormFromApi", () => {
       is_confidential: true,
       organisation_id: "org-1",
       lead_id: "user-1",
+      contact_ids: ["c1", "c2"],
     });
   });
 
@@ -69,6 +73,7 @@ describe("pitchFormFromApi", () => {
         is_confidential: null,
         organisation_id: null,
         lead_id: null,
+        contact_ids: null,
       }),
     ).toEqual({ ...EMPTY_PITCH_FORM, title: "Nulls" });
   });
@@ -110,6 +115,7 @@ describe("pitchPayload", () => {
         is_confidential: false,
         organisation_id: "",
         lead_id: "",
+        contact_ids: [],
       }),
     ).toEqual({
       title: "T",
@@ -122,6 +128,7 @@ describe("pitchPayload", () => {
       is_confidential: false,
       organisation_id: null,
       lead_id: null,
+      contact_ids: [],
     });
   });
 
@@ -136,6 +143,19 @@ describe("pitchPayload", () => {
       pitchPayload({ ...EMPTY_PITCH_FORM, title: "T", submission_date: "" })
         .submission_date,
     ).toBeNull();
+  });
+
+  it("sends the picked contacts as ids", () => {
+    expect(
+      pitchPayload({ ...EMPTY_PITCH_FORM, title: "T", contact_ids: ["c1"] })
+        .contact_ids,
+    ).toEqual(["c1"]);
+  });
+
+  it("sends an empty contact list rather than omitting it, so a PATCH can unlink the last one", () => {
+    const payload = pitchPayload({ ...EMPTY_PITCH_FORM, title: "T" });
+    expect(payload).toHaveProperty("contact_ids");
+    expect(payload.contact_ids).toEqual([]);
   });
 
   it("omits the pipeline stage, which only the board may change", () => {

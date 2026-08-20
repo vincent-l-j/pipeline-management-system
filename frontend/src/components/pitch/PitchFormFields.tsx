@@ -17,7 +17,8 @@ import {
   FUNDING_OPTIONS,
 } from "../pipeline/PipelineConfig";
 import Combobox from "../ui/Combobox";
-import { Organisation, User } from "../../types";
+import ContactPicker from "../contacts/ContactPicker";
+import { Contact, Organisation, User } from "../../types";
 import { PitchFormValues } from "./pitchForm";
 import { inputClass, labelClass } from "./formStyles";
 
@@ -25,9 +26,12 @@ interface PitchFormFieldsProps {
   values: PitchFormValues;
   onChange: (patch: Partial<PitchFormValues>) => void;
   organisations: Organisation[];
+  contacts: Contact[];
   users: User[];
   onCreateOrganisation?: (query: string) => void;
+  onCreateContact?: (query: string) => void;
   organisationsError?: string | null;
+  contactsError?: string | null;
   disabled?: boolean;
 }
 
@@ -35,9 +39,12 @@ export default function PitchFormFields({
   values,
   onChange,
   organisations,
+  contacts,
   users,
   onCreateOrganisation,
+  onCreateContact,
   organisationsError,
+  contactsError,
   disabled = false,
 }: PitchFormFieldsProps): React.JSX.Element {
   function toggleDomain(domain: string): void {
@@ -201,6 +208,28 @@ export default function PitchFormFields({
             ))}
           </select>
         </div>
+      </div>
+
+      {/* Outside the two-column grid: the chips wrap, so a half-width cell
+          would grow a row taller than everything beside it. */}
+      <div>
+        <span className={labelClass}>Contacts</span>
+        <p className="text-xs text-navy-400 mb-2">
+          The people behind this pitch
+        </p>
+        <ContactPicker
+          id="pitch-contacts"
+          disabled={disabled}
+          contacts={contacts}
+          value={values.contact_ids}
+          onChange={(contact_ids) => {
+            onChange({ contact_ids });
+          }}
+          onCreate={onCreateContact}
+        />
+        {contactsError && (
+          <p className="text-xs text-red-600 mt-1">{contactsError}</p>
+        )}
       </div>
 
       <div>

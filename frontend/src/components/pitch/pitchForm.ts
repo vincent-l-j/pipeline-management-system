@@ -21,6 +21,7 @@ export interface PitchFormValues {
   is_confidential: boolean;
   organisation_id: string;
   lead_id: string;
+  contact_ids: string[];
 }
 
 /** The subset of an API pitch the form pre-fills from. */
@@ -35,6 +36,7 @@ export interface PitchFormSource {
   is_confidential?: boolean | null;
   organisation_id?: string | null;
   lead_id?: string | null;
+  contact_ids?: string[] | null;
 }
 
 export const EMPTY_PITCH_FORM: PitchFormValues = {
@@ -48,6 +50,7 @@ export const EMPTY_PITCH_FORM: PitchFormValues = {
   is_confidential: false,
   organisation_id: "",
   lead_id: "",
+  contact_ids: [],
 };
 
 /**
@@ -55,12 +58,13 @@ export const EMPTY_PITCH_FORM: PitchFormValues = {
  *
  * A factory rather than a constant: the date has to be read when the form opens,
  * not when the module is imported, or a tab left open overnight would submit
- * yesterday's date. It also keeps `domain_tags` a fresh array per form.
+ * yesterday's date. It also keeps the array fields fresh per form.
  */
 export function newPitchForm(): PitchFormValues {
   return {
     ...EMPTY_PITCH_FORM,
     domain_tags: [],
+    contact_ids: [],
     submission_date: new Date().toISOString().split("T")[0],
   };
 }
@@ -80,6 +84,7 @@ export function pitchFormFromApi(pitch: PitchFormSource): PitchFormValues {
     is_confidential: pitch.is_confidential ?? false,
     organisation_id: pitch.organisation_id ?? "",
     lead_id: pitch.lead_id ?? "",
+    contact_ids: pitch.contact_ids ?? [],
   };
 }
 
@@ -102,5 +107,8 @@ export function pitchPayload(values: PitchFormValues) {
     is_confidential: values.is_confidential,
     organisation_id: values.organisation_id || null,
     lead_id: values.lead_id || null,
+    // Always sent, empty list included: on a PATCH that is how the last contact
+    // is unlinked, and the API replaces the whole set with whatever it is given.
+    contact_ids: values.contact_ids,
   };
 }

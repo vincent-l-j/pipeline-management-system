@@ -3,12 +3,29 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PitchFormFields from "../PitchFormFields";
 import { EMPTY_PITCH_FORM, PitchFormValues } from "../pitchForm";
-import { Organisation, User } from "../../../types";
+import { Contact, Organisation, User } from "../../../types";
 
 const ORGANISATIONS = [
   { id: "org-1", name: "Acme Research" },
   { id: "org-2", name: "Beta Institute" },
 ] as Organisation[];
+
+const CONTACTS: Contact[] = [
+  {
+    id: "c1",
+    first_name: "Ada",
+    last_name: "Adams",
+    email: "ada@example.com",
+    organisation_ids: [],
+  },
+  {
+    id: "c2",
+    first_name: "Bob",
+    last_name: "Brown",
+    email: null,
+    organisation_ids: [],
+  },
+];
 
 const USERS = [
   { id: "user-1", display_name: "Ada Lovelace" },
@@ -25,6 +42,7 @@ function setup(
       values={{ ...EMPTY_PITCH_FORM, ...values }}
       onChange={onChange}
       organisations={ORGANISATIONS}
+      contacts={CONTACTS}
       users={USERS}
       {...props}
     />,
@@ -40,6 +58,7 @@ describe("PitchFormFields", () => {
     "Source",
     "Funding Pathway",
     "Organisation",
+    "Add contact",
     "Rozetta Lead",
     "Masterplan Alignment",
     "Mark as confidential",
@@ -54,6 +73,7 @@ describe("PitchFormFields", () => {
         values={EMPTY_PITCH_FORM}
         onChange={vi.fn()}
         organisations={ORGANISATIONS}
+        contacts={CONTACTS}
         users={USERS}
       />,
     );
@@ -235,6 +255,7 @@ describe("PitchFormFields", () => {
         values={EMPTY_PITCH_FORM}
         onChange={vi.fn()}
         organisations={ORGANISATIONS}
+        contacts={CONTACTS}
         users={USERS}
         onCreateOrganisation={onCreateOrganisation}
       />,
@@ -257,6 +278,7 @@ describe("PitchFormFields", () => {
         values={EMPTY_PITCH_FORM}
         onChange={vi.fn()}
         organisations={[]}
+        contacts={CONTACTS}
         users={USERS}
         organisationsError="Could not load organisations"
       />,
@@ -264,6 +286,71 @@ describe("PitchFormFields", () => {
     expect(
       screen.getByText("Could not load organisations"),
     ).toBeInTheDocument();
+  });
+
+  it("offers the supplied contacts through a searchable picker", async () => {
+    const user = userEvent.setup();
+    const { onChange } = setup();
+
+    const picker = screen.getByRole("combobox", { name: "Add contact" });
+    await user.click(picker);
+    await user.type(picker, "ada");
+    await user.click(
+      screen.getByRole("option", { name: "Ada Adams (ada@example.com)" }),
+    );
+
+    expect(onChange).toHaveBeenCalledWith({ contact_ids: ["c1"] });
+  });
+
+  it("keeps the contacts already on the pitch when another is added", async () => {
+    const user = userEvent.setup();
+    const { onChange } = setup({ contact_ids: ["c2"] });
+
+    const picker = screen.getByRole("combobox", { name: "Add contact" });
+    await user.click(picker);
+    await user.click(screen.getByRole("option", { name: /Ada Adams/ }));
+
+    expect(onChange).toHaveBeenCalledWith({ contact_ids: ["c2", "c1"] });
+  });
+
+  it("shows the pitch's contacts as chips", () => {
+    setup({ contact_ids: ["c1", "c2"] });
+    expect(
+      screen.getAllByTestId("contact-chip").map((chip) => chip.textContent),
+    ).toEqual([
+      expect.stringContaining("Ada Adams"),
+      expect.stringContaining("Bob Brown"),
+    ]);
+  });
+
+  it("reports the remainder when a contact is removed", async () => {
+    const user = userEvent.setup();
+    const { onChange } = setup({ contact_ids: ["c1", "c2"] });
+    await user.click(screen.getByRole("button", { name: "Remove Ada Adams" }));
+    expect(onChange).toHaveBeenCalledWith({ contact_ids: ["c2"] });
+  });
+
+  it("offers no create-contact row unless the page supplies a handler", async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.click(screen.getByRole("combobox", { name: "Add contact" }));
+    expect(
+      screen.queryByRole("option", { name: /Add a new contact/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("surfaces a contact load failure under the picker", () => {
+    render(
+      <PitchFormFields
+        values={EMPTY_PITCH_FORM}
+        onChange={vi.fn()}
+        organisations={ORGANISATIONS}
+        contacts={[]}
+        users={USERS}
+        contactsError="Could not load contacts"
+      />,
+    );
+    expect(screen.getByText("Could not load contacts")).toBeInTheDocument();
   });
 
   it("disables every control when disabled", () => {
@@ -274,6 +361,18 @@ describe("PitchFormFields", () => {
     expect(screen.getByLabelText(/Organisation/)).toBeDisabled();
     expect(screen.getByLabelText(/Mark as confidential/)).toBeDisabled();
     expect(screen.getByRole("button", { name: "Health" })).toBeDisabled();
+    // The contact picker has no disabled state to show: its controls go.
+    expect(
+      screen.queryByRole("combobox", { name: "Add contact" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("still shows the contacts on a disabled form", () => {
+    setup({ contact_ids: ["c1"] }, { disabled: true });
+    expect(screen.getByTestId("contact-chip")).toHaveTextContent("Ada Adams");
+    expect(
+      screen.queryByRole("button", { name: "Remove Ada Adams" }),
+    ).not.toBeInTheDocument();
   });
 
   it("reports nothing when a disabled pill is clicked", async () => {

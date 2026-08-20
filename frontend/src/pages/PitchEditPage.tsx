@@ -21,7 +21,7 @@ import {
 import api from "../services/api";
 import { apiErrorMessage } from "../services/apiError";
 import { useAuth } from "../contexts/AuthContext";
-import { User, Organisation } from "../types";
+import { Contact, User, Organisation } from "../types";
 
 export default function PitchEditPage(): React.JSX.Element {
   const { pitchId } = useParams();
@@ -30,6 +30,7 @@ export default function PitchEditPage(): React.JSX.Element {
   const canEdit = user?.role === "admin" || user?.role === "assessor";
 
   const [organisations, setOrganisations] = useState<Organisation[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [creatingOrgFrom, setCreatingOrgFrom] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,11 +44,13 @@ export default function PitchEditPage(): React.JSX.Element {
     Promise.all([
       api.get<PitchFormSource>(`/pitches/${pitchId}`),
       api.get<Organisation[]>("/organisations"),
+      api.get<Contact[]>("/contacts"),
       api.get<User[]>("/users/directory"),
     ])
-      .then(([pitchRes, orgsRes, usersRes]) => {
+      .then(([pitchRes, orgsRes, contactsRes, usersRes]) => {
         setForm(pitchFormFromApi(pitchRes.data));
         setOrganisations(orgsRes.data);
+        setContacts(contactsRes.data);
         setUsers(usersRes.data);
         setLoading(false);
       })
@@ -115,6 +118,7 @@ export default function PitchEditPage(): React.JSX.Element {
           values={form}
           onChange={update}
           organisations={organisations}
+          contacts={contacts}
           users={users}
           onCreateOrganisation={(query) => {
             setCreatingOrgFrom(query);

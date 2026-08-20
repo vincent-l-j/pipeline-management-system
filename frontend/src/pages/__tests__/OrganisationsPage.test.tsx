@@ -538,6 +538,168 @@ describe("OrganisationsPage", () => {
     ).not.toBeInTheDocument();
   });
 
+  // --- Creating a contact from here ---
+
+  /** Open an organisation's people list and type into its picker. */
+  async function typeIntoPicker(
+    user: ReturnType<typeof userEvent.setup>,
+    organisation: string,
+    query: string,
+  ) {
+    await user.click(showPeople(organisation));
+    const picker = screen.getByRole("combobox", { name: "Add person" });
+    await user.click(picker);
+    if (query) await user.type(picker, query);
+  }
+
+  it("the people picker offers to create a contact who is not on file", async () => {
+    const user = userEvent.setup();
+    setupGet(TWO_ORGS);
+    render(<OrganisationsPage />);
+    await waitFor(() => screen.getByText("Soil Tech Labs"));
+    await typeIntoPicker(user, "Soil Tech Labs", "Nora Nobody");
+
+    expect(pickerOption(/Add "Nora Nobody" as a new contact/)).toBeVisible();
+  });
+
+  it("creating a contact here posts it affiliated with that organisation", async () => {
+    const user = userEvent.setup();
+    setupGet(TWO_ORGS);
+    apiMocks.post.mockResolvedValue({
+      data: {
+        id: "c9",
+        first_name: "Nora",
+        last_name: "Nobody",
+        email: null,
+        organisation_ids: ["o1"],
+      },
+    });
+    render(<OrganisationsPage />);
+    await waitFor(() => screen.getByText("Soil Tech Labs"));
+    await typeIntoPicker(user, "Soil Tech Labs", "Nora Nobody");
+    await user.click(pickerOption(/Add "Nora Nobody" as a new contact/));
+
+    // The typed name arrives split across the two name fields.
+    expect(await screen.findByLabelText("First name")).toHaveValue("Nora");
+    expect(screen.getByLabelText("Last name")).toHaveValue("Nobody");
+
+    await user.click(screen.getByRole("button", { name: /Add contact/i }));
+
+    expect(apiMocks.post.mock).toHaveBeenCalledWith("/contacts", {
+      first_name: "Nora",
+      last_name: "Nobody",
+      email: null,
+      organisation_ids: ["o1"],
+    });
+  });
+
+  it("the new contact is listed and counted at that organisation straight away", async () => {
+    const user = userEvent.setup();
+    setupGet(TWO_ORGS);
+    apiMocks.post.mockResolvedValue({
+      data: {
+        id: "c9",
+        first_name: "Nora",
+        last_name: "Nobody",
+        email: null,
+        organisation_ids: ["o1"],
+      },
+    });
+    render(<OrganisationsPage />);
+    await waitFor(() => screen.getByText("Soil Tech Labs"));
+    await typeIntoPicker(user, "Soil Tech Labs", "Nora Nobody");
+    await user.click(pickerOption(/Add "Nora Nobody" as a new contact/));
+    await user.click(
+      await screen.findByRole("button", { name: /Add contact/i }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Nora Nobody")).toBeInTheDocument();
+    });
+    expect(peopleToggle("Soil Tech Labs")).toHaveTextContent("3");
+    // Not offered again as somebody to add, now that they are here.
+    await user.click(screen.getByRole("combobox", { name: "Add person" }));
+    expect(
+      within(screen.getByRole("listbox")).queryByRole("option", {
+        name: /^Nora Nobody/,
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("a contact created at one organisation is not counted at another", async () => {
+    const user = userEvent.setup();
+    setupGet(TWO_ORGS);
+    apiMocks.post.mockResolvedValue({
+      data: {
+        id: "c9",
+        first_name: "Nora",
+        last_name: "Nobody",
+        email: null,
+        organisation_ids: ["o1"],
+      },
+    });
+    render(<OrganisationsPage />);
+    await waitFor(() => screen.getByText("Soil Tech Labs"));
+    await typeIntoPicker(user, "Soil Tech Labs", "Nora Nobody");
+    await user.click(pickerOption(/Add "Nora Nobody" as a new contact/));
+    await user.click(
+      await screen.findByRole("button", { name: /Add contact/i }),
+    );
+
+    await waitFor(() => {
+      expect(peopleToggle("Soil Tech Labs")).toHaveTextContent("3");
+    });
+    expect(showPeople("Wind Co")).toHaveTextContent("1");
+  });
+
+  it("cancelling the create dialog posts nothing and adds nobody", async () => {
+    const user = userEvent.setup();
+    setupGet(TWO_ORGS);
+    render(<OrganisationsPage />);
+    await waitFor(() => screen.getByText("Soil Tech Labs"));
+    await typeIntoPicker(user, "Soil Tech Labs", "Nora Nobody");
+    await user.click(pickerOption(/Add "Nora Nobody" as a new contact/));
+    await user.click(await screen.findByRole("button", { name: /Cancel/i }));
+
+    expect(apiMocks.post.mock).not.toHaveBeenCalled();
+    expect(screen.queryByText("Nora Nobody")).not.toBeInTheDocument();
+    expect(peopleToggle("Soil Tech Labs")).toHaveTextContent("2");
+  });
+
+  it("a rejected create keeps the dialog open with its message", async () => {
+    const user = userEvent.setup();
+    setupGet(TWO_ORGS);
+    apiMocks.post.mockRejectedValue({
+      response: { data: { detail: "Create failed" } },
+    });
+    render(<OrganisationsPage />);
+    await waitFor(() => screen.getByText("Soil Tech Labs"));
+    await typeIntoPicker(user, "Soil Tech Labs", "Nora Nobody");
+    await user.click(pickerOption(/Add "Nora Nobody" as a new contact/));
+    await user.click(
+      await screen.findByRole("button", { name: /Add contact/i }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Create failed")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.queryByText("Nora Nobody")).not.toBeInTheDocument();
+  });
+
+  it("a viewer is offered no way to create a contact", async () => {
+    const user = userEvent.setup();
+    mockUser = { role: "viewer" };
+    setupGet(TWO_ORGS);
+    render(<OrganisationsPage />);
+    await waitFor(() => screen.getByText("Soil Tech Labs"));
+    await user.click(showPeople("Soil Tech Labs"));
+    expect(
+      screen.queryByRole("combobox", { name: "Add person" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
   it("a nameless contact is still listed, by email", async () => {
     const user = userEvent.setup();
     setupGet(TWO_ORGS, [

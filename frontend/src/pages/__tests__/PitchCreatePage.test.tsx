@@ -91,6 +91,55 @@ describe("PitchCreatePage", () => {
     });
   });
 
+  it("POSTs the contacts picked for the pitch", async () => {
+    const user = userEvent.setup();
+    apiMocks.get.mockImplementation((url: string) => {
+      if (url === "/contacts")
+        return Promise.resolve({
+          data: [
+            {
+              id: "c1",
+              first_name: "Ada",
+              last_name: "Adams",
+              email: null,
+              organisation_ids: [],
+            },
+          ],
+        });
+      return Promise.resolve({ data: [] });
+    });
+    apiMocks.post.mockResolvedValue({ data: { id: "99" } });
+    render(<PitchCreatePage />);
+    await waitFor(() => screen.getByText("New Pitch"));
+
+    await user.type(screen.getByLabelText(/Title/), "Soil Sensors");
+    await user.click(screen.getByRole("combobox", { name: "Add contact" }));
+    await user.click(screen.getByRole("option", { name: "Ada Adams" }));
+    await user.click(screen.getByRole("button", { name: /Add Pitch/i }));
+
+    expect(apiMocks.post.mock).toHaveBeenCalledWith(
+      "/pitches",
+      expect.objectContaining({ contact_ids: ["c1"] }),
+    );
+  });
+
+  it("explains a failed contact load instead of showing an empty picker", async () => {
+    apiMocks.get.mockImplementation((url: string) => {
+      if (url === "/contacts")
+        return Promise.reject(
+          Object.assign(new Error("Request failed"), {
+            response: { status: 500, data: { detail: "contacts unavailable" } },
+          }),
+        );
+      return Promise.resolve({ data: [] });
+    });
+    render(<PitchCreatePage />);
+
+    await waitFor(() => {
+      expect(screen.getByText("contacts unavailable")).toBeInTheDocument();
+    });
+  });
+
   it("creates an organisation inline, selects it, and keeps what was already typed", async () => {
     const user = userEvent.setup();
     apiMocks.get.mockImplementation((url: string) => {

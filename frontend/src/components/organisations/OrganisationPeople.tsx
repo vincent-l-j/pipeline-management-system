@@ -8,6 +8,11 @@
  * adding and removing here both PATCH the contact with its new full set. The
  * updated contact is handed back to the page, which owns the list that every
  * organisation's count is derived from.
+ *
+ * Somebody who isn't on file yet can be created from the same picker. The
+ * dialog is not rendered here: it belongs to the page, so that it opens outside
+ * the table row this sits in and so the created contact lands in the one list
+ * the page holds.
  */
 
 import { useState } from "react";
@@ -23,6 +28,9 @@ interface OrganisationPeopleProps {
   contacts: Contact[];
   /** Called with the contact as the API returned it after a link change. */
   onChanged: (contact: Contact) => void;
+  /** Supplying this offers a row that creates a contact who is not on file.
+   *  The dialog is the page's to render — see OrganisationsPage. */
+  onCreate?: (query: string) => void;
   onError: (message: string) => void;
   canEdit: boolean;
 }
@@ -46,6 +54,7 @@ export default function OrganisationPeople({
   organisation,
   contacts,
   onChanged,
+  onCreate,
   onError,
   canEdit,
 }: OrganisationPeopleProps): React.JSX.Element {
@@ -136,8 +145,12 @@ export default function OrganisationPeople({
                 organisation.id,
               ]);
             }}
+            onCreate={onCreate}
+            createLabel={(query) =>
+              query ? `Add "${query}" as a new contact` : "Add a new contact"
+            }
             disabled={saving}
-            placeholder="Add an existing contact..."
+            placeholder="Add a contact..."
             emptyMessage="Every contact is already here"
             className="w-full border border-navy-200 rounded-lg px-3 py-1.5 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300 disabled:bg-navy-50"
           />

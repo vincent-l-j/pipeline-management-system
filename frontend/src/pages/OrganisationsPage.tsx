@@ -18,10 +18,18 @@ import {
 import OrganisationPeople, {
   peopleAt,
 } from "../components/organisations/OrganisationPeople";
+import ContactQuickCreateModal from "../components/contacts/ContactQuickCreateModal";
 import type { Contact, Organisation, ApiError } from "../types";
 
 const inputClass =
   "w-full border border-navy-200 rounded-lg px-3 py-1.5 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300";
+
+/** Which organisation a quick-created contact joins, and the text typed to
+ *  reach the dialog. */
+interface CreateTarget {
+  organisationId: string;
+  query: string;
+}
 
 interface OrgForm {
   name: string;
@@ -60,6 +68,9 @@ export default function OrganisationsPage(): React.JSX.Element {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [creatingContact, setCreatingContact] = useState<CreateTarget | null>(
+    null,
+  );
   const [error, setError] = useState<string>("");
 
   const canAdd = user?.role === "admin" || user?.role === "assessor";
@@ -187,6 +198,13 @@ export default function OrganisationsPage(): React.JSX.Element {
         apiError.response?.data?.detail ?? "Failed to update organisation",
       );
     }
+  }
+
+  /** A newly created contact joins the list every people count is derived from,
+   *  already affiliated with the organisation it was created at. */
+  function contactCreated(contact: Contact): void {
+    setContacts((prev) => [...prev, contact]);
+    setCreatingContact(null);
   }
 
   const columnCount = canEdit || canRemove ? 6 : 5;
@@ -582,6 +600,17 @@ export default function OrganisationsPage(): React.JSX.Element {
                               );
                               setError("");
                             }}
+                            onCreate={
+                              canEdit
+                                ? (query) => {
+                                    setCreatingContact({
+                                      organisationId: org.id,
+                                      query,
+                                    });
+                                    setError("");
+                                  }
+                                : undefined
+                            }
                             onError={setError}
                           />
                         </td>
@@ -593,6 +622,19 @@ export default function OrganisationsPage(): React.JSX.Element {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Rendered here rather than inside the expanded row: the dialog is fixed
+          to the viewport and has no business inside a table cell. */}
+      {creatingContact !== null && (
+        <ContactQuickCreateModal
+          initialQuery={creatingContact.query}
+          organisationIds={[creatingContact.organisationId]}
+          onCreated={contactCreated}
+          onCancel={() => {
+            setCreatingContact(null);
+          }}
+        />
       )}
     </Layout>
   );

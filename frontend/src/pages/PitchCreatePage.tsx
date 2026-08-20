@@ -103,10 +103,10 @@ export default function PitchCreatePage(): React.JSX.Element {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
-    // A dialog is a decision in progress, not a pitch to save. The dialog takes
+    // A dialog is a decision in progress, not a pitch to save. The dialogs take
     // focus so Enter cannot reach this, but a submit that arrives anyway (a
     // reader who tabbed back out, say) must not save the pitch behind one.
-    if (creatingOrgFrom !== null) return;
+    if (creatingOrgFrom !== null || creatingContactFrom !== null) return;
     setSaving(true);
     setError(null);
 

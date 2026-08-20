@@ -89,7 +89,7 @@ export default function PitchEditPage(): React.JSX.Element {
     e.preventDefault();
     if (!pitchId) return;
     // See PitchCreatePage: never save the pitch behind an open dialog.
-    if (creatingOrgFrom !== null) return;
+    if (creatingOrgFrom !== null || creatingContactFrom !== null) return;
     setSaving(true);
     setError(null);
 

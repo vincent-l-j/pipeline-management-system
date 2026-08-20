@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PitchEditPage from "../PitchEditPage";
 import { createApiMocks } from "../../test/mocks/api";
@@ -301,6 +301,26 @@ describe("PitchEditPage", () => {
       "/pitches/42",
       expect.objectContaining({ contact_ids: ["c1", "c9"] }),
     );
+  });
+
+  it("does not save the pitch while the contact dialog is open", async () => {
+    const user = userEvent.setup();
+    setupGet();
+    render(<PitchEditPage />);
+    await waitFor(() => screen.getByDisplayValue("Original Title"));
+
+    const picker = screen.getByRole("combobox", { name: "Add contact" });
+    await user.click(picker);
+    await user.click(screen.getByRole("option", { name: "Add a new contact" }));
+
+    // A submit that arrives from anywhere while the dialog is up is ignored:
+    // the dialog is a decision in progress, not a pitch to save.
+    const form = screen.getByRole("button", { name: /save/i }).closest("form");
+    if (!form) throw new Error("the edit page rendered no form");
+    fireEvent.submit(form);
+
+    expect(apiMocks.patch.mock).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
   it("copes with a pitch that has no contacts", async () => {

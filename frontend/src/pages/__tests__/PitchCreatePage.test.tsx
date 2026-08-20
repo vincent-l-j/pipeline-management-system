@@ -236,6 +236,67 @@ describe("PitchCreatePage", () => {
     ]);
   });
 
+  it("Enter in the contact dialog commits the contact, not the pitch", async () => {
+    const user = userEvent.setup();
+    apiMocks.get.mockResolvedValue({ data: [] });
+    apiMocks.post.mockImplementation((url: string) =>
+      url === "/contacts"
+        ? Promise.resolve({
+            data: {
+              id: "c9",
+              first_name: "Nora",
+              last_name: "Nobody",
+              email: null,
+              organisation_ids: [],
+            },
+          })
+        : Promise.resolve({ data: { id: "99" } }),
+    );
+    render(<PitchCreatePage />);
+    await waitFor(() => screen.getByText("New Pitch"));
+    await user.type(screen.getByLabelText(/Title/), "Soil Sensors");
+
+    const picker = screen.getByRole("combobox", { name: "Add contact" });
+    await user.click(picker);
+    await user.type(picker, "Nora Nobody");
+    await user.click(
+      screen.getByRole("option", {
+        name: 'Add "Nora Nobody" as a new contact',
+      }),
+    );
+
+    // The dialog holds focus, so Enter belongs to it and not the form behind.
+    expect(screen.getByLabelText("First name")).toHaveFocus();
+    await user.keyboard("{Enter}");
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    const posted = (apiMocks.post.mock.mock.calls as unknown[][]).map(
+      (call) => call[0],
+    );
+    expect(posted).toEqual(["/contacts"]);
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("does not save the pitch while the contact dialog is open", async () => {
+    const user = userEvent.setup();
+    render(<PitchCreatePage />);
+    await waitFor(() => screen.getByText("New Pitch"));
+
+    await user.click(screen.getByRole("combobox", { name: "Add contact" }));
+    await user.click(screen.getByRole("option", { name: "Add a new contact" }));
+
+    const form = screen
+      .getByRole("button", { name: /Add Pitch/i })
+      .closest("form");
+    if (!form) throw new Error("the create page rendered no form");
+    fireEvent.submit(form);
+
+    expect(apiMocks.post.mock).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+  });
+
   it("offers a viewer no way to create a contact from the form", async () => {
     const user = userEvent.setup();
     mockUser = { role: "viewer" };

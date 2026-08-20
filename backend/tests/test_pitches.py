@@ -431,6 +431,188 @@ def test_patch_rejects_malformed_submission_date(admin_client):
     assert resp.status_code == 422
 
 
+# --- Contacts on a pitch ---
+
+
+def _contact(client, first_name):
+    return client.post("/api/contacts", json={"first_name": first_name}).json()["id"]
+
+
+def test_create_pitch_with_contacts(admin_client):
+    ada = _contact(admin_client, "Ada")
+    grace = _contact(admin_client, "Grace")
+
+    resp = admin_client.post(
+        "/api/pitches", json={"title": "Two People", "contact_ids": [ada, grace]}
+    )
+    assert resp.status_code == 200
+    assert sorted(resp.json()["contact_ids"]) == sorted([ada, grace])
+
+
+def test_pitch_contacts_default_to_none_at_all(admin_client):
+    resp = admin_client.post("/api/pitches", json={"title": "Nobody Yet"})
+    assert resp.status_code == 200
+    assert resp.json()["contact_ids"] == []
+
+
+def test_get_pitch_reports_its_contacts(admin_client):
+    ada = _contact(admin_client, "Ada")
+    pitch_id = admin_client.post(
+        "/api/pitches", json={"title": "Fetch Me", "contact_ids": [ada]}
+    ).json()["id"]
+
+    resp = admin_client.get(f"/api/pitches/{pitch_id}")
+    assert resp.status_code == 200
+    assert resp.json()["contact_ids"] == [ada]
+
+
+def test_list_pitches_reports_contacts(admin_client):
+    ada = _contact(admin_client, "Ada")
+    pitch_id = admin_client.post(
+        "/api/pitches", json={"title": "Listed With Ada", "contact_ids": [ada]}
+    ).json()["id"]
+
+    listed = {p["id"]: p for p in admin_client.get("/api/pitches").json()}
+    assert listed[pitch_id]["contact_ids"] == [ada]
+
+
+def test_patch_replaces_the_whole_set(admin_client):
+    """Links are unordered and equal, with no per-link identity to patch, so a
+    supplied list replaces the lot."""
+    ada = _contact(admin_client, "Ada")
+    grace = _contact(admin_client, "Grace")
+    pitch_id = admin_client.post(
+        "/api/pitches", json={"title": "Swap People", "contact_ids": [ada]}
+    ).json()["id"]
+
+    resp = admin_client.patch(f"/api/pitches/{pitch_id}", json={"contact_ids": [grace]})
+    assert resp.status_code == 200
+    assert resp.json()["contact_ids"] == [grace]
+
+
+def test_patch_can_clear_the_contacts(admin_client):
+    ada = _contact(admin_client, "Ada")
+    pitch_id = admin_client.post(
+        "/api/pitches", json={"title": "Clear People", "contact_ids": [ada]}
+    ).json()["id"]
+
+    resp = admin_client.patch(f"/api/pitches/{pitch_id}", json={"contact_ids": []})
+    assert resp.status_code == 200
+    assert resp.json()["contact_ids"] == []
+
+
+def test_patch_leaves_contacts_alone_when_omitted(admin_client):
+    ada = _contact(admin_client, "Ada")
+    pitch_id = admin_client.post(
+        "/api/pitches", json={"title": "Keep People", "contact_ids": [ada]}
+    ).json()["id"]
+
+    resp = admin_client.patch(f"/api/pitches/{pitch_id}", json={"title": "Renamed"})
+    assert resp.status_code == 200
+    assert resp.json()["contact_ids"] == [ada]
+
+
+def test_duplicate_contact_ids_collapse_to_one_link(admin_client, db_session):
+    from app.models.pitch import PitchContact
+
+    ada = _contact(admin_client, "Ada")
+    pitch_id = admin_client.post(
+        "/api/pitches", json={"title": "Said Twice", "contact_ids": [ada, ada]}
+    ).json()["id"]
+
+    assert admin_client.get(f"/api/pitches/{pitch_id}").json()["contact_ids"] == [ada]
+    assert db_session.query(PitchContact).filter_by(pitch_id=UUID(pitch_id)).count() == 1
+
+
+def test_create_with_unknown_contact_is_rejected(admin_client):
+    resp = admin_client.post(
+        "/api/pitches", json={"title": "Ghost Contact", "contact_ids": [UNKNOWN_ID]}
+    )
+    assert resp.status_code == 422
+    assert UNKNOWN_ID in resp.json()["detail"]
+
+
+def test_create_with_unknown_contact_creates_no_pitch(admin_client):
+    before = len(admin_client.get("/api/pitches").json())
+
+    admin_client.post("/api/pitches", json={"title": "Never Saved", "contact_ids": [UNKNOWN_ID]})
+
+    listed = admin_client.get("/api/pitches").json()
+    assert len(listed) == before
+    assert all(pitch["title"] != "Never Saved" for pitch in listed)
+
+
+def test_patch_with_unknown_contact_changes_nothing(admin_client):
+    ada = _contact(admin_client, "Ada")
+    pitch_id = admin_client.post(
+        "/api/pitches", json={"title": "Unchanged", "contact_ids": [ada]}
+    ).json()["id"]
+
+    resp = admin_client.patch(
+        f"/api/pitches/{pitch_id}",
+        json={"title": "Renamed", "contact_ids": [UNKNOWN_ID]},
+    )
+    assert resp.status_code == 422
+
+    # The rejected request left both the links and the other fields as they were.
+    body = admin_client.get(f"/api/pitches/{pitch_id}").json()
+    assert body["contact_ids"] == [ada]
+    assert body["title"] == "Unchanged"
+
+
+def test_deleting_a_contact_drops_it_from_the_pitch(admin_client):
+    ada = _contact(admin_client, "Ada")
+    grace = _contact(admin_client, "Grace")
+    pitch_id = admin_client.post(
+        "/api/pitches", json={"title": "Losing Ada", "contact_ids": [ada, grace]}
+    ).json()["id"]
+
+    assert admin_client.delete(f"/api/contacts/{ada}").status_code == 200
+
+    assert admin_client.get(f"/api/pitches/{pitch_id}").json()["contact_ids"] == [grace]
+
+
+def test_linking_a_contact_leaves_the_contact_itself_alone(admin_client):
+    """A pitch link is not an affiliation: the contact's organisations are its own."""
+    org_id = admin_client.post("/api/organisations", json={"name": "Acme"}).json()["id"]
+    contact_id = admin_client.post(
+        "/api/contacts", json={"first_name": "Ada", "organisation_ids": [org_id]}
+    ).json()["id"]
+
+    admin_client.post("/api/pitches", json={"title": "Linked", "contact_ids": [contact_id]})
+
+    assert admin_client.get(f"/api/contacts/{contact_id}").json()["organisation_ids"] == [org_id]
+
+
+def test_assessor_can_link_contacts(assessor_client):
+    ada = _contact(assessor_client, "Ada")
+
+    resp = assessor_client.post(
+        "/api/pitches", json={"title": "Assessor Linked", "contact_ids": [ada]}
+    )
+    assert resp.status_code == 200
+    assert resp.json()["contact_ids"] == [ada]
+
+
+def test_viewer_cannot_link_contacts(viewer_client):
+    resp = viewer_client.patch(
+        f"/api/pitches/{UNKNOWN_ID}",
+        json={"contact_ids": [UNKNOWN_ID]},
+    )
+    assert resp.status_code == 403
+
+
+def test_viewer_can_read_the_contacts_on_a_pitch(admin_client, viewer_client):
+    ada = _contact(admin_client, "Ada")
+    pitch_id = admin_client.post(
+        "/api/pitches", json={"title": "Readable", "contact_ids": [ada]}
+    ).json()["id"]
+
+    resp = viewer_client.get(f"/api/pitches/{pitch_id}")
+    assert resp.status_code == 200
+    assert resp.json()["contact_ids"] == [ada]
+
+
 # --- Stage transitions ---
 
 

@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.pitch import FundingPathway, PipelineStage, PitchSource
 
@@ -18,6 +18,7 @@ class PitchCreate(BaseModel):
     is_confidential: bool = False
     organisation_id: UUID | None = None
     lead_id: UUID | None = None
+    contact_ids: list[UUID] = Field(default_factory=list)
 
 
 class PitchUpdate(BaseModel):
@@ -34,6 +35,9 @@ class PitchUpdate(BaseModel):
     is_confidential: bool | None = None
     organisation_id: UUID | None = None
     lead_id: UUID | None = None
+    # Omitted leaves the linked contacts alone; supplied replaces the whole set,
+    # since they are unordered and equal with no per-link identity to patch.
+    contact_ids: list[UUID] | None = None
 
 
 class PitchStageUpdate(BaseModel):
@@ -65,6 +69,7 @@ class PitchOut(BaseModel):
     is_confidential: bool
     organisation_id: UUID | None
     lead_id: UUID | None
+    contact_ids: list[UUID]
     created_at: datetime
 
     model_config = {"from_attributes": True}

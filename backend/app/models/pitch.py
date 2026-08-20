@@ -87,6 +87,12 @@ class Pitch(Base, TimestampMixin):
     meetings = relationship("Meeting", back_populates="pitch", cascade="all, delete-orphan")
     assessments = relationship("Assessment", back_populates="pitch", cascade="all, delete-orphan")
 
+    @property
+    def contact_ids(self) -> list[uuid.UUID]:
+        """The linked contacts, as PitchOut reports them. Mirrors
+        Contact.organisation_ids: the join table stays an implementation detail."""
+        return [link.contact_id for link in self.contact_links]
+
 
 class PitchStageHistory(Base):
     """Records every stage transition for a pitch."""

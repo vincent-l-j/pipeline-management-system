@@ -3,12 +3,13 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.core.database import get_db
 from app.core.security import get_current_user, require_role
 from app.models.assessment import Assessment
-from app.models.pitch import PipelineStage, Pitch, PitchFileLink, PitchStageHistory
+from app.models.contact import Contact
+from app.models.pitch import PipelineStage, Pitch, PitchContact, PitchFileLink, PitchStageHistory
 from app.models.user import User, UserRole
 from app.schemas.assessment import AssessmentOut
 from app.schemas.pitch import (
@@ -24,6 +25,32 @@ from app.schemas.pitch import (
 router = APIRouter(prefix="/pitches", tags=["pitches"])
 
 
+def _set_contacts(pitch: Pitch, contact_ids: list[UUID], db: Session) -> None:
+    """Replace the contacts linked to a pitch with the given ones.
+
+    Duplicates collapse — the same person twice is one link. The set is
+    unordered; callers that display it should sort by whatever they show.
+
+    Assigning through the relationship (rather than deleting rows by query) lets
+    delete-orphan clear the old links and keeps the in-memory pitch consistent,
+    so the response reports what was just asked for.
+    """
+    wanted = list(dict.fromkeys(contact_ids))
+    if wanted:
+        known = {
+            contact_id
+            for (contact_id,) in db.query(Contact.id).filter(Contact.id.in_(wanted)).all()
+        }
+        missing = [contact_id for contact_id in wanted if contact_id not in known]
+        if missing:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Unknown contact: {', '.join(str(contact_id) for contact_id in missing)}",
+            )
+
+    pitch.contact_links = [PitchContact(contact_id=contact_id) for contact_id in wanted]
+
+
 @router.get("", response_model=list[PitchOut])
 def list_pitches(
     stage: PipelineStage | None = Query(None),
@@ -31,7 +58,9 @@ def list_pitches(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    query = db.query(Pitch)
+    # Eager-loaded: PitchOut reads contact_ids off every row, which would
+    # otherwise be one query per pitch.
+    query = db.query(Pitch).options(selectinload(Pitch.contact_links))
     if stage:
         query = query.filter(Pitch.current_stage == stage)
     if lead_id:
@@ -57,7 +86,11 @@ def create_pitch(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.ASSESSOR)),
 ):
-    pitch = Pitch(**data.model_dump())
+    fields = data.model_dump()
+    contact_ids = fields.pop("contact_ids")
+    pitch = Pitch(**fields)
+    # Before the add, so an unknown contact aborts with nothing written.
+    _set_contacts(pitch, contact_ids, db)
     db.add(pitch)
     db.flush()
 
@@ -85,8 +118,17 @@ def update_pitch(
     pitch = db.query(Pitch).filter(Pitch.id == pitch_id).first()
     if not pitch:
         raise HTTPException(status_code=404, detail="Pitch not found")
-    for field, value in data.model_dump(exclude_unset=True).items():
+    fields = data.model_dump(exclude_unset=True)
+    contact_ids = fields.pop("contact_ids", None)
+    for field, value in fields.items():
         setattr(pitch, field, value)
+    if contact_ids is not None:
+        try:
+            _set_contacts(pitch, contact_ids, db)
+        except HTTPException:
+            # A rejected link must not commit the other fields set above.
+            db.rollback()
+            raise
     db.commit()
     db.refresh(pitch)
     return pitch

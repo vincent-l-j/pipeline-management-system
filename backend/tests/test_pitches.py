@@ -4,7 +4,7 @@ from uuid import UUID
 
 import pytest
 
-from app.models.pitch import PitchSource
+from app.models.pitch import PitchSource, RequestType
 from tests.constants import UNKNOWN_ID
 
 PITCH_PAYLOAD = {"title": "Green Hydrogen Initiative"}
@@ -392,6 +392,95 @@ def test_viewer_can_read_next_step(admin_client, viewer_client):
     resp = viewer_client.get(f"/api/pitches/{pitch['id']}")
     assert resp.status_code == 200
     assert resp.json()["next_step"] == "Visible to all"
+
+
+# --- Request type ---
+
+
+# What the pitch is asking Rozetta for, as it goes over the wire. Mirrored by
+# REQUEST_TYPE_LABELS in frontend/src/components/pipeline/PipelineConfig.ts.
+EXPECTED_REQUEST_TYPES = [
+    "advise",
+    "convene",
+    "sponsored_research",
+    "thought_leadership",
+    "catalyse",
+    "direct_investment",
+    "other",
+]
+
+
+def test_request_type_vocabulary_matches_the_enum():
+    """Adding or removing a RequestType member without updating EXPECTED_REQUEST_TYPES —
+    and the frontend labels and the migration that mirror it — fails here."""
+    assert [r.value for r in RequestType] == EXPECTED_REQUEST_TYPES
+
+
+@pytest.mark.parametrize("request_type", EXPECTED_REQUEST_TYPES)
+def test_request_type_round_trips(admin_client, request_type):
+    create = admin_client.post(
+        "/api/pitches",
+        json={"title": f"Request {request_type}", "request_type": request_type},
+    )
+    assert create.status_code == 200
+    assert create.json()["request_type"] == request_type
+
+    fetched = admin_client.get(f"/api/pitches/{create.json()['id']}")
+    assert fetched.json()["request_type"] == request_type
+
+
+def test_request_type_unknown_value_returns_422(admin_client):
+    """An enum, not free text — the point of capturing it is to be able to count it."""
+    resp = admin_client.post(
+        "/api/pitches", json={"title": "Bad", "request_type": "not_a_request_type"}
+    )
+    assert resp.status_code == 422
+
+
+def test_request_type_defaults_to_null_when_not_supplied(admin_client):
+    """Optional: the ask is often not settled when the pitch is first logged."""
+    create = admin_client.post("/api/pitches", json={"title": "No Request Type"})
+    assert create.json()["request_type"] is None
+
+
+def test_request_type_can_be_cleared_with_null(admin_client):
+    pitch = admin_client.post(
+        "/api/pitches", json={"title": "Clear Me", "request_type": "advise"}
+    ).json()
+
+    resp = admin_client.patch(f"/api/pitches/{pitch['id']}", json={"request_type": None})
+    assert resp.status_code == 200
+    assert resp.json()["request_type"] is None
+
+
+def test_omitting_request_type_from_a_patch_leaves_it_unchanged(admin_client):
+    """Distinguishes "clear it" (explicit null) from "don't touch it" (omitted)."""
+    pitch = admin_client.post(
+        "/api/pitches", json={"title": "Untouched", "request_type": "convene"}
+    ).json()
+
+    resp = admin_client.patch(f"/api/pitches/{pitch['id']}", json={"title": "Renamed"})
+    assert resp.status_code == 200
+    assert resp.json()["request_type"] == "convene"
+
+
+def test_viewer_cannot_set_request_type(viewer_client):
+    # RBAC fires before the DB lookup — a fake UUID still yields 403.
+    resp = viewer_client.patch(
+        f"/api/pitches/{UNKNOWN_ID}",
+        json={"request_type": "catalyse"},
+    )
+    assert resp.status_code == 403
+
+
+def test_viewer_can_read_request_type(admin_client, viewer_client):
+    pitch = admin_client.post(
+        "/api/pitches", json={"title": "Readable", "request_type": "thought_leadership"}
+    ).json()
+
+    resp = viewer_client.get(f"/api/pitches/{pitch['id']}")
+    assert resp.status_code == 200
+    assert resp.json()["request_type"] == "thought_leadership"
 
 
 # --- Domains ---

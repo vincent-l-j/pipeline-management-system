@@ -16,6 +16,7 @@ interface Pitch {
   funding_pathway: string | null;
   submission_date: string | null;
   masterplan_alignment: string | null;
+  request_type: string | null;
   next_step: string | null;
   decline_reason: string | null;
   organisation_id: string | null;
@@ -114,6 +115,7 @@ const BASE_PITCH: Pitch = {
   funding_pathway: null,
   submission_date: null,
   masterplan_alignment: null,
+  request_type: null,
   next_step: null,
   decline_reason: null,
   organisation_id: null,
@@ -415,6 +417,33 @@ describe("PitchDetailPage", () => {
     await waitFor(() => screen.getByText("Test Pitch"));
 
     expect(screen.getByText("Other")).toBeInTheDocument();
+  });
+
+  it("labels the pitch request in the details card", async () => {
+    setupGet({ ...BASE_PITCH, request_type: "sponsored_research" });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    expect(screen.getByText("Pitch Request")).toBeInTheDocument();
+    expect(screen.getByText("Sponsored Research")).toBeInTheDocument();
+  });
+
+  it("falls back to the raw request it has no label for", async () => {
+    // A backend enum added ahead of the frontend degrades to an unpretty string
+    // rather than a blank row.
+    setupGet({ ...BASE_PITCH, request_type: "brand_new_ask" });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    expect(screen.getByText("brand_new_ask")).toBeInTheDocument();
+  });
+
+  it("renders no pitch-request row when the pitch has none", async () => {
+    setupGet({ ...BASE_PITCH, request_type: null });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    expect(screen.queryByText("Pitch Request")).not.toBeInTheDocument();
   });
 
   it("shows the next step in its own callout, above the details card", async () => {

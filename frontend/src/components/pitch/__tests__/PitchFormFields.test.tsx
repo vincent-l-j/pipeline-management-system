@@ -56,6 +56,7 @@ describe("PitchFormFields", () => {
     "Short Description",
     "Submission Date",
     "Source",
+    "Pitch Request",
     "Funding Pathway",
     "Organisation",
     "Add contact",
@@ -139,6 +140,13 @@ describe("PitchFormFields", () => {
     expect(onChange).toHaveBeenCalledWith({ is_confidential: true });
   });
 
+  it("reports a chosen pitch request", async () => {
+    const user = userEvent.setup();
+    const { onChange } = setup();
+    await user.selectOptions(screen.getByLabelText(/Pitch Request/), "convene");
+    expect(onChange).toHaveBeenCalledWith({ request_type: "convene" });
+  });
+
   it("adds a domain when an unselected pill is clicked", async () => {
     const user = userEvent.setup();
     const { onChange } = setup({ domain_tags: ["AI"] });
@@ -187,6 +195,19 @@ describe("PitchFormFields", () => {
         "Board",
         "RIAC Student",
         "Rozetta Network",
+      ],
+    ],
+    [
+      "Pitch Request",
+      [
+        "Select request...",
+        "Advise",
+        "Convene",
+        "Sponsored Research",
+        "Thought Leadership",
+        "Catalyse",
+        "Direct Investment",
+        "Other",
       ],
     ],
     [

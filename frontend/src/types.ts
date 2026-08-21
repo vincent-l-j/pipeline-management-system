@@ -32,6 +32,8 @@ export interface Pitch {
   title: string;
   short_description?: string;
   source?: string;
+  /** What the pitch is asking Rozetta for — a RequestType key, or null. */
+  request_type?: string | null;
   funding_pathway?: string;
   domain_tags?: string;
   is_confidential?: boolean;

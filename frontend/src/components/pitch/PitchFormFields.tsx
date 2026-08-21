@@ -14,6 +14,7 @@
 import {
   DOMAIN_OPTIONS,
   SOURCE_OPTIONS,
+  REQUEST_TYPE_OPTIONS,
   FUNDING_OPTIONS,
 } from "../pipeline/PipelineConfig";
 import Combobox from "../ui/Combobox";
@@ -130,6 +131,28 @@ export default function PitchFormFields({
           >
             <option value="">Select source...</option>
             {SOURCE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className={labelClass} htmlFor="pitch-request-type">
+            Pitch Request
+          </label>
+          <select
+            id="pitch-request-type"
+            disabled={disabled}
+            value={values.request_type}
+            onChange={(e) => {
+              onChange({ request_type: e.target.value });
+            }}
+            className={inputClass}
+          >
+            <option value="">Select request...</option>
+            {REQUEST_TYPE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>

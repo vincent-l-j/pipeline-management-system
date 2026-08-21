@@ -15,6 +15,7 @@ export interface PitchFormValues {
   short_description: string;
   submission_date: string;
   source: string;
+  request_type: string;
   funding_pathway: string;
   domain_tags: string[];
   masterplan_alignment: string;
@@ -31,6 +32,7 @@ export interface PitchFormSource {
   short_description?: string | null;
   submission_date?: string | null;
   source?: string | null;
+  request_type?: string | null;
   funding_pathway?: string | null;
   domain_tags?: string | null;
   masterplan_alignment?: string | null;
@@ -46,6 +48,7 @@ export const EMPTY_PITCH_FORM: PitchFormValues = {
   short_description: "",
   submission_date: "",
   source: "",
+  request_type: "",
   funding_pathway: "",
   domain_tags: [],
   masterplan_alignment: "",
@@ -79,6 +82,7 @@ export function pitchFormFromApi(pitch: PitchFormSource): PitchFormValues {
     short_description: pitch.short_description ?? "",
     submission_date: pitch.submission_date ?? "",
     source: pitch.source ?? "",
+    request_type: pitch.request_type ?? "",
     funding_pathway: pitch.funding_pathway ?? "",
     domain_tags: pitch.domain_tags
       ? pitch.domain_tags.split(",").map((tag) => tag.trim())
@@ -104,6 +108,7 @@ export function pitchPayload(values: PitchFormValues) {
     short_description: values.short_description || null,
     submission_date: values.submission_date || null,
     source: values.source || null,
+    request_type: values.request_type || null,
     funding_pathway: values.funding_pathway || null,
     domain_tags:
       values.domain_tags.length > 0 ? values.domain_tags.join(",") : null,

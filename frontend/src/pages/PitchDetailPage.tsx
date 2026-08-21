@@ -14,6 +14,7 @@ import { contactName } from "../components/contacts/contactName";
 import {
   STAGE_MAP,
   SOURCE_LABELS,
+  REQUEST_TYPE_LABELS,
   FUNDING_LABELS,
 } from "../components/pipeline/PipelineConfig";
 import { DECLINE_REASON_LABELS } from "../components/assessments/AssessmentConfig";
@@ -315,6 +316,15 @@ export default function PitchDetailPage(): React.JSX.Element {
                   <dt className="text-navy-400">Source</dt>
                   <dd className="text-navy-900">
                     {SOURCE_LABELS[pitch.source] ?? pitch.source}
+                  </dd>
+                </div>
+              )}
+              {pitch.request_type && (
+                <div>
+                  <dt className="text-navy-400">Pitch Request</dt>
+                  <dd className="text-navy-900">
+                    {REQUEST_TYPE_LABELS[pitch.request_type] ??
+                      pitch.request_type}
                   </dd>
                 </div>
               )}

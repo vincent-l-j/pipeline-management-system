@@ -4,8 +4,10 @@ import {
   STAGE_MAP,
   SOURCE_LABELS,
   FUNDING_LABELS,
+  REQUEST_TYPE_LABELS,
   SOURCE_OPTIONS,
   FUNDING_OPTIONS,
+  REQUEST_TYPE_OPTIONS,
 } from "../PipelineConfig";
 
 describe("PIPELINE_STAGES", () => {
@@ -88,6 +90,19 @@ describe("label maps", () => {
       internal_funding: "Internal Funding",
     });
   });
+
+  it("labels exactly the requests RequestType can return", () => {
+    // Mirrors RequestType in backend/app/models/pitch.py.
+    expect(REQUEST_TYPE_LABELS).toEqual({
+      advise: "Advise",
+      convene: "Convene",
+      sponsored_research: "Sponsored Research",
+      thought_leadership: "Thought Leadership",
+      catalyse: "Catalyse",
+      direct_investment: "Direct Investment",
+      other: "Other",
+    });
+  });
 });
 
 /*
@@ -98,6 +113,7 @@ describe("label maps", () => {
 describe.each([
   ["SOURCE_OPTIONS", SOURCE_LABELS, SOURCE_OPTIONS],
   ["FUNDING_OPTIONS", FUNDING_LABELS, FUNDING_OPTIONS],
+  ["REQUEST_TYPE_OPTIONS", REQUEST_TYPE_LABELS, REQUEST_TYPE_OPTIONS],
 ])("%s", (_name, labels, options) => {
   it("derives one option per label, in map order", () => {
     expect(options).toEqual(

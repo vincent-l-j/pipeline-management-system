@@ -56,6 +56,8 @@ export default function PitchDetailPage(): React.JSX.Element {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [addingContacts, setAddingContacts] = useState<boolean>(false);
+  const [removingContact, setRemovingContact] = useState<string | null>(null);
+  const [removeError, setRemoveError] = useState<string | null>(null);
   const [showDelete, setShowDelete] = useState<boolean>(false);
   const [deleting, setDeleting] = useState<boolean>(false);
   const [deleteError, setDeleteError] = useState<string>("");
@@ -145,6 +147,36 @@ export default function PitchDetailPage(): React.JSX.Element {
       prev ? { ...prev, contact_ids: contactIds } : prev,
     );
     setAddingContacts(false);
+  }
+
+  /** Detach one contact, straight from the card — no confirmation, since the
+   *  + Add button puts them back.
+   *
+   *  The write is the whole set, because that is what the endpoint takes: the
+   *  people staying go back out, including any id the directory could not name,
+   *  which the list above never rendered. Only one removal is allowed in flight
+   *  at a time — two whole-set writes computed from the same starting set would
+   *  each put the other's contact back. */
+  async function removeContact(contactId: string): Promise<void> {
+    const remaining = (pitch?.contact_ids ?? []).filter(
+      (id): boolean => id !== contactId,
+    );
+    setRemovingContact(contactId);
+    setRemoveError(null);
+    try {
+      const { data } = await api.patch<{ contact_ids?: string[] }>(
+        `/pitches/${String(pitchId)}`,
+        { contact_ids: remaining },
+      );
+      const confirmed = data.contact_ids ?? remaining;
+      setPitch((prev): ExtendedPitch | null =>
+        prev ? { ...prev, contact_ids: confirmed } : prev,
+      );
+    } catch (err) {
+      setRemoveError(apiErrorMessage(err, "Failed to remove contact"));
+    } finally {
+      setRemovingContact(null);
+    }
   }
 
   /** A contact created inside the dialog is not in the directory this page
@@ -367,16 +399,37 @@ export default function PitchDetailPage(): React.JSX.Element {
             ) : (
               <ul className="space-y-2">
                 {people.map((c: Contact) => (
-                  <li key={c.id}>
-                    <p className="text-sm font-medium text-navy-900">
-                      {contactName(c)}
-                    </p>
-                    {c.email && (
-                      <p className="text-xs text-navy-500">{c.email}</p>
+                  <li
+                    key={c.id}
+                    className="flex items-start justify-between gap-2"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-navy-900">
+                        {contactName(c)}
+                      </p>
+                      {c.email && (
+                        <p className="text-xs text-navy-500">{c.email}</p>
+                      )}
+                    </div>
+                    {canEdit && (
+                      <button
+                        type="button"
+                        aria-label={`Remove ${contactName(c)} from this pitch`}
+                        onClick={() => {
+                          void removeContact(c.id);
+                        }}
+                        disabled={removingContact !== null}
+                        className="text-navy-300 hover:text-red-600 leading-none px-1 transition-colors disabled:opacity-50"
+                      >
+                        ×
+                      </button>
                     )}
                   </li>
                 ))}
               </ul>
+            )}
+            {removeError && (
+              <p className="text-sm text-red-600 mt-3">{removeError}</p>
             )}
           </div>
 

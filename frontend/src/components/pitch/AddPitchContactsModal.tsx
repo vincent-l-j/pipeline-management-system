@@ -7,8 +7,8 @@
  *
  * It only ever adds. The people already on the pitch are kept and are not
  * offered again, so the picker's chips are exactly the additions under
- * consideration — nothing here can detach someone by accident. Removing stays in
- * the edit form, where the whole set is the thing being edited.
+ * consideration — nothing here can detach someone by accident. Removing is the
+ * card's own job, one person at a time, from the × on their row.
  *
  * The write is still a whole-set PATCH, because that is what the endpoint takes:
  * the attached ids go back out with the new ones. The server's answer is what

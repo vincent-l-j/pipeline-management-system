@@ -380,6 +380,127 @@ describe("PitchDetailPage", () => {
   });
 });
 
+describe("PitchDetailPage contact removal", () => {
+  beforeEach(() => {
+    mockUser = { role: "admin" };
+  });
+
+  /** Renders the pitch with the given contacts attached and returns the card. */
+  async function renderWithContacts(contactIds: string[]) {
+    setupGet({ ...BASE_PITCH, contact_ids: contactIds });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+    return screen.getByTestId("pitch-contacts");
+  }
+
+  it("detaches a contact from the card itself", async () => {
+    const user = userEvent.setup();
+    apiMocks.patch.mockResolvedValue({
+      data: { ...BASE_PITCH, contact_ids: ["c2"] },
+    });
+    const card = await renderWithContacts(["c1", "c2"]);
+
+    await user.click(
+      within(card).getByRole("button", {
+        name: "Remove Zoe Zimmer from this pitch",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(apiMocks.patch.mock).toHaveBeenCalledWith("/pitches/42", {
+        contact_ids: ["c2"],
+      });
+    });
+    await waitFor(() => {
+      expect(within(card).queryByText("Zoe Zimmer")).not.toBeInTheDocument();
+    });
+    expect(card).toHaveTextContent("Contacts (1)");
+    expect(within(card).getByText("Ada Adams")).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("goes back to the empty state when the last contact is removed", async () => {
+    const user = userEvent.setup();
+    apiMocks.patch.mockResolvedValue({
+      data: { ...BASE_PITCH, contact_ids: [] },
+    });
+    const card = await renderWithContacts(["c1"]);
+
+    await user.click(
+      within(card).getByRole("button", {
+        name: "Remove Zoe Zimmer from this pitch",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(apiMocks.patch.mock).toHaveBeenCalledWith("/pitches/42", {
+        contact_ids: [],
+      });
+    });
+    await waitFor(() => {
+      expect(
+        within(card).getByText("No contacts recorded."),
+      ).toBeInTheDocument();
+    });
+    expect(card).toHaveTextContent("Contacts (0)");
+  });
+
+  it("keeps an attached contact the directory cannot name", async () => {
+    const user = userEvent.setup();
+    apiMocks.patch.mockResolvedValue({
+      data: { ...BASE_PITCH, contact_ids: ["c99"] },
+    });
+    const card = await renderWithContacts(["c1", "c99"]);
+
+    await user.click(
+      within(card).getByRole("button", {
+        name: "Remove Zoe Zimmer from this pitch",
+      }),
+    );
+
+    // The unnamed id is on the pitch and only the clicked one was asked to go:
+    // a whole-set write must not drop what the card could not render.
+    await waitFor(() => {
+      expect(apiMocks.patch.mock).toHaveBeenCalledWith("/pitches/42", {
+        contact_ids: ["c99"],
+      });
+    });
+  });
+
+  it("offers a viewer no way to remove one", async () => {
+    mockUser = { role: "viewer" };
+    const card = await renderWithContacts(["c1"]);
+
+    expect(
+      within(card).queryByRole("button", {
+        name: "Remove Zoe Zimmer from this pitch",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps the contact and reports the failure when the removal is rejected", async () => {
+    const user = userEvent.setup();
+    apiMocks.patch.mockRejectedValue({
+      response: { status: 403, data: { detail: "Requires role: assessor" } },
+    });
+    const card = await renderWithContacts(["c1"]);
+
+    await user.click(
+      within(card).getByRole("button", {
+        name: "Remove Zoe Zimmer from this pitch",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(
+        within(card).getByText("Requires role: assessor"),
+      ).toBeInTheDocument();
+    });
+    expect(within(card).getByText("Zoe Zimmer")).toBeInTheDocument();
+    expect(card).toHaveTextContent("Contacts (1)");
+  });
+});
+
 describe("PitchDetailPage delete", () => {
   beforeEach(() => {
     mockUser = { role: "admin" };

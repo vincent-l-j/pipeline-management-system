@@ -303,8 +303,7 @@ describe("PitchDetailPage", () => {
     await waitFor(() => screen.getByTestId("contact-chip"));
     await user.click(screen.getByRole("button", { name: "Add to pitch" }));
 
-    // The card resolves names from the directory, so the new contact has to
-    // have been folded into it — not just sent to the server.
+    // Named means folded into the directory, not merely sent to the server.
     const card = screen.getByTestId("pitch-contacts");
     await waitFor(() => {
       expect(within(card).getByText("Nora Nobody")).toBeInTheDocument();
@@ -374,7 +373,6 @@ describe("PitchDetailPage", () => {
     setupGet({ ...BASE_PITCH, is_confidential: true });
     render(<PitchDetailPage />);
     await waitFor(() => screen.getByText("Test Pitch"));
-    // Viewer can still read the pitch; the flag is a visual marker only.
     expect(screen.getByText("Confidential")).toBeInTheDocument();
     expect(screen.getByText("Test Pitch")).toBeInTheDocument();
   });
@@ -385,7 +383,6 @@ describe("PitchDetailPage contact removal", () => {
     mockUser = { role: "admin" };
   });
 
-  /** Renders the pitch with the given contacts attached and returns the card. */
   async function renderWithContacts(contactIds: string[]) {
     setupGet({ ...BASE_PITCH, contact_ids: contactIds });
     render(<PitchDetailPage />);
@@ -458,8 +455,7 @@ describe("PitchDetailPage contact removal", () => {
       }),
     );
 
-    // The unnamed id is on the pitch and only the clicked one was asked to go:
-    // a whole-set write must not drop what the card could not render.
+    // c99 stays: a whole-set write must not drop what the card cannot render.
     await waitFor(() => {
       expect(apiMocks.patch.mock).toHaveBeenCalledWith("/pitches/42", {
         contact_ids: ["c99"],
@@ -586,7 +582,6 @@ describe("PitchDetailPage delete", () => {
       expect(screen.getByText("Requires role: admin")).toBeInTheDocument();
     });
     expect(mockNavigate).not.toHaveBeenCalledWith("/pitches");
-    // The pitch is still on screen behind the still-open dialog.
     expect(
       screen.getByRole("heading", { name: "Test Pitch" }),
     ).toBeInTheDocument();

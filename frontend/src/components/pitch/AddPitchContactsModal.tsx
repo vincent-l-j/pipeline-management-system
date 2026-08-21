@@ -1,28 +1,8 @@
 /**
  * Attach contacts to a pitch from the pitch's own page.
  *
- * The detail page's contacts card used to send an editor to the edit form to add
- * a person, which meant loading a form for every field on the pitch to change
- * one list. This does that one job where the list is read.
- *
- * It only ever adds. The people already on the pitch are kept and are not
- * offered again, so the picker's chips are exactly the additions under
- * consideration — nothing here can detach someone by accident. Removing is the
- * card's own job, one person at a time, from the × on their row.
- *
- * The write is still a whole-set PATCH, because that is what the endpoint takes:
- * the attached ids go back out with the new ones. The server's answer is what
- * gets reported upwards rather than the list we sent, since it deduplicates.
- *
- * Contacts created in here are held locally as well as handed to the caller. The
- * picker resolves chips against the list it is given, so without the local copy
- * a brand-new contact would be picked but nameless until the caller's directory
- * caught up.
- *
- * Unlike the pitch forms, there is no <form> anywhere near this, so Enter has
- * nothing to submit and the quick-create dialog needs no guard against it here.
- * It does need one for Escape: both dialogs listen on the document, so this one
- * stands down while the inner one is open.
+ * Adds only: the people already on the pitch are kept and never offered, so no
+ * pick in here can detach anyone. Removing is the card's own job.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -79,12 +59,9 @@ export default function AddPitchContactsModal({
     pickerRef.current?.querySelector("input")?.focus();
   }, []);
 
-  /** Everyone pickable: what is on file plus what was just created, less the
-   *  people already on the pitch.
-   *
-   *  Deduplicated by id, because both halves can hold the same person: a caller
-   *  that folds a created contact into its own directory hands them straight
-   *  back as a prop, and a picker cannot show one person as two chips. */
+  // Deduplicated by id: a caller that folds a created contact into its own
+  // directory hands them straight back as a prop, and the picker cannot show
+  // one person as two chips.
   const pool = [...contacts, ...created].filter(
     (contact, index, all) =>
       !attachedIds.includes(contact.id) &&
@@ -92,6 +69,8 @@ export default function AddPitchContactsModal({
   );
 
   function contactCreated(contact: Contact): void {
+    // Kept locally as well as handed up: the picker names chips from the list
+    // it is given, so without this the new contact is picked but nameless.
     setCreated((prev) => [...prev, contact]);
     setPicked((prev) => [...prev, contact.id]);
     setCreatingFrom(null);
@@ -103,6 +82,8 @@ export default function AddPitchContactsModal({
     setSaving(true);
     setError(null);
     try {
+      // The endpoint replaces the whole set, so the attached ids go back out
+      // with the new ones. Its answer is reported up, not ours: it deduplicates.
       const { data } = await api.patch<{ contact_ids?: string[] }>(
         `/pitches/${pitchId}`,
         { contact_ids: [...attachedIds, ...picked] },
@@ -177,9 +158,8 @@ export default function AddPitchContactsModal({
           </button>
         </div>
 
-        {/* Inside the panel on purpose: it covers the screen either way, and
-            being a descendant keeps this dialog's outside-click from firing
-            when the inner one is clicked. */}
+        {/* A descendant on purpose: it keeps this dialog's outside-click from
+            firing when the inner one is clicked. */}
         {creatingFrom !== null && (
           <ContactQuickCreateModal
             initialQuery={creatingFrom}

@@ -99,7 +99,6 @@ describe("AddPitchContactsModal", () => {
     await user.click(screen.getByRole("option", { name: "Mid Middleton" }));
     await user.click(addButton());
 
-    // The whole set, not just the additions: PATCH replaces the links.
     expect(apiMocks.patch.mock).toHaveBeenCalledWith("/pitches/42", {
       contact_ids: ["c1", "c2", "c3"],
     });
@@ -157,7 +156,6 @@ describe("AddPitchContactsModal", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(onSaved).not.toHaveBeenCalled();
     expect(onCancel).not.toHaveBeenCalled();
-    // The pick survives, so retrying costs nothing.
     expect(screen.getByTestId("contact-chip")).toHaveTextContent("Ada Adams");
   });
 
@@ -186,7 +184,6 @@ describe("AddPitchContactsModal", () => {
         "Nora Nobody",
       );
     });
-    // Handed up so the page's directory knows about them too.
     expect(onContactCreated).toHaveBeenCalledWith(created);
     expect(
       screen.queryByTestId("contact-quick-create-overlay"),
@@ -295,7 +292,6 @@ describe("AddPitchContactsModal", () => {
     expect(
       screen.queryByTestId("contact-quick-create-overlay"),
     ).not.toBeInTheDocument();
-    // Still here, with the picker intact.
     expect(onCancel).not.toHaveBeenCalled();
     expect(searchBox()).toBeInTheDocument();
   });

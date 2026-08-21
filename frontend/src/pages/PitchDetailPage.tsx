@@ -1,13 +1,4 @@
-/**
- * Pitch detail page — the single view for everything about a pitch.
- *
- * Left column: pitch info, description, stage badge, tags, metadata
- * Right column: contacts, linked meetings & assessments, file links
- *
- * Contacts are fetched on their own rather than in the page's main chain: a
- * pitch is still worth reading if the directory lookup fails, so that failure
- * becomes a note in one card instead of a redirect back to the pitch list.
- */
+/** Pitch detail page — the single view for everything about a pitch. */
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -63,8 +54,7 @@ export default function PitchDetailPage(): React.JSX.Element {
   const [deleteError, setDeleteError] = useState<string>("");
 
   const canEdit: boolean = user?.role === "admin" || user?.role === "assessor";
-  // Delete is admin-only, matching require_role on DELETE /api/pitches/{id}.
-  // This is UX only — the server is the boundary.
+  // UX only — the server enforces admin on DELETE /api/pitches/{id}.
   const canDelete: boolean = user?.role === "admin";
 
   useEffect((): void => {
@@ -118,6 +108,8 @@ export default function PitchDetailPage(): React.JSX.Element {
         void navigate("/pitches");
       });
 
+    // Off the main chain: a failed directory lookup becomes a note in one card
+    // rather than a redirect away from a pitch that is still worth reading.
     api
       .get<Contact[]>("/contacts")
       .then(({ data }): void => {
@@ -140,8 +132,7 @@ export default function PitchDetailPage(): React.JSX.Element {
     }
   }
 
-  /** The dialog hands back the contact set the server confirmed, so the card is
-   *  corrected without re-fetching the pitch. */
+  /** Takes the set the server confirmed, so the card needs no re-fetch. */
   function contactsAttached(contactIds: string[]): void {
     setPitch((prev): ExtendedPitch | null =>
       prev ? { ...prev, contact_ids: contactIds } : prev,
@@ -149,15 +140,9 @@ export default function PitchDetailPage(): React.JSX.Element {
     setAddingContacts(false);
   }
 
-  /** Detach one contact, straight from the card — no confirmation, since the
-   *  + Add button puts them back.
-   *
-   *  The write is the whole set, because that is what the endpoint takes: the
-   *  people staying go back out, including any id the directory could not name,
-   *  which the list above never rendered. Only one removal is allowed in flight
-   *  at a time — two whole-set writes computed from the same starting set would
-   *  each put the other's contact back. */
   async function removeContact(contactId: string): Promise<void> {
+    // From the pitch, not the rendered rows: the endpoint replaces the whole
+    // set, so an id the directory could not name has to go back out too.
     const remaining = (pitch?.contact_ids ?? []).filter(
       (id): boolean => id !== contactId,
     );
@@ -179,8 +164,8 @@ export default function PitchDetailPage(): React.JSX.Element {
     }
   }
 
-  /** A contact created inside the dialog is not in the directory this page
-   *  fetched, and the card resolves its names from that directory. */
+  /** Folds a contact created in the dialog into the directory the card names
+   *  its rows from. */
   function contactCreated(contact: Contact): void {
     setContacts((prev): Contact[] => [...prev, contact]);
   }
@@ -201,8 +186,8 @@ export default function PitchDetailPage(): React.JSX.Element {
 
   const stage = STAGE_MAP[pitch.current_stage];
   const leadName = getUserName(pitch.lead_id);
-  // Counted from the pitch, not from the resolved names: the count is right
-  // even when the directory lookup failed and no name can be shown.
+  // From the pitch, not the resolved names, so the count is right even when the
+  // directory lookup failed.
   const contactIds = pitch.contact_ids ?? [];
   const people = pickedContacts(contacts, contactIds);
 
@@ -418,6 +403,8 @@ export default function PitchDetailPage(): React.JSX.Element {
                         onClick={() => {
                           void removeContact(c.id);
                         }}
+                        // One at a time: two whole-set writes computed from the
+                        // same starting set each restore the other's contact.
                         disabled={removingContact !== null}
                         className="text-navy-300 hover:text-red-600 leading-none px-1 transition-colors disabled:opacity-50"
                       >

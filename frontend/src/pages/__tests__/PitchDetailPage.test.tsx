@@ -222,6 +222,111 @@ describe("PitchDetailPage", () => {
     expect(within(card).getByText("Zoe Zimmer")).toBeInTheDocument();
   });
 
+  it("attaches contacts from the card itself, without going to the edit form", async () => {
+    const user = userEvent.setup();
+    setupGet({ ...BASE_PITCH, contact_ids: ["c1"] });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    const card = screen.getByTestId("pitch-contacts");
+    // A button, not a link: nothing here navigates away.
+    await user.click(within(card).getByRole("button", { name: "+ Add" }));
+
+    expect(screen.getByRole("dialog")).toHaveAccessibleName("Add contacts");
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("offers a viewer no way to attach one", async () => {
+    mockUser = { role: "viewer" };
+    setupGet({ ...BASE_PITCH, contact_ids: ["c1"] });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    const card = screen.getByTestId("pitch-contacts");
+    expect(
+      within(card).queryByRole("button", { name: "+ Add" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows a newly attached contact in the card without a reload", async () => {
+    const user = userEvent.setup();
+    setupGet({ ...BASE_PITCH, contact_ids: ["c1"] });
+    apiMocks.patch.mockResolvedValue({
+      data: { ...BASE_PITCH, contact_ids: ["c1", "c2"] },
+    });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    await user.click(screen.getByRole("button", { name: "+ Add" }));
+    await user.click(screen.getByRole("combobox", { name: "Add contact" }));
+    await user.click(screen.getByRole("option", { name: "Ada Adams" }));
+    await user.click(screen.getByRole("button", { name: "Add to pitch" }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    const card = screen.getByTestId("pitch-contacts");
+    expect(card).toHaveTextContent("Contacts (2)");
+    expect(within(card).getByText("Ada Adams")).toBeInTheDocument();
+    expect(within(card).getByText("Zoe Zimmer")).toBeInTheDocument();
+  });
+
+  it("names a contact created in the dialog once they are on the pitch", async () => {
+    const user = userEvent.setup();
+    setupGet();
+    apiMocks.post.mockResolvedValue({
+      data: {
+        id: "c9",
+        first_name: "Nora",
+        last_name: "Nobody",
+        email: null,
+        organisation_ids: [],
+      },
+    });
+    apiMocks.patch.mockResolvedValue({
+      data: { ...BASE_PITCH, contact_ids: ["c9"] },
+    });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    await user.click(screen.getByRole("button", { name: "+ Add" }));
+    await user.type(
+      screen.getByRole("combobox", { name: "Add contact" }),
+      "Nora Nobody",
+    );
+    await user.click(
+      screen.getByRole("option", {
+        name: 'Add "Nora Nobody" as a new contact',
+      }),
+    );
+    await user.click(screen.getByRole("button", { name: "Add contact" }));
+    await waitFor(() => screen.getByTestId("contact-chip"));
+    await user.click(screen.getByRole("button", { name: "Add to pitch" }));
+
+    // Named means folded into the directory, not merely sent to the server.
+    const card = screen.getByTestId("pitch-contacts");
+    await waitFor(() => {
+      expect(within(card).getByText("Nora Nobody")).toBeInTheDocument();
+    });
+    expect(card).toHaveTextContent("Contacts (1)");
+  });
+
+  it("leaves the card alone when the dialog is cancelled", async () => {
+    const user = userEvent.setup();
+    setupGet({ ...BASE_PITCH, contact_ids: ["c1"] });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    await user.click(screen.getByRole("button", { name: "+ Add" }));
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(apiMocks.patch.mock).not.toHaveBeenCalled();
+    expect(screen.getByTestId("pitch-contacts")).toHaveTextContent(
+      "Contacts (1)",
+    );
+  });
+
   it("reports a failed contact load instead of claiming there are none", async () => {
     apiMocks.get.mockImplementation((url: string) => {
       if (url === "/pitches/42")
@@ -268,9 +373,127 @@ describe("PitchDetailPage", () => {
     setupGet({ ...BASE_PITCH, is_confidential: true });
     render(<PitchDetailPage />);
     await waitFor(() => screen.getByText("Test Pitch"));
-    // Viewer can still read the pitch; the flag is a visual marker only.
     expect(screen.getByText("Confidential")).toBeInTheDocument();
     expect(screen.getByText("Test Pitch")).toBeInTheDocument();
+  });
+});
+
+describe("PitchDetailPage contact removal", () => {
+  beforeEach(() => {
+    mockUser = { role: "admin" };
+  });
+
+  async function renderWithContacts(contactIds: string[]) {
+    setupGet({ ...BASE_PITCH, contact_ids: contactIds });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+    return screen.getByTestId("pitch-contacts");
+  }
+
+  it("detaches a contact from the card itself", async () => {
+    const user = userEvent.setup();
+    apiMocks.patch.mockResolvedValue({
+      data: { ...BASE_PITCH, contact_ids: ["c2"] },
+    });
+    const card = await renderWithContacts(["c1", "c2"]);
+
+    await user.click(
+      within(card).getByRole("button", {
+        name: "Remove Zoe Zimmer from this pitch",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(apiMocks.patch.mock).toHaveBeenCalledWith("/pitches/42", {
+        contact_ids: ["c2"],
+      });
+    });
+    await waitFor(() => {
+      expect(within(card).queryByText("Zoe Zimmer")).not.toBeInTheDocument();
+    });
+    expect(card).toHaveTextContent("Contacts (1)");
+    expect(within(card).getByText("Ada Adams")).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it("goes back to the empty state when the last contact is removed", async () => {
+    const user = userEvent.setup();
+    apiMocks.patch.mockResolvedValue({
+      data: { ...BASE_PITCH, contact_ids: [] },
+    });
+    const card = await renderWithContacts(["c1"]);
+
+    await user.click(
+      within(card).getByRole("button", {
+        name: "Remove Zoe Zimmer from this pitch",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(apiMocks.patch.mock).toHaveBeenCalledWith("/pitches/42", {
+        contact_ids: [],
+      });
+    });
+    await waitFor(() => {
+      expect(
+        within(card).getByText("No contacts recorded."),
+      ).toBeInTheDocument();
+    });
+    expect(card).toHaveTextContent("Contacts (0)");
+  });
+
+  it("keeps an attached contact the directory cannot name", async () => {
+    const user = userEvent.setup();
+    apiMocks.patch.mockResolvedValue({
+      data: { ...BASE_PITCH, contact_ids: ["c99"] },
+    });
+    const card = await renderWithContacts(["c1", "c99"]);
+
+    await user.click(
+      within(card).getByRole("button", {
+        name: "Remove Zoe Zimmer from this pitch",
+      }),
+    );
+
+    // c99 stays: a whole-set write must not drop what the card cannot render.
+    await waitFor(() => {
+      expect(apiMocks.patch.mock).toHaveBeenCalledWith("/pitches/42", {
+        contact_ids: ["c99"],
+      });
+    });
+  });
+
+  it("offers a viewer no way to remove one", async () => {
+    mockUser = { role: "viewer" };
+    const card = await renderWithContacts(["c1"]);
+
+    expect(
+      within(card).queryByRole("button", {
+        name: "Remove Zoe Zimmer from this pitch",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps the contact and reports the failure when the removal is rejected", async () => {
+    const user = userEvent.setup();
+    apiMocks.patch.mockRejectedValue({
+      response: { status: 403, data: { detail: "Requires role: assessor" } },
+    });
+    const card = await renderWithContacts(["c1"]);
+
+    await user.click(
+      within(card).getByRole("button", {
+        name: "Remove Zoe Zimmer from this pitch",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(
+        within(card).getByText("Requires role: assessor"),
+      ).toBeInTheDocument();
+    });
+    expect(within(card).getByText("Zoe Zimmer")).toBeInTheDocument();
+    expect(card).toHaveTextContent("Contacts (1)");
   });
 });
 
@@ -359,7 +582,6 @@ describe("PitchDetailPage delete", () => {
       expect(screen.getByText("Requires role: admin")).toBeInTheDocument();
     });
     expect(mockNavigate).not.toHaveBeenCalledWith("/pitches");
-    // The pitch is still on screen behind the still-open dialog.
     expect(
       screen.getByRole("heading", { name: "Test Pitch" }),
     ).toBeInTheDocument();

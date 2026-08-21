@@ -1,13 +1,4 @@
-/**
- * Pitch detail page — the single view for everything about a pitch.
- *
- * Left column: pitch info, description, stage badge, tags, metadata
- * Right column: contacts, linked meetings & assessments, file links
- *
- * Contacts are fetched on their own rather than in the page's main chain: a
- * pitch is still worth reading if the directory lookup fails, so that failure
- * becomes a note in one card instead of a redirect back to the pitch list.
- */
+/** Pitch detail page — the single view for everything about a pitch. */
 
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -17,6 +8,7 @@ import PageHeader from "../components/PageHeader";
 import ActivityTimeline from "../components/pitch/ActivityTimeline";
 import DeletePitchModal from "../components/pitch/DeletePitchModal";
 import FileLinks from "../components/pitch/FileLinks";
+import AddPitchContactsModal from "../components/pitch/AddPitchContactsModal";
 import { pickedContacts } from "../components/contacts/ContactPicker";
 import { contactName } from "../components/contacts/contactName";
 import {
@@ -54,13 +46,15 @@ export default function PitchDetailPage(): React.JSX.Element {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [addingContacts, setAddingContacts] = useState<boolean>(false);
+  const [removingContact, setRemovingContact] = useState<string | null>(null);
+  const [removeError, setRemoveError] = useState<string | null>(null);
   const [showDelete, setShowDelete] = useState<boolean>(false);
   const [deleting, setDeleting] = useState<boolean>(false);
   const [deleteError, setDeleteError] = useState<string>("");
 
   const canEdit: boolean = user?.role === "admin" || user?.role === "assessor";
-  // Delete is admin-only, matching require_role on DELETE /api/pitches/{id}.
-  // This is UX only — the server is the boundary.
+  // UX only — the server enforces admin on DELETE /api/pitches/{id}.
   const canDelete: boolean = user?.role === "admin";
 
   useEffect((): void => {
@@ -114,6 +108,8 @@ export default function PitchDetailPage(): React.JSX.Element {
         void navigate("/pitches");
       });
 
+    // Off the main chain: a failed directory lookup becomes a note in one card
+    // rather than a redirect away from a pitch that is still worth reading.
     api
       .get<Contact[]>("/contacts")
       .then(({ data }): void => {
@@ -136,6 +132,44 @@ export default function PitchDetailPage(): React.JSX.Element {
     }
   }
 
+  /** Takes the set the server confirmed, so the card needs no re-fetch. */
+  function contactsAttached(contactIds: string[]): void {
+    setPitch((prev): ExtendedPitch | null =>
+      prev ? { ...prev, contact_ids: contactIds } : prev,
+    );
+    setAddingContacts(false);
+  }
+
+  async function removeContact(contactId: string): Promise<void> {
+    // From the pitch, not the rendered rows: the endpoint replaces the whole
+    // set, so an id the directory could not name has to go back out too.
+    const remaining = (pitch?.contact_ids ?? []).filter(
+      (id): boolean => id !== contactId,
+    );
+    setRemovingContact(contactId);
+    setRemoveError(null);
+    try {
+      const { data } = await api.patch<{ contact_ids?: string[] }>(
+        `/pitches/${String(pitchId)}`,
+        { contact_ids: remaining },
+      );
+      const confirmed = data.contact_ids ?? remaining;
+      setPitch((prev): ExtendedPitch | null =>
+        prev ? { ...prev, contact_ids: confirmed } : prev,
+      );
+    } catch (err) {
+      setRemoveError(apiErrorMessage(err, "Failed to remove contact"));
+    } finally {
+      setRemovingContact(null);
+    }
+  }
+
+  /** Folds a contact created in the dialog into the directory the card names
+   *  its rows from. */
+  function contactCreated(contact: Contact): void {
+    setContacts((prev): Contact[] => [...prev, contact]);
+  }
+
   function getUserName(userId: string | undefined): string | null {
     if (!userId) return null;
     const u = users.find((u): boolean => u.id === userId);
@@ -152,8 +186,8 @@ export default function PitchDetailPage(): React.JSX.Element {
 
   const stage = STAGE_MAP[pitch.current_stage];
   const leadName = getUserName(pitch.lead_id);
-  // Counted from the pitch, not from the resolved names: the count is right
-  // even when the directory lookup failed and no name can be shown.
+  // From the pitch, not the resolved names, so the count is right even when the
+  // directory lookup failed.
   const contactIds = pitch.contact_ids ?? [];
   const people = pickedContacts(contacts, contactIds);
 
@@ -214,6 +248,19 @@ export default function PitchDetailPage(): React.JSX.Element {
           }}
           onConfirm={() => {
             void deletePitch();
+          }}
+        />
+      )}
+
+      {addingContacts && (
+        <AddPitchContactsModal
+          pitchId={pitchId}
+          contacts={contacts}
+          attachedIds={contactIds}
+          onContactCreated={contactCreated}
+          onSaved={contactsAttached}
+          onCancel={() => {
+            setAddingContacts(false);
           }}
         />
       )}
@@ -318,6 +365,17 @@ export default function PitchDetailPage(): React.JSX.Element {
               <h2 className="text-sm font-semibold text-navy-500 uppercase tracking-wide">
                 Contacts ({String(contactIds.length)})
               </h2>
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAddingContacts(true);
+                  }}
+                  className="text-xs text-navy-600 hover:text-navy-900 font-medium"
+                >
+                  + Add
+                </button>
+              )}
             </div>
             {contactsError ? (
               <p className="text-sm text-red-600">{contactsError}</p>
@@ -326,16 +384,39 @@ export default function PitchDetailPage(): React.JSX.Element {
             ) : (
               <ul className="space-y-2">
                 {people.map((c: Contact) => (
-                  <li key={c.id}>
-                    <p className="text-sm font-medium text-navy-900">
-                      {contactName(c)}
-                    </p>
-                    {c.email && (
-                      <p className="text-xs text-navy-500">{c.email}</p>
+                  <li
+                    key={c.id}
+                    className="flex items-start justify-between gap-2"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-navy-900">
+                        {contactName(c)}
+                      </p>
+                      {c.email && (
+                        <p className="text-xs text-navy-500">{c.email}</p>
+                      )}
+                    </div>
+                    {canEdit && (
+                      <button
+                        type="button"
+                        aria-label={`Remove ${contactName(c)} from this pitch`}
+                        onClick={() => {
+                          void removeContact(c.id);
+                        }}
+                        // One at a time: two whole-set writes computed from the
+                        // same starting set each restore the other's contact.
+                        disabled={removingContact !== null}
+                        className="text-navy-300 hover:text-red-600 leading-none px-1 transition-colors disabled:opacity-50"
+                      >
+                        ×
+                      </button>
                     )}
                   </li>
                 ))}
               </ul>
+            )}
+            {removeError && (
+              <p className="text-sm text-red-600 mt-3">{removeError}</p>
             )}
           </div>
 

@@ -15,6 +15,7 @@ class PitchCreate(BaseModel):
     domain_tags: str | None = None
     funding_pathway: FundingPathway | None = None
     masterplan_alignment: str | None = None
+    next_step: str | None = None
     is_confidential: bool = False
     organisation_id: UUID | None = None
     lead_id: UUID | None = None
@@ -32,6 +33,7 @@ class PitchUpdate(BaseModel):
     domain_tags: str | None = None
     funding_pathway: FundingPathway | None = None
     masterplan_alignment: str | None = None
+    next_step: str | None = None
     is_confidential: bool | None = None
     organisation_id: UUID | None = None
     lead_id: UUID | None = None
@@ -66,6 +68,7 @@ class PitchOut(BaseModel):
     domain_tags: str | None
     funding_pathway: FundingPathway | None
     masterplan_alignment: str | None
+    next_step: str | None
     is_confidential: bool
     organisation_id: UUID | None
     lead_id: UUID | None

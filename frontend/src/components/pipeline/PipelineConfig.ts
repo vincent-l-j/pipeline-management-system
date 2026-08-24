@@ -132,6 +132,24 @@ export const SOURCE_OPTIONS: readonly SelectOption[] =
   optionsFrom(SOURCE_LABELS);
 
 /**
+ * Labels for what a pitch is asking Rozetta for.
+ * Maps request type keys to display labels.
+ */
+export const REQUEST_TYPE_LABELS: Record<string, string> = {
+  advise: "Advise",
+  convene: "Convene",
+  sponsored_research: "Sponsored Research",
+  thought_leadership: "Thought Leadership",
+  catalyse: "Catalyse",
+  direct_investment: "Direct Investment",
+  other: "Other",
+} as const;
+
+/** Request options for the pitch forms, derived from {@link REQUEST_TYPE_LABELS}. */
+export const REQUEST_TYPE_OPTIONS: readonly SelectOption[] =
+  optionsFrom(REQUEST_TYPE_LABELS);
+
+/**
  * Domain vocabulary offered by the pitch forms and the pipeline filter.
  * Stored on a pitch as a comma-separated free-text string, so retiring a value
  * here leaves existing pitches tagged with it untouched.

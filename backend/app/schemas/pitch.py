@@ -4,7 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.models.assessment import DeclineReason
-from app.models.pitch import FundingPathway, PipelineStage, PitchSource
+from app.models.pitch import FundingPathway, PipelineStage, PitchSource, RequestType
 
 
 class PitchCreate(BaseModel):
@@ -12,6 +12,7 @@ class PitchCreate(BaseModel):
     short_description: str | None = None
     submission_date: date | None = None
     source: PitchSource | None = None
+    request_type: RequestType | None = None
     current_stage: PipelineStage = PipelineStage.RECEIVED
     domain_tags: str | None = None
     funding_pathway: FundingPathway | None = None
@@ -31,6 +32,7 @@ class PitchUpdate(BaseModel):
     short_description: str | None = None
     submission_date: date | None = None
     source: PitchSource | None = None
+    request_type: RequestType | None = None
     domain_tags: str | None = None
     funding_pathway: FundingPathway | None = None
     masterplan_alignment: str | None = None
@@ -65,6 +67,7 @@ class PitchOut(BaseModel):
     short_description: str | None
     submission_date: date | None
     source: PitchSource | None
+    request_type: RequestType | None
     current_stage: PipelineStage
     domain_tags: str | None
     funding_pathway: FundingPathway | None

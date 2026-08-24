@@ -37,6 +37,23 @@ class PitchSource(enum.StrEnum):
     ROZETTA_NETWORK = "rozetta_network"
 
 
+class RequestType(enum.StrEnum):
+    """What the pitch is asking Rozetta for.
+
+    An enum rather than free text because the point of capturing it is to be able
+    to count it: "how much of the pipeline is asking us to convene, and how much
+    to invest". Extending it means a migration, which is the price of that.
+    """
+
+    ADVISE = "advise"
+    CONVENE = "convene"
+    SPONSORED_RESEARCH = "sponsored_research"
+    THOUGHT_LEADERSHIP = "thought_leadership"
+    CATALYSE = "catalyse"
+    DIRECT_INVESTMENT = "direct_investment"
+    OTHER = "other"
+
+
 class FundingPathway(enum.StrEnum):
     CRC_BID = "crc_bid"
     RDTI = "rdti"
@@ -56,6 +73,8 @@ class Pitch(Base, TimestampMixin):
     short_description: Mapped[str | None] = mapped_column(Text)
     submission_date: Mapped[date | None] = mapped_column(Date)
     source: Mapped[PitchSource | None] = mapped_column(SAEnum(PitchSource))
+    # Optional: the ask is often not settled when a pitch is first logged.
+    request_type: Mapped[RequestType | None] = mapped_column(SAEnum(RequestType))
     current_stage: Mapped[PipelineStage] = mapped_column(
         SAEnum(PipelineStage), default=PipelineStage.RECEIVED
     )

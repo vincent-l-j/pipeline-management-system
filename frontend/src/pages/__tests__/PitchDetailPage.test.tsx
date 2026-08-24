@@ -428,9 +428,8 @@ describe("PitchDetailPage", () => {
     expect(screen.getByText("Sponsored Research")).toBeInTheDocument();
   });
 
-  it("falls back to the raw request it has no label for", async () => {
-    // A backend enum added ahead of the frontend degrades to an unpretty string
-    // rather than a blank row.
+  it("falls back to the raw request when it has no label", async () => {
+    // A backend enum added ahead of the frontend shows unprettified, not blank.
     setupGet({ ...BASE_PITCH, request_type: "brand_new_ask" });
     render(<PitchDetailPage />);
     await waitFor(() => screen.getByText("Test Pitch"));

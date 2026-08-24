@@ -3,6 +3,8 @@ import {
   CRITERIA,
   SCORE_LABELS,
   RECOMMENDATION_OPTIONS,
+  DECLINE_REASON_LABELS,
+  DECLINE_REASON_OPTIONS,
 } from "../AssessmentConfig";
 
 describe("AssessmentConfig", () => {
@@ -53,4 +55,25 @@ describe("AssessmentConfig", () => {
       expect(option.color).toBeTruthy();
     },
   );
+
+  it("labels every decline reason the backend can return", () => {
+    // Mirrors DeclineReason in backend/app/models/assessment.py.
+    expect(Object.keys(DECLINE_REASON_LABELS)).toEqual([
+      "not_strategic_priority",
+      "insufficient_scale",
+      "insufficient_capacity_capability",
+      "grant_funding_rejected",
+      "lack_of_rozetta_capacity",
+      "other",
+    ]);
+  });
+
+  it("derives a reason option for every label, in the same order", () => {
+    expect(DECLINE_REASON_OPTIONS).toEqual(
+      Object.entries(DECLINE_REASON_LABELS).map(([value, label]) => ({
+        value,
+        label,
+      })),
+    );
+  });
 });

@@ -4,7 +4,11 @@
  */
 
 import { ReactElement } from "react";
-import { CRITERIA, RECOMMENDATION_OPTIONS } from "./AssessmentConfig";
+import {
+  CRITERIA,
+  RECOMMENDATION_OPTIONS,
+  DECLINE_REASON_LABELS,
+} from "./AssessmentConfig";
 import ScoreSelector from "./ScoreSelector";
 import type { AssessmentScores, Recommendation } from "../../types";
 
@@ -15,6 +19,7 @@ import type { AssessmentScores, Recommendation } from "../../types";
 export interface ScoringCardAssessment extends AssessmentScores {
   version: number;
   recommendation: Recommendation;
+  decline_reason?: string | null;
   assessment_date: string;
   rationale?: string;
 }
@@ -61,6 +66,12 @@ export default function ScoringCard({
                 className={`text-xs font-medium px-2.5 py-1 rounded-full border ${rec.color}`}
               >
                 {rec.label}
+              </span>
+            )}
+            {assessment.decline_reason && (
+              <span className="text-xs font-medium px-2.5 py-1 rounded-full border bg-red-50 text-red-700 border-red-200">
+                {DECLINE_REASON_LABELS[assessment.decline_reason] ??
+                  assessment.decline_reason}
               </span>
             )}
           </div>

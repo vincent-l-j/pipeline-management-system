@@ -17,6 +17,7 @@ interface Pitch {
   submission_date: string | null;
   masterplan_alignment: string | null;
   next_step: string | null;
+  decline_reason: string | null;
   organisation_id: string | null;
   contact_ids: string[];
 }
@@ -114,6 +115,7 @@ const BASE_PITCH: Pitch = {
   submission_date: null,
   masterplan_alignment: null,
   next_step: null,
+  decline_reason: null,
   organisation_id: null,
   contact_ids: [],
 };
@@ -377,6 +379,42 @@ describe("PitchDetailPage", () => {
     await waitFor(() => screen.getByText("Test Pitch"));
     expect(screen.getByText("Confidential")).toBeInTheDocument();
     expect(screen.getByText("Test Pitch")).toBeInTheDocument();
+  });
+
+  it("shows the decline reason beside the stage badge", async () => {
+    setupGet({
+      ...BASE_PITCH,
+      current_stage: "declined",
+      decline_reason: "lack_of_rozetta_capacity",
+    });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    expect(screen.getByText("Declined")).toBeInTheDocument();
+    expect(screen.getByText("Lack of Rozetta capacity")).toBeInTheDocument();
+  });
+
+  it("shows no reason on a pitch that has none", async () => {
+    setupGet({ ...BASE_PITCH, current_stage: "declined" });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    expect(
+      screen.queryByText("Lack of Rozetta capacity"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the decline reason to a viewer", async () => {
+    mockUser = { role: "viewer" };
+    setupGet({
+      ...BASE_PITCH,
+      current_stage: "declined",
+      decline_reason: "other",
+    });
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+
+    expect(screen.getByText("Other")).toBeInTheDocument();
   });
 
   it("shows the next step in its own callout, above the details card", async () => {

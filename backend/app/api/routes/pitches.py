@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.core.database import get_db
 from app.core.security import get_current_user, require_role
-from app.models.assessment import Assessment
+from app.models.assessment import Assessment, DeclineReason
 from app.models.contact import Contact
 from app.models.pitch import PipelineStage, Pitch, PitchContact, PitchFileLink, PitchStageHistory
 from app.models.user import User, UserRole
@@ -21,6 +21,7 @@ from app.schemas.pitch import (
     PitchUpdate,
     StageHistoryOut,
 )
+from app.services.assessments import latest_assessment_by_pitch
 
 router = APIRouter(prefix="/pitches", tags=["pitches"])
 
@@ -65,6 +66,29 @@ def _set_contacts(pitch: Pitch, contact_ids: list[UUID], db: Session) -> None:
             pitch.contact_links.append(PitchContact(contact_id=contact_id))
 
 
+def _as_out(pitch: Pitch, reason: DeclineReason | None) -> PitchOut:
+    out = PitchOut.model_validate(pitch)
+    out.decline_reason = reason
+    return out
+
+
+def _decline_reason_for(db: Session, pitch: Pitch) -> DeclineReason | None:
+    """The reason on a declined pitch's latest assessment, if there is one.
+
+    Only a declined pitch has one to report, and checking the stage first means a
+    pitch anywhere else in the pipeline costs no query at all.
+    """
+    if pitch.current_stage != PipelineStage.DECLINED:
+        return None
+    latest = (
+        db.query(Assessment)
+        .filter(Assessment.pitch_id == pitch.id)
+        .order_by(Assessment.version.desc())
+        .first()
+    )
+    return latest.decline_reason if latest else None
+
+
 @router.get("", response_model=list[PitchOut])
 def list_pitches(
     stage: PipelineStage | None = Query(None),
@@ -79,7 +103,24 @@ def list_pitches(
         query = query.filter(Pitch.current_stage == stage)
     if lead_id:
         query = query.filter(Pitch.lead_id == lead_id)
-    return query.order_by(Pitch.created_at.desc()).all()
+    pitches = query.order_by(Pitch.created_at.desc()).all()
+
+    # One extra query for the whole page rather than one per pitch, and none at
+    # all when nothing on the page is declined.
+    latest = (
+        latest_assessment_by_pitch(db)
+        if any(p.current_stage == PipelineStage.DECLINED for p in pitches)
+        else {}
+    )
+    return [
+        _as_out(
+            pitch,
+            latest[pitch.id].decline_reason
+            if pitch.current_stage == PipelineStage.DECLINED and pitch.id in latest
+            else None,
+        )
+        for pitch in pitches
+    ]
 
 
 @router.get("/{pitch_id}", response_model=PitchOut)
@@ -91,7 +132,7 @@ def get_pitch(
     pitch = db.query(Pitch).filter(Pitch.id == pitch_id).first()
     if not pitch:
         raise HTTPException(status_code=404, detail="Pitch not found")
-    return pitch
+    return _as_out(pitch, _decline_reason_for(db, pitch))
 
 
 @router.post("", response_model=PitchOut)
@@ -119,7 +160,7 @@ def create_pitch(
     db.add(history)
     db.commit()
     db.refresh(pitch)
-    return pitch
+    return _as_out(pitch, _decline_reason_for(db, pitch))
 
 
 @router.patch("/{pitch_id}", response_model=PitchOut)
@@ -145,7 +186,7 @@ def update_pitch(
             raise
     db.commit()
     db.refresh(pitch)
-    return pitch
+    return _as_out(pitch, _decline_reason_for(db, pitch))
 
 
 @router.post("/{pitch_id}/stage", response_model=PitchOut)
@@ -173,7 +214,7 @@ def update_pitch_stage(
     db.add(history)
     db.commit()
     db.refresh(pitch)
-    return pitch
+    return _as_out(pitch, _decline_reason_for(db, pitch))
 
 
 @router.get("/{pitch_id}/history", response_model=list[StageHistoryOut])

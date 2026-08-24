@@ -16,6 +16,7 @@ import {
   SOURCE_LABELS,
   FUNDING_LABELS,
 } from "../components/pipeline/PipelineConfig";
+import { DECLINE_REASON_LABELS } from "../components/assessments/AssessmentConfig";
 import api from "../services/api";
 import { apiErrorMessage } from "../services/apiError";
 import { useAuth } from "../contexts/AuthContext";
@@ -293,6 +294,14 @@ export default function PitchDetailPage(): React.JSX.Element {
               >
                 {stage.label}
               </span>
+              {/* Beside the stage badge, where a reader already looks for
+                  decision context. */}
+              {pitch.decline_reason && (
+                <span className="text-xs bg-red-50 text-red-700 px-2 py-0.5 rounded font-medium">
+                  {DECLINE_REASON_LABELS[pitch.decline_reason] ??
+                    pitch.decline_reason}
+                </span>
+              )}
               {pitch.is_confidential && (
                 <span className="text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded font-medium">
                   Confidential

@@ -153,29 +153,18 @@ export default function AssessmentCreatePage(): React.JSX.Element {
 
         <div className="bg-white rounded-xl border border-navy-100 p-6">
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-navy-700 mb-1">
-                Pitch *
-              </label>
-              <select
-                required
-                disabled={!!amendFromId}
-                value={form.pitch_id}
-                onChange={(e) => {
-                  setForm((prev) => ({ ...prev, pitch_id: e.target.value }));
-                }}
-                className={`w-full border border-navy-200 rounded-lg px-3 py-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300 ${
-                  amendFromId ? "bg-gray-100 cursor-not-allowed opacity-60" : ""
-                }`}
-              >
-                <option value="">Select a pitch...</option>
-                {pitches.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <OptionSelect
+              id="assessment-pitch"
+              label="Pitch *"
+              placeholder="Select a pitch..."
+              required
+              disabled={!!amendFromId}
+              value={form.pitch_id}
+              options={pitches.map((p) => ({ value: p.id, label: p.title }))}
+              onChange={(pitch_id) => {
+                setForm((prev) => ({ ...prev, pitch_id }));
+              }}
+            />
             <div>
               <label className="block text-sm font-medium text-navy-700 mb-1">
                 Assessment Date *

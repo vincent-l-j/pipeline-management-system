@@ -16,57 +16,13 @@ import {
   SOURCE_OPTIONS,
   REQUEST_TYPE_OPTIONS,
   FUNDING_OPTIONS,
-  SelectOption,
 } from "../pipeline/PipelineConfig";
 import Combobox from "../ui/Combobox";
+import OptionSelect from "../ui/OptionSelect";
 import ContactPicker from "../contacts/ContactPicker";
 import { Contact, Organisation, User } from "../../types";
 import { PitchFormValues } from "./pitchForm";
 import { inputClass, labelClass } from "../ui/formStyles";
-
-interface OptionSelectProps {
-  id: string;
-  label: string;
-  placeholder: string;
-  value: string;
-  options: readonly SelectOption[];
-  disabled: boolean;
-  onChange: (value: string) => void;
-}
-
-function OptionSelect({
-  id,
-  label,
-  placeholder,
-  value,
-  options,
-  disabled,
-  onChange,
-}: OptionSelectProps): React.JSX.Element {
-  return (
-    <div>
-      <label className={labelClass} htmlFor={id}>
-        {label}
-      </label>
-      <select
-        id={id}
-        disabled={disabled}
-        value={value}
-        onChange={(e) => {
-          onChange(e.target.value);
-        }}
-        className={inputClass}
-      >
-        <option value="">{placeholder}</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
 
 interface PitchFormFieldsProps {
   values: PitchFormValues;

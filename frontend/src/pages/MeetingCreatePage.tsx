@@ -10,6 +10,7 @@ import { AxiosError } from "axios";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import api from "../services/api";
+import OptionSelect, { type SelectOption } from "../components/ui/OptionSelect";
 
 interface Pitch {
   id: string;
@@ -38,12 +39,7 @@ interface ApiErrorResponse {
   detail?: string;
 }
 
-interface PlatformOption {
-  value: string;
-  label: string;
-}
-
-const PLATFORMS: PlatformOption[] = [
+const PLATFORMS: readonly SelectOption[] = [
   { value: "teams", label: "Microsoft Teams" },
   { value: "zoom", label: "Zoom" },
   { value: "in_person", label: "In Person" },
@@ -149,24 +145,17 @@ export default function MeetingCreatePage(): React.JSX.Element {
         </div>
 
         {/* Pitch link */}
-        <div>
-          <label className={labelClass}>Linked Pitch *</label>
-          <select
-            required
-            value={form.pitch_id}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-              update("pitch_id", e.target.value);
-            }}
-            className={inputClass}
-          >
-            <option value="">Select a pitch...</option>
-            {pitches.map((p: Pitch) => (
-              <option key={p.id} value={p.id}>
-                {p.title}
-              </option>
-            ))}
-          </select>
-        </div>
+        <OptionSelect
+          id="meeting-pitch"
+          label="Linked Pitch *"
+          placeholder="Select a pitch..."
+          required
+          value={form.pitch_id}
+          options={pitches.map((p: Pitch) => ({ value: p.id, label: p.title }))}
+          onChange={(pitch_id) => {
+            update("pitch_id", pitch_id);
+          }}
+        />
 
         {/* Date, Time, Platform — row */}
         <div className="grid grid-cols-3 gap-4">
@@ -193,22 +182,15 @@ export default function MeetingCreatePage(): React.JSX.Element {
               className={inputClass}
             />
           </div>
-          <div>
-            <label className={labelClass}>Platform</label>
-            <select
-              value={form.platform}
-              onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                update("platform", e.target.value);
-              }}
-              className={inputClass}
-            >
-              {PLATFORMS.map((p: PlatformOption) => (
-                <option key={p.value} value={p.value}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <OptionSelect
+            id="meeting-platform"
+            label="Platform"
+            value={form.platform}
+            options={PLATFORMS}
+            onChange={(platform) => {
+              update("platform", platform);
+            }}
+          />
         </div>
 
         {/* Summary */}

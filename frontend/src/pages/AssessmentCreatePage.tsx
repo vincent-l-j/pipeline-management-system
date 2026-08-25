@@ -4,6 +4,7 @@ import { AxiosError } from "axios";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import ScoreSelector from "../components/assessments/ScoreSelector";
+import OptionSelect from "../components/ui/OptionSelect";
 import {
   CRITERIA,
   RECOMMENDATION_OPTIONS,
@@ -267,30 +268,16 @@ export default function AssessmentCreatePage(): React.JSX.Element {
           */}
           {form.recommendation === "decline" && (
             <div className="mb-5">
-              <label
-                className="block text-sm font-medium text-navy-700 mb-1"
-                htmlFor="decline-reason"
-              >
-                Reason for declining
-              </label>
-              <select
+              <OptionSelect
                 id="decline-reason"
+                label="Reason for declining"
+                placeholder="Select a reason..."
                 value={form.decline_reason}
-                onChange={(e) => {
-                  setForm((prev) => ({
-                    ...prev,
-                    decline_reason: e.target.value,
-                  }));
+                options={DECLINE_REASON_OPTIONS}
+                onChange={(decline_reason) => {
+                  setForm((prev) => ({ ...prev, decline_reason }));
                 }}
-                className="w-full border border-navy-200 rounded-lg px-3 py-2 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300"
-              >
-                <option value="">Select a reason...</option>
-                {DECLINE_REASON_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              />
               <p className="text-xs text-navy-400 mt-1">
                 Optional — it can be saved without one.
               </p>

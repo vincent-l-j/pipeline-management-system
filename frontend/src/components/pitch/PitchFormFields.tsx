@@ -22,7 +22,7 @@ import Combobox from "../ui/Combobox";
 import ContactPicker from "../contacts/ContactPicker";
 import { Contact, Organisation, User } from "../../types";
 import { PitchFormValues } from "./pitchForm";
-import { inputClass, labelClass } from "./formStyles";
+import { inputClass, labelClass } from "../ui/formStyles";
 
 interface OptionSelectProps {
   id: string;

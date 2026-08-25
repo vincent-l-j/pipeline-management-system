@@ -1,8 +1,9 @@
 /**
- * Field styling shared by the pitch forms.
+ * The shared form-field treatment.
  *
- * These two strings were copy-pasted into every page that renders a pitch field;
+ * These two strings were copy-pasted into every page that renders a field;
  * keeping them here means a change to the input treatment lands in one place.
+ * Several files still hold their own copy — this is where they should converge.
  */
 
 export const inputClass =

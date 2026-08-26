@@ -91,10 +91,7 @@ export const STAGE_MAP: Record<string, PipelineStage> = Object.fromEntries(
   PIPELINE_STAGES.map((s: PipelineStage) => [s.key, s]),
 );
 
-/**
- * Labels for pitch source options.
- * Maps source keys to display labels.
- */
+/** Labels for pitch source options. */
 export const SOURCE_LABELS: Record<string, string> = {
   referral: "Referral",
   website: "Website",
@@ -131,10 +128,7 @@ function optionsFrom(labels: Record<string, string>): SelectOption[] {
 export const SOURCE_OPTIONS: readonly SelectOption[] =
   optionsFrom(SOURCE_LABELS);
 
-/**
- * Labels for what a pitch is asking Rozetta for.
- * Maps request type keys to display labels.
- */
+/** Labels for what a pitch is asking Rozetta for. */
 export const REQUEST_TYPE_LABELS: Record<string, string> = {
   advise: "Advise",
   convene: "Convene",
@@ -165,10 +159,7 @@ export const DOMAIN_OPTIONS: readonly string[] = [
   "Other",
 ] as const;
 
-/**
- * Labels for funding type options.
- * Maps funding type keys to display labels.
- */
+/** Labels for funding type options. */
 export const FUNDING_LABELS: Record<string, string> = {
   crc_bid: "CRC Bid",
   rdti: "RDTI",

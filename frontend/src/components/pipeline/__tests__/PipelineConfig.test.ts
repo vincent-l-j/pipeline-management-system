@@ -55,7 +55,7 @@ describe("STAGE_MAP", () => {
 });
 
 /*
- * The label maps are the frontend's copy of two backend enums, so these use
+ * The label maps are the frontend's copy of backend enums, so these use
  * toEqual rather than toMatchObject: a subset match cannot fail when a value is
  * added, which is the drift worth catching. An unlabelled value falls back to
  * the raw enum key in the UI, e.g. "riac_student".

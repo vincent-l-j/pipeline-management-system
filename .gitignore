@@ -6,6 +6,13 @@ dist/
 venv/
 .venv/
 
+# Tool caches. Also keeps them away from prettier, which defaults its
+# --ignore-path to [.gitignore, .prettierignore]: .pytest_cache ships a
+# README.md, so an unignored cache made `npm run format:check` fail after
+# every test run.
+.pytest_cache/
+.ruff_cache/
+
 # Node
 node_modules/
 frontend/dist/

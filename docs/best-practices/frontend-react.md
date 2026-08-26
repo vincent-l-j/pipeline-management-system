@@ -7,7 +7,10 @@ Tailwind 3, Vitest). Match the existing components.
 
 - Function components + hooks only. One component per file; `PascalCase.jsx`.
 - Pages live in `src/pages/`, reusable pieces in `src/components/` (grouped by
-  area: `pipeline/`, `pitch/`, `meetings/`, `assessments/`).
+  area: `pipeline/`, `pitch/`, `meetings/`, `assessments/`), with the cross-area
+  field primitives — `Combobox`, `OptionSelect`, and the `formStyles` they share
+  — in `ui/`. A `ui/` primitive depends on nothing outside `ui/`; that's what
+  keeps it reusable across areas.
 - Keep data-fetching in the page/container; pass plain props to presentational
   children (e.g. `KanbanColumn` → `PitchCard`).
 - Wrap page content in the shared `Layout` + `PageHeader`.

@@ -2,6 +2,8 @@
  * Shared pipeline stage configuration — used by both Kanban and list views.
  */
 
+import type { SelectOption } from "../ui/OptionSelect";
+
 /**
  * Represents a single stage in the pipeline workflow.
  * Includes styling information for UI display.
@@ -104,14 +106,6 @@ export const SOURCE_LABELS: Record<string, string> = {
   riac_student: "RIAC Student",
   rozetta_network: "Rozetta Network",
 } as const;
-
-/**
- * A value/label pair for a `<select>` or a picker.
- */
-export interface SelectOption {
-  value: string;
-  label: string;
-}
 
 /**
  * Turn a label map into the option list a form field renders.

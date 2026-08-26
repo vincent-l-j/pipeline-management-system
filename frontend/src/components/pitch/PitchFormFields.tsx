@@ -18,10 +18,11 @@ import {
   FUNDING_OPTIONS,
 } from "../pipeline/PipelineConfig";
 import Combobox from "../ui/Combobox";
+import OptionSelect from "../ui/OptionSelect";
 import ContactPicker from "../contacts/ContactPicker";
 import { Contact, Organisation, User } from "../../types";
 import { PitchFormValues } from "./pitchForm";
-import { inputClass, labelClass } from "./formStyles";
+import { inputClass, labelClass } from "../ui/formStyles";
 
 interface PitchFormFieldsProps {
   values: PitchFormValues;
@@ -116,71 +117,41 @@ export default function PitchFormFields({
           />
         </div>
 
-        <div>
-          <label className={labelClass} htmlFor="pitch-source">
-            Source
-          </label>
-          <select
-            id="pitch-source"
-            disabled={disabled}
-            value={values.source}
-            onChange={(e) => {
-              onChange({ source: e.target.value });
-            }}
-            className={inputClass}
-          >
-            <option value="">Select source...</option>
-            {SOURCE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <OptionSelect
+          id="pitch-source"
+          label="Source"
+          placeholder="Select source..."
+          disabled={disabled}
+          value={values.source}
+          options={SOURCE_OPTIONS}
+          onChange={(source) => {
+            onChange({ source });
+          }}
+        />
 
-        <div>
-          <label className={labelClass} htmlFor="pitch-request-type">
-            Pitch Request
-          </label>
-          <select
-            id="pitch-request-type"
-            disabled={disabled}
-            value={values.request_type}
-            onChange={(e) => {
-              onChange({ request_type: e.target.value });
-            }}
-            className={inputClass}
-          >
-            <option value="">Select request...</option>
-            {REQUEST_TYPE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <OptionSelect
+          id="pitch-request-type"
+          label="Pitch Request"
+          placeholder="Select request..."
+          disabled={disabled}
+          value={values.request_type}
+          options={REQUEST_TYPE_OPTIONS}
+          onChange={(request_type) => {
+            onChange({ request_type });
+          }}
+        />
 
-        <div>
-          <label className={labelClass} htmlFor="pitch-funding-pathway">
-            Funding Pathway
-          </label>
-          <select
-            id="pitch-funding-pathway"
-            disabled={disabled}
-            value={values.funding_pathway}
-            onChange={(e) => {
-              onChange({ funding_pathway: e.target.value });
-            }}
-            className={inputClass}
-          >
-            <option value="">Select funding pathway...</option>
-            {FUNDING_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <OptionSelect
+          id="pitch-funding-pathway"
+          label="Funding Pathway"
+          placeholder="Select funding pathway..."
+          disabled={disabled}
+          value={values.funding_pathway}
+          options={FUNDING_OPTIONS}
+          onChange={(funding_pathway) => {
+            onChange({ funding_pathway });
+          }}
+        />
 
         <div>
           <label className={labelClass} htmlFor="pitch-organisation">
@@ -210,27 +181,20 @@ export default function PitchFormFields({
           )}
         </div>
 
-        <div>
-          <label className={labelClass} htmlFor="pitch-lead">
-            Rozetta Lead
-          </label>
-          <select
-            id="pitch-lead"
-            disabled={disabled}
-            value={values.lead_id}
-            onChange={(e) => {
-              onChange({ lead_id: e.target.value });
-            }}
-            className={inputClass}
-          >
-            <option value="">Select lead...</option>
-            {users.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.display_name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <OptionSelect
+          id="pitch-lead"
+          label="Rozetta Lead"
+          placeholder="Select lead..."
+          disabled={disabled}
+          value={values.lead_id}
+          options={users.map((user) => ({
+            value: user.id,
+            label: user.display_name,
+          }))}
+          onChange={(lead_id) => {
+            onChange({ lead_id });
+          }}
+        />
       </div>
 
       {/* Outside the two-column grid: the chips wrap, so a half-width cell

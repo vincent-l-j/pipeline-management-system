@@ -187,6 +187,17 @@ describe("AssessmentCreatePage decline reason", () => {
     }
   });
 
+  it("keeps the optional-reason note with the reason field", async () => {
+    const user = userEvent.setup();
+    render(<AssessmentCreatePage />);
+    await waitFor(() => screen.getByText("Recommendation *"));
+    await user.click(screen.getByRole("button", { name: "Decline" }));
+
+    expect(
+      screen.getByText(/Optional — it can be saved without one/),
+    ).toBeInTheDocument();
+  });
+
   it("sends the chosen reason", async () => {
     const user = userEvent.setup();
     apiMocks.post.mockResolvedValue({ data: { id: "new" } });

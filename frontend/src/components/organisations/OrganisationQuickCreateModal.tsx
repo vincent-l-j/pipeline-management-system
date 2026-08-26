@@ -23,6 +23,7 @@ import api from "../../services/api";
 import { apiErrorMessage } from "../../services/apiError";
 import type { Organisation } from "../../types";
 import { ORG_TYPES, orgTypeLabel } from "./OrganisationConfig";
+import OptionSelect from "../ui/OptionSelect";
 
 interface OrganisationQuickCreateModalProps {
   /** Pre-fills the name, so the text typed into the picker is not retyped. */
@@ -139,26 +140,19 @@ export default function OrganisationQuickCreateModal({
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelClass} htmlFor="quick-org-type">
-                Type
-              </label>
-              <select
-                id="quick-org-type"
-                value={orgType}
-                onChange={(e) => {
-                  setOrgType(e.target.value);
-                }}
-                className={inputClass}
-              >
-                <option value="">Select type...</option>
-                {ORG_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {orgTypeLabel(type)}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <OptionSelect
+              id="quick-org-type"
+              label="Type"
+              placeholder="Select type..."
+              value={orgType}
+              options={ORG_TYPES.map((type) => ({
+                value: type,
+                label: orgTypeLabel(type),
+              }))}
+              onChange={(value) => {
+                setOrgType(value);
+              }}
+            />
             <div>
               <label className={labelClass} htmlFor="quick-org-state">
                 State/Territory

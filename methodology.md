@@ -3,7 +3,7 @@
 A multi-agent approach to building software: separate roles, define correctness
 first, and keep state outside any single agent's head.
 
-This is what a repository does once it is *agent ready* — see
+This is what a repository does once it is _agent ready_ — see
 [AGENT-READINESS.md](AGENT-READINESS.md) for the foundation this assumes.
 
 ## Design principles
@@ -32,19 +32,19 @@ agents exercising the system as a real user would.
 **Externalized state.** No agent holds the whole picture. State lives in shared
 artifacts, and each agent reads only what its job needs.
 
-**Artifacts are queues that drain.** Every mutable artifact holds *outstanding*
+**Artifacts are queues that drain.** Every mutable artifact holds _outstanding_
 work only. An entry that is finished is **deleted, not marked done** — because the
 finished thing is already recorded somewhere durable:
 
-| Queue — shrinks as work completes | Drains into — the durable record |
-| --- | --- |
-| `mission/features/<id>.json` | the implementation commit |
-| `mission/contract/VAL-<id>.md` | an automated test |
-| `mission/lessons/<id>.md` | a rule in `best-practices/` |
-| `mission/proposals/<id>.md` | a feature that builds a check, or nothing |
+| Queue — shrinks as work completes | Drains into — the durable record          |
+| --------------------------------- | ----------------------------------------- |
+| `mission/features/<id>.json`      | the implementation commit                 |
+| `mission/contract/VAL-<id>.md`    | an automated test                         |
+| `mission/lessons/<id>.md`         | a rule in `best-practices/`               |
+| `mission/proposals/<id>.md`       | a feature that builds a check, or nothing |
 
 The queue is one file per entry, so parallel workers touch disjoint files. There is
-no `status` field: presence in the queue *is* pending, absence *is* done. An empty
+no `status` field: presence in the queue _is_ pending, absence _is_ done. An empty
 queue directory means the mission is complete.
 
 Non-goal: **no artifact is an append-only log.** If a file only grows, it is
@@ -53,8 +53,8 @@ accumulating a second copy of history that git already holds, and it will drift.
 **Learning from defects.** Every validated defect means some rule was missing or
 unread. Findings become both a fix feature and a lesson; lessons that recur are
 promoted into `best-practices/`, which is what the next worker reads before writing
-code and the next validator reads before judging it. Promotion prefers *merging into
-an existing rule* over adding a new one — that is what keeps the rule set short
+code and the next validator reads before judging it. Promotion prefers _merging into
+an existing rule_ over adding a new one — that is what keeps the rule set short
 enough to actually be read.
 
 **Rules graduate into tooling.** Prose is the weakest form of a rule: it depends on
@@ -152,7 +152,7 @@ check is enforced by the build. So every rule has a ladder to climb:
 **When a rule reaches step 3, delete it from `best-practices/`** and move its `Why:` into
 the check's failure message. This is the same anti-duplication rule as everywhere else: a
 prose copy of an enforced constraint is a second source of truth that can drift from the
-check, and it crowds out the rules that *can't* be automated. It also puts the
+check, and it crowds out the rules that _can't_ be automated. It also puts the
 explanation where it lands better — at the moment of violation, naming the line, rather
 than in a document read before the mistake was conceivable.
 
@@ -220,14 +220,14 @@ The limit is rarely the analysis — it is whether the rule has a crisp definiti
   reason to fail per test" allows several assertions describing one outcome, so counting
   assertions produces a bad check. Look for the structural proxy instead — an
   act→assert→act→assert cycle in a single test body is duplication of scenario, and
-  that *is* detectable.
+  that _is_ detectable.
 - **Detection without a verdict is still useful.** Duplication is the clearest case:
   finding near-identical blocks is off-the-shelf (any copy-paste detector), but whether
-  duplication *should* be abstracted is a judgment call, and often the answer is no.
+  duplication _should_ be abstracted is a judgment call, and often the answer is no.
   Wire the detector to emit proposals rather than failures — the tool supplies
   candidates, a validator or the user supplies the verdict.
 
-That last pattern generalizes. When a rule can be *detected* but not *decided*, the check
+That last pattern generalizes. When a rule can be _detected_ but not _decided_, the check
 belongs in the proposal path, not in the build.
 
 ## Ids are queue-local
@@ -241,7 +241,7 @@ reference outlives the thing it names and a reader greps for it and finds nothin
 - **Allowed:** commit messages. They are point-in-time records, and the commit carries
   the spec in its own diff.
 - **Forbidden:** code, test names, comments. A test drained from an assertion encodes
-  the *behavior* — `test_login_with_valid_credentials_redirects_to_dashboard`, never
+  the _behavior_ — `test_login_with_valid_credentials_redirects_to_dashboard`, never
   `test_VAL_AUTH_001`.
 - **Forbidden:** `best-practices/` rules, which live forever and are read to decide how
   to write code. A rule must stand on its own in plain prose.
@@ -267,7 +267,7 @@ back onto it at integration, and removed — see the milestone integration step 
 
 ## Interrupts and plan changes
 
-**Stopping mid-run needs no reconciliation.** The queue directory *is* the remaining
+**Stopping mid-run needs no reconciliation.** The queue directory _is_ the remaining
 work, by construction. A worker killed before committing left no commit and no
 deletion, so its feature is still queued — correct, with nothing to repair. Resume
 discards that worktree and re-runs the feature.
@@ -297,7 +297,7 @@ dependency graph re-walks on the next scheduling pass. A feature abandoned rathe
 built is deleted in its own `chore: drop <id>` commit, which distinguishes it
 from one that completed.
 
-This is also what makes history answer "what was *planned*," not just "what was done":
+This is also what makes history answer "what was _planned_," not just "what was done":
 
 ```sh
 git log --diff-filter=A -- mission/features/   # everything ever planned

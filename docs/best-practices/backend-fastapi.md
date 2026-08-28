@@ -294,6 +294,20 @@ def test_organisation_rbac(request, role, operation, expected):
   the test claims.
 - For data-integrity features (orphan/cascade), assert the _side effects_: the
   child survives with a nulled FK, or the join row is gone.
+- **Assert on what the code produced, not on what the test arranged.** Asserting
+  a value the setup just wrote proves the setup ran. `assert
+logging.getLogger().level == ...` after configuring logging, `assert
+duration_ms >= 0` (true of a hardcoded zero), and `assert "Authorization" not
+in client.headers` all pass against a gutted implementation — one of them is
+  why `LOG_LEVEL` silently stopped reaching uvicorn's loggers. Assert on emitted
+  output instead: the `log_stream` fixture in `conftest.py` re-runs
+  `setup_logging()` against a buffer so a test can read the bytes the real
+  pipeline wrote. The check to apply when writing a test: if you deleted the
+  behaviour, would this fail?
+- **When you add a handler or a logger to machinery you don't own, count the
+  records one event produces.** Adding a handler _adds_ a record; it rarely
+  replaces one. Asserting that your record exists won't catch the duplicate next
+  to it — assert the count, then the content.
 
 ## Checklist before handoff
 

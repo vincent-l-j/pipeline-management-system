@@ -1,3 +1,11 @@
+# The canonical definition of the app stack, used both by `docker compose up` and
+# by .devcontainer/compose.yaml, which `include:`s it verbatim and adds `app` and
+# `dns`. There is no second copy of these services — keep it that way.
+#
+# Nothing here needs the internet at runtime: dependencies are installed at image
+# build time and ENABLE_DEV_LOGIN short-circuits the Azure AD flow. That is what
+# lets the devcontainer run this stack with no egress at all.
+
 services:
   db:
     image: postgres:16
@@ -6,36 +14,76 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-rozetta}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_to_a_strong_password}
       POSTGRES_DB: ${POSTGRES_DB:-rozetta_pms}
+    # Loopback-only: POSTGRES_PASSWORD defaults to a placeholder, so binding all
+    # interfaces opened the database to the whole network. Still published,
+    # because running the backend natively and the Alembic migration tests both
+    # need it — the latter skip silently when it is unreachable.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # $$ escapes the Compose interpolation, so the shell inside the container
+      # expands these from the service's own environment. Writing $POSTGRES_USER
+      # would make Compose substitute it here and silently produce `-U ` on a
+      # host where the variable happens to be unset.
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - appnet
 
   backend:
     build:
       context: ./backend
       target: dev
     restart: always
+    # Loopback-only, and the one that matters most: ENABLE_DEV_LOGIN is forced
+    # true below, so binding all interfaces offered anyone on the network a
+    # one-click admin session. Use a compose override to test from a device.
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     env_file:
       - .env
     environment:
       # Local dev convenience: enable the test login regardless of .env.
       # Production (DigitalOcean App Platform, .do/app.yaml) leaves this off.
       ENABLE_DEV_LOGIN: "true"
+    # Waits for the healthcheck rather than merely for the container to exist,
+    # so the first `alembic upgrade head` cannot race Postgres's own init.
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    # python, not curl: the image is python:3.12-slim and ships no curl, so a
+    # curl probe would report unhealthy forever for the wrong reason.
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=3)",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      # uvicorn's first import is slower than the interval above.
+      start_period: 20s
     volumes:
       - ./backend:/app
+    networks:
+      - appnet
 
   frontend:
     build:
       context: ./frontend
       target: dev
     restart: always
+    # Loopback-only, as above. Vite's own host: "0.0.0.0" governs binding inside
+    # the container and is still required.
     ports:
-      - "5173:5173"
+      - "127.0.0.1:5173:5173"
     environment:
       # Shows the "Dev Login (Admin)" button in the local dev UI.
       VITE_ENABLE_DEV_LOGIN: "true"
@@ -44,6 +92,13 @@ services:
     volumes:
       - ./frontend:/app
       - /app/node_modules
+    networks:
+      - appnet
+
+networks:
+  # Explicit rather than the implicit `default`, so the devcontainer has a stable
+  # name to redeclare as internal:true. A plain bridge here.
+  appnet: {}
 
 volumes:
   pgdata:

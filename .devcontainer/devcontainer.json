@@ -15,6 +15,16 @@
     "ghcr.io/devcontainers/features/python:1": {}
   },
 
+  // Python tooling is NOT installed here — it is baked into the image, because
+  // compose.yaml's `dns:` key makes the allowlisting resolver active before any
+  // lifecycle hook runs. node_modules cannot follow it into the image (npm
+  // arrives via a feature applied after the Dockerfile), so it installs here
+  // instead, which works only because registry.npmjs.org is allowlisted.
+  //
+  // `npm ci` for lockfile-exactness; it repopulates node_modules on every
+  // rebuild, which is slow over a bind mount but not on the per-open path.
+  "postCreateCommand": "npm ci && npm ci --prefix frontend && .devcontainer/verify-deps.sh",
+
   // Closes raw-IP egress specifically; the DNS allowlist and appnet's
   // internal:true are already in force. Fails closed to loopback on abort, so a
   // red postStart means no network until you fix the cause and re-run it.

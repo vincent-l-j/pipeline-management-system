@@ -1,40 +1,75 @@
 {
-  "name": "Claude Code (Docker)",
-  "build": {
-    "dockerfile": "Dockerfile",
-    "context": "."
-  },
+  "name": "Claude Code (Docker Compose)",
 
+  "dockerComposeFile": ["compose.yaml"],
+  "service": "app",
+
+  // No "runServices": all five services in compose.yaml are wanted on attach, so
+  // a list would be a no-op needing maintenance.
+
+  // Features still apply in Compose mode — the CLI builds a feature-augmented
+  // image from the `app` service's `build:`. Without these there is no node or
+  // python.
   "features": {
     "ghcr.io/devcontainers/features/node:1": {},
     "ghcr.io/devcontainers/features/python:1": {}
   },
 
-  "runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW"],
+  // Python tooling is NOT installed here — it is baked into the image, because
+  // compose.yaml's `dns:` key makes the allowlisting resolver active before any
+  // lifecycle hook runs. node_modules cannot follow it into the image (npm
+  // arrives via a feature applied after the Dockerfile), so it installs here
+  // instead, which works only because registry.npmjs.org is allowlisted.
+  //
+  // `npm ci` for lockfile-exactness; it repopulates node_modules on every
+  // rebuild, which is slow over a bind mount but not on the per-open path.
+  "postCreateCommand": "npm ci && npm ci --prefix frontend && .devcontainer/verify-deps.sh",
 
+  // Closes raw-IP egress specifically; the DNS allowlist and appnet's
+  // internal:true are already in force. Fails closed to loopback on abort, so a
+  // red postStart means no network until you fix the cause and re-run it.
   "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
 
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
   "workspaceFolder": "/workspace",
 
+  // Here rather than in compose.yaml so ${devcontainerId} templating applies.
   "mounts": [
     "source=devc-${localWorkspaceFolderBasename}-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
     "source=devc-${localWorkspaceFolderBasename}-config-${devcontainerId},target=/home/vscode/.claude,type=volume"
   ],
+
+  // "service:port", not a bare number: Vite and uvicorn are siblings, so
+  // localhost:5173 inside `app` is nothing and a bare 5173 forwards a dead port.
+  "forwardPorts": ["frontend:5173", "backend:8000"],
 
   "remoteUser": "vscode",
 
   "containerEnv": {
     "CLAUDE_CONFIG_DIR": "/home/vscode/.claude",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
-    "DISABLE_AUTOUPDATER": "1"
+    "DISABLE_AUTOUPDATER": "1",
+
+    // This container commits; the host reviews and pushes, so it holds no push
+    // credentials. Only the enforceable half — the socket is still mounted until
+    // "dev.containers.forwardSshAgent": false is set host-side. See README.
+    "SSH_AUTH_SOCK": ""
+  },
+
+  // remoteEnv, not containerEnv: ${containerEnv:PATH} expands after the features
+  // have added their own entries. The venv is in $HOME to stay off the mount.
+  "remoteEnv": {
+    "PATH": "/home/vscode/.venv/bin:${containerEnv:PATH}"
   },
 
   "customizations": {
     "vscode": {
       "extensions": ["anthropic.claude-code"],
       "settings": {
-        "terminal.integrated.defaultProfile.linux": "zsh"
+        "terminal.integrated.defaultProfile.linux": "zsh",
+
+        // Forward only what forwardPorts declares; otherwise VS Code scans for
+        // listening sockets and claims host ports nobody asked for.
+        "remote.autoForwardPorts": false
       }
     }
   }

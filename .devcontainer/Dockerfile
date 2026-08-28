@@ -14,6 +14,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   iptables \
   dnsutils \
   aggregate \
+  # for the venv below; the python feature runs after this Dockerfile, and
+  # python3-venv is a separate package from python3 on Ubuntu
+  python3-venv \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 ARG USERNAME=vscode
@@ -54,12 +57,28 @@ RUN cp /home/$USERNAME/.local/bin/claude /usr/local/bin/claude && \
 RUN git config --global --add safe.directory '*'
 
 # Copy and set up firewall script
-COPY init-firewall.sh /usr/local/bin/
+COPY .devcontainer/init-firewall.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/init-firewall.sh && \
   echo "$USERNAME ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/$USERNAME-firewall && \
   chmod 0440 /etc/sudoers.d/$USERNAME-firewall && \
   rm -f /etc/sudoers.d/$USERNAME
 
 USER $USERNAME
+
+# --- Backend tooling venv (pytest, ruff, alembic, uvicorn) ---------------
+# Baked in rather than installed by postCreate, which cannot reach a registry
+# however early it runs: compose.yaml's `dns:` key makes the allowlisting
+# resolver active before any lifecycle hook. The image build is host-side, on the
+# ordinary network.
+#
+# A venv because Ubuntu's interpreter is PEP 668 externally-managed; in $HOME
+# because the bind mount would mask anything baked under /workspace.
+#
+# Only the requirements files are copied, so application edits do not invalidate
+# this layer — and it is why the build context is the repo root.
+COPY --chown=$USERNAME:$USERNAME backend/requirements.txt backend/requirements-dev.txt /tmp/requirements/
+RUN python3 -m venv /home/$USERNAME/.venv && \
+  /home/$USERNAME/.venv/bin/pip install --no-cache-dir -r /tmp/requirements/requirements-dev.txt && \
+  rm -rf /tmp/requirements
 
 ENV EDITOR=vim

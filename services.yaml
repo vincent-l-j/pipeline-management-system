@@ -63,6 +63,16 @@ services:
 
 # Notes:
 # - `docker compose up --build` brings up the whole stack at once.
+# - The `services:` block above is host-only. Inside the .devcontainer there is no
+#   Docker CLI and no socket, and the egress firewall would reject Docker Hub pulls
+#   anyway. But you do not need them there: .devcontainer/compose.yaml `include:`s
+#   this repo's docker-compose.yml, so all three services are already running as
+#   siblings of the dev container. Start/stop/rebuild are host-side operations —
+#   see .devcontainer/README.md. The `commands:` above all work unchanged in
+#   either place.
+# - The healthchecks above assume host-published ports. Inside the devcontainer
+#   `appnet` is internal, so reach the services by name instead:
+#   `curl -sf http://backend:8000/api/health`, `curl -sf http://frontend:5173`.
 # - Swagger/OpenAPI for black-box API probing: http://localhost:8000/docs
 # - Local dev forces ENABLE_DEV_LOGIN=true (a Dev Login admin button); this is
 #   off in production. Backend unit tests run against in-memory SQLite and need

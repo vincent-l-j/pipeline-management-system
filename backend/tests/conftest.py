@@ -15,7 +15,15 @@ os.environ["ENABLE_DEV_LOGIN"] = "false"
 # not run on a guessable key); give the test app throwaway values to boot with.
 os.environ.setdefault("SECRET_KEY", "test-secret-key")
 os.environ.setdefault("AZURE_CLIENT_SECRET", "test-azure-client-secret")
+# The JSON handler writes to stdout, so at INFO every request would print under
+# `pytest -s`. Tests that assert on records raise the level themselves with
+# `caplog.set_level(..., logger=...)`.
+os.environ["LOG_LEVEL"] = "WARNING"
+os.environ["ENVIRONMENT"] = "test"
 
+import io
+import json
+import sys
 import uuid
 from datetime import UTC, datetime
 
@@ -25,7 +33,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.core.config import settings
 from app.core.database import get_db
+from app.core.logging import setup_logging
 from app.core.security import get_current_user
 from app.main import app
 from app.models import Base
@@ -53,6 +63,50 @@ def _get_test_db():
         yield db
     finally:
         db.close()
+
+
+class CapturedLog:
+    """The bytes the configured logging pipeline wrote, parsed back into records."""
+
+    def __init__(self, stream: io.StringIO):
+        self._stream = stream
+
+    def records(self) -> list[dict]:
+        return [json.loads(line) for line in self._stream.getvalue().splitlines() if line]
+
+    def messages(self) -> list[str]:
+        return [record["message"] for record in self.records()]
+
+    def tracebacks(self) -> list[dict]:
+        """Only the records carrying a traceback — what a duplicate would show up in."""
+        return [record for record in self.records() if "exception" in record]
+
+
+@pytest.fixture
+def log_stream():
+    """Runs the real logging configuration with stdout swapped for a buffer.
+
+    `dictConfig` resolves `sys.stdout` while it runs, so re-running `setup_logging`
+    with the stream replaced captures exactly the bytes the configured pipeline
+    writes. Asserting on those bytes is the only way to test what an operator sees:
+    a logger's `.level` is a value the test just arranged, and says nothing about
+    whether a record survived.
+
+    Yields a callable that applies a level and returns the capture.
+    """
+    saved_stdout, saved_level = sys.stdout, settings.LOG_LEVEL
+
+    def configure(level: str = "INFO") -> CapturedLog:
+        stream = io.StringIO()
+        sys.stdout = stream
+        settings.LOG_LEVEL = level
+        setup_logging()
+        return CapturedLog(stream)
+
+    yield configure
+
+    sys.stdout, settings.LOG_LEVEL = saved_stdout, saved_level
+    setup_logging()
 
 
 @pytest.fixture

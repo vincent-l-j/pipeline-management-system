@@ -8,7 +8,7 @@ code; match them rather than introducing new patterns.
 ```
 backend/app/
 ├── api/routes/   one router per resource (pitches.py, contacts.py, …)
-├── core/         config.py, database.py, security.py
+├── core/         config.py, database.py, logging.py, security.py
 ├── models/       SQLAlchemy models (one file per aggregate)
 ├── schemas/      Pydantic request/response models
 ├── services/     cross-cutting logic (ai_notetaker.py)
@@ -115,6 +115,44 @@ for field, value in data.model_dump(exclude_unset=True).items():
 - All settings via `app/core/config.py` (`pydantic-settings`), read from env / `.env`.
 - Secrets (`SECRET_KEY`, Azure, `ANTHROPIC_API_KEY`) come from the environment —
   never hardcode or commit them. Defaults in `config.py` are dev-only placeholders.
+
+## Logging
+
+`app/core/logging.py` configures the whole process: `setup_logging()` runs in
+`main.py` before the app is built, and every record — the app's, uvicorn's startup
+and shutdown lines, and its access log — is written to **stdout as one line of
+JSON**. `LOG_LEVEL` and `ENVIRONMENT` come from `Settings`.
+
+**What `LOG_LEVEL` affects.** It is applied in three places:
+
+- the **root logger**, so every application record obeys it;
+- the **stdout handler**, so a library that pins its own logger level cannot
+  smuggle records past it — a logger's level is consulted before root's, so a
+  propagating record never sees root's level at all;
+- **uvicorn's own loggers**, so raising the level quietens the server's startup
+  chatter and lowering it reaches its debug records.
+
+`JsonFormatter` promotes every non-standard record attribute to a top-level field,
+so it explicitly drops uvicorn's `color_message`: an ANSI-coloured duplicate of
+`message` with an unexpanded `%d` still in it, which is noise rather than caller
+data. Add to `_NOISE_RECORD_ATTRS` if another dependency does the same thing.
+
+- Get a logger with `logging.getLogger(__name__)` at module level. Don't add
+  handlers to it; the JSON handler lives on the root logger and app loggers
+  propagate to it (which is also what keeps pytest's `caplog` working).
+- **Never f-string caller-supplied data into the message.** Pass it via `extra=`,
+  where `json.dumps` escapes it — otherwise a newline in user input splits one
+  record across two log lines and a downstream parser sees garbage.
+- `extra=` keys become top-level fields, so they must not collide with the
+  reserved `LogRecord` attributes (`message`, `module`, `filename`, `args`,
+  `asctime`, `name`, `levelname`, …) — `Logger.makeRecord` raises `KeyError` if
+  they do. Prefix domain fields instead (`pitch_id`, `organisation_name`).
+
+```python
+logger = logging.getLogger(__name__)
+
+logger.info("Pitch declined", extra={"pitch_id": str(pitch.id), "reason": reason})
+```
 
 ## Unit tests (pytest + TestClient)
 

@@ -1,5 +1,7 @@
 """Rozetta PMS — FastAPI application entry point."""
 
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -16,6 +18,11 @@ from app.api.routes import (
     users,
 )
 from app.core.config import settings
+from app.core.logging import setup_logging
+
+setup_logging()
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Rozetta PMS",
@@ -55,9 +62,7 @@ if settings.ENABLE_DEV_LOGIN:
 
         app.include_router(dev.router, prefix="/api")
     except ImportError:
-        import logging
-
-        logging.getLogger("uvicorn.error").warning(
+        logger.warning(
             "ENABLE_DEV_LOGIN is set, but dev routes are not present in this build — ignoring."
         )
 

@@ -171,8 +171,15 @@ never reaches the branch App Platform deploys from. CI also runs database migrat
   returns it on every response — CORS exposes the header so the browser can read it — and stamps
   it on every record the request produces, including the one access record it writes per request
   (method, path without the query string, status, duration, and the acting user when the request
-  is authenticated). uvicorn's own access log is muted in favour of that record; successful
-  health probes are logged at `DEBUG` so routine polling doesn't bury real signal.
+  is authenticated). uvicorn's own access log is muted at every level in favour of that record;
+  successful health probes are logged at `DEBUG` so routine polling doesn't bury real signal. The
+  same module handles anything that reaches the server unhandled: the exception and its traceback
+  are logged at `ERROR` with the request id — once, the uncorrelated copy uvicorn re-logs after
+  the handler runs being filtered back out — and the caller gets
+  `500 {"detail": "Internal server error", "request_id": "..."}` plus the id on the header —
+  a value a user can quote that locates the traceback, with no exception message, stack frame
+  or file path in the response. Expected errors (`HTTPException`) are untouched and keep their
+  `{"detail": ...}` body.
 - **Schema** — owned by Alembic (`backend/alembic/`). The `PRE_DEPLOY` `migrate` job runs
   `alembic upgrade head` before each release; the app never creates tables on startup. See
   `sop/db-change.md` for the schema-change runbook.

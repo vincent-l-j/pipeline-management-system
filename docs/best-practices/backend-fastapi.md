@@ -109,6 +109,25 @@ for field, value in data.model_dump(exclude_unset=True).items():
 
 - `404` not found, `403` wrong role, `400` conflict/bad state, `422` is automatic
   from schema validation. Keep `detail` messages short and human-readable.
+- **Anything unhandled becomes a generic 500 with a quotable id.** The handler in
+  `app/core/request_context.py` (wired by `install_request_context`) answers with
+  `500 {"detail": "Internal server error", "request_id": "..."}`, repeats the id in
+  the `X-Request-ID` header, and logs the exception with its traceback and that id —
+  exactly once; see **One traceback per failure** under Logging for why the web
+  server's uncorrelated second copy is filtered out.
+  The body deliberately carries no exception message, stack frame, SQL or file path —
+  the caller quotes the id, and the log holds the detail.
+- **`HTTPException` responses are unchanged by that handler**, and must stay that
+  way: a `404`/`403`/`400` still returns exactly `{"detail": ...}` with no
+  `request_id`, because the frontend's `src/services/apiError.ts` parses that shape.
+  Registering a handler for `Exception` doesn't intercept `HTTPException`; there is a
+  regression test pinning it.
+- The handler sets the header on the response itself rather than relying on the
+  middleware. Starlette's `ServerErrorMiddleware` sits _outside_ all user middleware,
+  so a 500 built there never passes back out through `RequestContextMiddleware` — and
+  for the same reason it bypasses `CORSMiddleware`, so a **cross-origin** 500 arrives
+  without CORS headers. Harmless here: production is same-origin behind the platform
+  ingress, and development goes through the Vite proxy.
 
 ## Config
 
@@ -140,6 +159,19 @@ line without disabling the logger, and the point of doing that is to stop the
 platform's ten-second liveness probe burying the stream. Our middleware emits the
 access record instead — and at `DEBUG` the probes reappear _there_, which is the
 supported way to see them. The env var is not broken; don't "fix" the access logger.
+
+**One traceback per failure.** Registering an exception handler _adds_ a record, it
+does not replace one: `ServerErrorMiddleware` re-raises after calling our handler so
+the server can log the failure itself, and uvicorn writes the same ~8 KB traceback
+through `uvicorn.error` — by then the middleware has reset the request-id ContextVar,
+so that copy carries no id and cannot be correlated with the one the caller quotes.
+`unhandled_exception_handler` therefore calls `mark_traceback_logged(exc)` once its
+own record is out, and `DuplicateTracebackFilter` on the stdout handler drops any
+later record carrying that same exception object. The stamp lives on the exception
+rather than on a match against the server's message text, so it survives a uvicorn
+upgrade, and it is narrow by construction: startup, shutdown and
+`"Invalid HTTP request received."` carry no exception at all, and a failure that
+never reached our handler is never stamped — all of them still reach the stream.
 
 `JsonFormatter` promotes every non-standard record attribute to a top-level field,
 so it explicitly drops uvicorn's `color_message`: an ANSI-coloured duplicate of

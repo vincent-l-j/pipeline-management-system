@@ -7,7 +7,7 @@ import uuid
 
 import pytest
 
-from app.core.logging import JsonFormatter, setup_logging
+from app.core.logging import JsonFormatter, mark_traceback_logged, setup_logging
 
 
 @pytest.fixture
@@ -123,12 +123,66 @@ SERVER_ACCESS_LOGGER = "uvicorn.access"
 APP_LOGGER = "app.tests.logging"
 
 
+def _raised(message: str) -> Exception:
+    """A genuinely raised exception, so a record built from it carries a traceback."""
+    try:
+        raise RuntimeError(message)
+    except RuntimeError as exc:
+        return exc
+
+
+def _relog_as_the_web_server_would(exc: Exception) -> None:
+    """What uvicorn's `run_asgi` does with anything that escapes the application."""
+    logging.getLogger(SERVER_LOGGER).error("Exception in ASGI application\n", exc_info=exc)
+
+
 def test_a_web_server_record_is_written_once_and_as_json(log_stream):
     captured = log_stream()
 
     logging.getLogger(SERVER_LOGGER).info("Started server process [%d]", 486539)
 
     assert captured.messages() == ["Started server process [486539]"]
+
+
+@pytest.mark.parametrize(
+    "message",
+    ["Started server process [486539]", "Application startup complete.", "Shutting down"],
+)
+def test_the_web_servers_lifecycle_records_reach_the_stream(log_stream, message):
+    captured = log_stream()
+
+    logging.getLogger(SERVER_LOGGER).info(message)
+
+    assert message in captured.messages()
+
+
+def test_the_web_servers_invalid_request_warning_reaches_the_stream(log_stream):
+    captured = log_stream()
+
+    logging.getLogger(SERVER_LOGGER).warning("Invalid HTTP request received.")
+
+    assert "Invalid HTTP request received." in captured.messages()
+
+
+def test_a_web_server_traceback_we_have_not_already_logged_reaches_the_stream(log_stream):
+    captured = log_stream()
+
+    _relog_as_the_web_server_would(_raised("never seen by our handler"))
+
+    (record,) = captured.tracebacks()
+    assert "never seen by our handler" in record["exception"]
+
+
+def test_the_web_servers_repeat_of_an_exception_we_logged_is_dropped(log_stream):
+    captured = log_stream()
+    exc = _raised("boom")
+
+    logging.getLogger("app.error").error("Unhandled exception", exc_info=exc)
+    mark_traceback_logged(exc)
+    _relog_as_the_web_server_would(exc)
+
+    (record,) = captured.tracebacks()
+    assert record["logger"] == "app.error"
 
 
 def test_a_record_never_carries_the_web_servers_ansi_copy_of_the_message(log_stream):

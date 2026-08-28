@@ -1,4 +1,5 @@
-"""Application-wide wiring: request correlation reaches real responses and records."""
+"""Application-wide wiring: request correlation reaches real responses and records,
+and leaves the ordinary error bodies the frontend parses untouched."""
 
 import logging
 import uuid
@@ -73,11 +74,11 @@ def test_the_access_record_for_an_anonymous_request_omits_the_user(client, acces
 
 @pytest.mark.parametrize("status", list(ORDINARY_ERRORS))
 def test_a_client_error_response_carries_a_request_id_header(request, status):
-    """Every response, not only the successful one.
+    """Every response, not only the success and the generic 500.
 
-    A client error is the case a caller is most likely to be quoting back, so the
-    header has to reach it too — the middleware sets it on the way out regardless
-    of what the route decided.
+    A client error is the case a caller is most likely to be quoting back, and the
+    500's header is set by the exception handler — a different line of code — so
+    nothing here is implied by the 200 and 500 cases above.
     """
     fixture, send = ORDINARY_ERRORS[status]
 
@@ -85,3 +86,38 @@ def test_a_client_error_response_carries_a_request_id_header(request, status):
 
     assert response.status_code == status
     assert response.headers[REQUEST_ID_HEADER] != ""
+
+
+# Whole-body equality rather than `"request_id" not in body`: the assertion is that
+# the shape is *unchanged*, and `src/services/apiError.ts` reads it in 23 places, so
+# an added sibling field is as much a regression as a missing one.
+
+
+def test_a_not_found_response_keeps_exactly_its_detail_body(admin_client):
+    response = admin_client.get(f"/api/organisations/{UNKNOWN_ID}")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Organisation not found"}
+
+
+def test_a_forbidden_response_keeps_exactly_its_detail_body(viewer_client):
+    response = viewer_client.post("/api/organisations", json={"name": "Denied Org"})
+
+    assert response.status_code == 403
+    assert response.json() == {"detail": "Requires role: admin, assessor"}
+
+
+def test_a_validation_failure_keeps_exactly_its_stock_detail_list_body(admin_client):
+    """The framework's own validation shape: a list under `detail`, not a string.
+
+    `apiErrorMessage` branches on which of the two it got, so the list is as much
+    part of the contract as the string is.
+    """
+    response = admin_client.post("/api/organisations", json={})
+
+    assert response.status_code == 422
+    assert response.json() == {
+        "detail": [
+            {"type": "missing", "loc": ["body", "name"], "msg": "Field required", "input": {}}
+        ]
+    }

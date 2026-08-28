@@ -1,4 +1,5 @@
-"""Per-request correlation: an id on every response, and one access record per request."""
+"""Per-request correlation: an id on every response, one access record per request,
+and a quotable id on the generic 500 an unhandled failure returns."""
 
 import logging
 import re
@@ -9,9 +10,9 @@ from typing import Any
 from fastapi import FastAPI
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import JSONResponse, Response
 
-from app.core.logging import request_id_var
+from app.core.logging import mark_traceback_logged, request_id_var
 
 REQUEST_ID_HEADER = "X-Request-ID"
 
@@ -23,6 +24,7 @@ _SAFE_REQUEST_ID = re.compile(r"[A-Za-z0-9._-]{1,64}")
 _HEALTH_PATHS = frozenset({"/api/health", "/api/health/ready"})
 
 logger = logging.getLogger("app.access")
+error_logger = logging.getLogger("app.error")
 
 
 def _resolve_request_id(request: Request) -> str:
@@ -70,10 +72,42 @@ class RequestContextMiddleware(BaseHTTPMiddleware):
         )
 
 
+async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Answer an unexpected failure with a generic 500 the caller can quote back.
+
+    The message, the traceback and anything else the exception knows stay in the
+    log; the caller gets only the id that locates that record.
+    """
+    # `request.state` first: the middleware has already reset the ContextVar by now.
+    request_id = getattr(request.state, "request_id", "") or request_id_var.get()
+
+    error_logger.exception(
+        "Unhandled exception",
+        extra={
+            "event": "unhandled_exception",
+            "method": request.method,
+            "path": request.url.path,
+            "request_id": request_id,
+        },
+    )
+    # Stamped only after our record is out, so DuplicateTracebackFilter drops uvicorn's.
+    mark_traceback_logged(exc)
+
+    # Set here, not by the middleware: ServerErrorMiddleware sits outside it, so this
+    # response never passes back through.
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error", "request_id": request_id},
+        headers={REQUEST_ID_HEADER: request_id},
+    )
+
+
 def install_request_context(app: FastAPI) -> None:
-    """Wire the middleware onto an app.
+    """Wire the middleware and the unhandled-exception handler onto an app.
 
     A function rather than an `@app.middleware("http")` decorator in `main.py`, so
     tests can install it on a throwaway app instead of mutating the shared one.
     """
     app.add_middleware(RequestContextMiddleware)
+    # Doesn't intercept `HTTPException` — ordinary error bodies keep their shape.
+    app.add_exception_handler(Exception, unhandled_exception_handler)

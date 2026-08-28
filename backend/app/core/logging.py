@@ -21,6 +21,19 @@ _STANDARD_RECORD_ATTRS = frozenset(logging.LogRecord("", 0, "", 0, "", None, Non
 # Dropped rather than promoted; see "Logging" in docs/best-practices/backend-fastapi.md.
 _NOISE_RECORD_ATTRS = frozenset({"color_message"})
 
+# On the exception rather than a message match, so a uvicorn reword can't break it.
+_TRACEBACK_LOGGED_ATTR = "_rozetta_traceback_logged"
+
+
+def mark_traceback_logged(exc: BaseException) -> None:
+    """Record that this exception's traceback has already been written to the stream."""
+    try:
+        setattr(exc, _TRACEBACK_LOGGED_ATTR, True)
+    except AttributeError:
+        # Some exception types forbid attribute assignment; a duplicate record beats
+        # failing while handling a failure.
+        pass
+
 
 class RequestIdFilter(logging.Filter):
     """Attaches the in-flight request's id to every record that passes through."""
@@ -30,6 +43,18 @@ class RequestIdFilter(logging.Filter):
         if request_id:
             record.request_id = request_id
         return True
+
+
+class DuplicateTracebackFilter(logging.Filter):
+    """Drops uvicorn's uncorrelated second copy of a traceback our handler already logged.
+
+    Only a stamped exception is dropped; see "One traceback per failure" in
+    docs/best-practices/backend-fastapi.md.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        exc = record.exc_info[1] if record.exc_info else None
+        return not (exc is not None and getattr(exc, _TRACEBACK_LOGGED_ATTR, False))
 
 
 class JsonFormatter(logging.Formatter):
@@ -77,7 +102,10 @@ def setup_logging() -> None:
                     "environment": settings.ENVIRONMENT,
                 }
             },
-            "filters": {"request_id": {"()": "app.core.logging.RequestIdFilter"}},
+            "filters": {
+                "request_id": {"()": "app.core.logging.RequestIdFilter"},
+                "duplicate_traceback": {"()": "app.core.logging.DuplicateTracebackFilter"},
+            },
             "handlers": {
                 "stdout": {
                     "class": "logging.StreamHandler",
@@ -86,7 +114,7 @@ def setup_logging() -> None:
                     "level": level,
                     # On the handler, not the loggers: a logger's filters are skipped for
                     # records propagating up from its children, missing most of the stream.
-                    "filters": ["request_id"],
+                    "filters": ["request_id", "duplicate_traceback"],
                 }
             },
             "root": {"handlers": ["stdout"], "level": level},

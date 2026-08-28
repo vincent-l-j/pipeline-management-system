@@ -21,7 +21,15 @@ and wired together differs.
 
 ## Development
 
-Three containers defined in `docker-compose.yml`, all source-mounted for hot reload.
+Three containers defined in `docker-compose.yml`, all source-mounted for hot reload,
+all on the `appnet` compose network.
+
+That file is the single definition of the stack. `.devcontainer/compose.yaml`
+`include:`s it rather than restating it, adds the `app` dev container as a fourth
+service, and redeclares `appnet` as `internal: true` — which removes the stack's
+internet access when Claude Code is present, since a firewall inside `app` cannot
+restrain a sibling container that shares its bind mounts. See
+`.devcontainer/README.md`.
 
 ```
                          http://localhost:5173

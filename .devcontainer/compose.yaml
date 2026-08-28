@@ -1,0 +1,98 @@
+# Adds the `app` dev container to the app stack. Tooling runs here; uvicorn, Vite
+# and Postgres run as siblings from the repo-root docker-compose.yml.
+
+# `include:` not a second `-f` file: it resolves the included file's relative
+# paths against the included file's own directory. Multiple `-f` files would
+# resolve `context: ./backend` against THIS directory.
+include:
+  - path: ../docker-compose.yml
+
+# One anchor, because the dns service's static IP, `app`'s upstream and the
+# firewall's permitted UDP/53 destination must agree or resolution dies.
+x-dns-ip: &dns_ip 10.99.53.53
+
+services:
+  # Allowlisting resolver — see coredns/Corefile. Has unrestricted egress by
+  # necessity; safe only because no code can run in it (no workspace mount, and
+  # the image ships no shell).
+  dns:
+    image: coredns/coredns:1.12.0
+    restart: always
+    command: -conf /etc/coredns/Corefile
+    volumes:
+      - ./coredns/Corefile:/etc/coredns/Corefile:ro
+    networks:
+      egress:
+        ipv4_address: *dns_ip
+
+  app:
+    # Repo root, so the Dockerfile can COPY backend/requirements*.txt. Paths
+    # inside it are therefore repo-root-relative.
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+
+    # runArgs, workspaceMount and overrideCommand are all ignored in Compose
+    # mode, so these three replace them. Without cap_add, init-firewall.sh dies
+    # on its first iptables call; without `command`, the container exits at start.
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ..:/workspace:cached
+    command: sleep infinity
+
+    depends_on:
+      db:
+        condition: service_healthy
+      # Not service_healthy: the coredns image has no shell, so a CMD-SHELL
+      # healthcheck cannot run. init-firewall.sh waits for it to answer instead.
+      dns:
+        condition: service_started
+
+    # Sets the UPSTREAM for Docker's embedded resolver at 127.0.0.11, which still
+    # answers compose service names locally and forwards only what it cannot.
+    dns:
+      - *dns_ip
+
+    # pydantic-settings resolves `env_file = ".env"` relative to CWD, so alembic
+    # from backend/ finds nothing and SECRET_KEY crashes at import. Injecting it
+    # as process env makes settings load from any directory.
+    # The long form needs Compose v2.24+.
+    env_file:
+      - path: ../.env
+        required: false
+
+    # Outranks env_file. Interpolated from the same variables the root file feeds
+    # Postgres so the two cannot drift. For alembic and psql; pytest uses SQLite.
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-rozetta}:${POSTGRES_PASSWORD:-change_me_to_a_strong_password}@db:5432/${POSTGRES_DB:-rozetta_pms}
+      DNS_ALLOWLIST_SERVER: *dns_ip
+
+    # No VITE_API_PROXY_TARGET override: Vite runs in the `frontend` sibling and
+    # already defaults to http://backend:8000. Overriding it would be wrong here.
+
+    networks:
+      - appnet
+      - egress
+
+networks:
+  # internal:true is the containment. A firewall in `app` cannot restrain a
+  # sibling, and `backend` bind-mounts the workspace and runs uvicorn --reload —
+  # so anything that can write a file here can execute code there and read the
+  # result back through the mount, with no packet crossing the firewall. Removing
+  # the default route is what makes that pivot land nowhere.
+  #
+  # Expect one caveat: a published port on an internal network may not reach your
+  # host, which is why devcontainer.json forwards by service name instead.
+  appnet:
+    internal: true
+
+  # The only network with a default route. init-firewall.sh accepts this whole
+  # /24, so anything joining is reachable from `app` on every port — keep it to
+  # `app` and `dns`. Explicit subnet so `dns` can hold a static address; outside
+  # Docker's default pools to avoid collisions. Change the anchor above to match.
+  egress:
+    ipam:
+      config:
+        - subnet: 10.99.53.0/24

@@ -1,0 +1,81 @@
+# An allowlisting resolver. init-firewall.sh restricts `app` by destination IP,
+# which cannot filter DNS: the query name is attacker-controlled data leaving and
+# the answer is data returning, so any reachable nameserver is a tunnel (iodine,
+# dnscat2). Zones below forward upstream; everything else is REFUSED. The
+# firewall permits port 53 only to this container, so this is the only resolver
+# `app` can reach.
+#
+# Zone names here and `required_domains`/`optional_domains` in init-firewall.sh
+# are separate lists on purpose — that script needs A records, this needs zone
+# names, and the GitHub entry has no counterpart there (it uses api.github.com/
+# meta CIDRs). Rather than diff them, verify-egress.sh tests the behaviour.
+#
+# A zone covers its subdomains, so exfil via `<payload>.github.com` is
+# conceivable for someone controlling a nameserver under an allowlisted domain.
+# Keep zones as specific as the traffic allows.
+
+# `log` is deliberate: this is the audit trail of every name the container tried,
+# refusals included. `docker compose logs dns` is where exfil becomes visible.
+(common) {
+    errors
+    log
+    cache 30
+    forward . 1.1.1.1 1.0.0.1
+}
+
+# --- Claude Code ---
+api.anthropic.com {
+    import common
+}
+
+platform.claude.com {
+    import common
+}
+
+# --- Git operations ---
+# Broader than ideal: git needs github.com, api.github.com and codeload, and
+# release/LFS traffic lands on githubusercontent.com.
+github.com {
+    import common
+}
+
+githubusercontent.com {
+    import common
+}
+
+# --- Package registries ---
+# A priced-in relaxation: pip and npm execute package-authored install hooks, so
+# reaching a registry is a fetch-and-execute channel. See the NOTE in
+# init-firewall.sh for the trade.
+#
+# MUST stay in step with `optional_domains` there — a name missing here comes
+# back REFUSED and is skipped with a warning, so installs then fail for a reason
+# that looks nothing like DNS.
+#
+# pythonhosted.org, not files.pythonhosted.org: pip follows the index to whatever
+# host serves the wheel, and a zone covers its subdomains.
+pypi.org {
+    import common
+}
+
+pythonhosted.org {
+    import common
+}
+
+npmjs.org {
+    import common
+}
+
+# --- Everything else ---
+# REFUSED rather than NXDOMAIN: NXDOMAIN asserts "this name does not exist",
+# which is a lie that confuses caches. REFUSED is the truth and stops the query.
+#
+# Compose service names never reach here — Docker's embedded resolver at
+# 127.0.0.11 answers those itself and forwards only what it cannot resolve.
+. {
+    errors
+    log
+    template ANY ANY {
+        rcode REFUSED
+    }
+}

@@ -54,7 +54,7 @@ RUN cp /home/$USERNAME/.local/bin/claude /usr/local/bin/claude && \
 RUN git config --global --add safe.directory '*'
 
 # Copy and set up firewall script
-COPY init-firewall.sh /usr/local/bin/
+COPY .devcontainer/init-firewall.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/init-firewall.sh && \
   echo "$USERNAME ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/$USERNAME-firewall && \
   chmod 0440 /etc/sudoers.d/$USERNAME-firewall && \

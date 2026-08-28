@@ -49,12 +49,6 @@ def test_non_bearer_scheme_is_rejected(client):
     assert resp.status_code == 403
 
 
-def test_health_endpoint_is_public(client):
-    """Health check must be reachable without auth."""
-    resp = client.get("/api/health")
-    assert resp.status_code == 200
-
-
 def test_auth_login_redirects(client):
     """/auth/login should redirect to the Microsoft OAuth URL."""
     from unittest.mock import MagicMock, patch

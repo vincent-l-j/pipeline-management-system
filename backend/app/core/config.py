@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     # Observability
     LOG_LEVEL: str = "INFO"
     ENVIRONMENT: str = "development"
+    # Hand-bumped per environment: App Platform exposes no bindable commit hash.
+    APP_VERSION: str = "dev"
 
     class Config:
         env_file = ".env"

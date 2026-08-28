@@ -187,7 +187,13 @@ never reaches the branch App Platform deploys from. CI also runs database migrat
   `500 {"detail": "Internal server error", "request_id": "..."}` plus the id on the header —
   a value a user can quote that locates the traceback, with no exception message, stack frame
   or file path in the response. Expected errors (`HTTPException`) are untouched and keep their
-  `{"detail": ...}` body.
+  `{"detail": ...}` body. Browser failures never reach that stream on their own — those logs are
+  this process's stdout, not the tab's — so `backend/app/api/routes/client_errors.py` provides the
+  hop: any signed-in user may `POST /api/client-errors` with the message, page URL and stacks, and
+  the backend records it at `ERROR` and returns `202` with the correlating request id. The reported
+  strings travel as `extra=` fields only, so a crafted stack is escaped into one line rather than
+  forging a second record, and the identity on the record comes from the credential rather than the
+  body. Nothing in the SPA calls it yet.
 - **Schema** — owned by Alembic (`backend/alembic/`). The `PRE_DEPLOY` `migrate` job runs
   `alembic upgrade head` before each release; the app never creates tables on startup. See
   `sop/db-change.md` for the schema-change runbook.

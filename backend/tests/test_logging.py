@@ -119,6 +119,7 @@ def test_setup_leaves_loggers_created_beforehand_enabled():
 # still wrong.
 
 SERVER_LOGGER = "uvicorn.error"
+SERVER_ACCESS_LOGGER = "uvicorn.access"
 APP_LOGGER = "app.tests.logging"
 
 
@@ -193,3 +194,12 @@ def test_lowering_the_level_reveals_the_web_servers_debug_records(log_stream):
     logging.getLogger(SERVER_LOGGER).debug("waiting for application startup.")
 
     assert captured.messages() == ["waiting for application startup."]
+
+
+@pytest.mark.parametrize("level", ["DEBUG", "INFO", "WARNING", "ERROR"])
+def test_the_web_servers_access_record_stays_suppressed_at_every_level(log_stream, level):
+    captured = log_stream(level)
+
+    logging.getLogger(SERVER_ACCESS_LOGGER).info('127.0.0.1:0 - "GET /api/health HTTP/1.1" 200')
+
+    assert captured.messages() == []

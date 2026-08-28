@@ -8,7 +8,7 @@ code; match them rather than introducing new patterns.
 ```
 backend/app/
 ├── api/routes/   one router per resource (pitches.py, contacts.py, …)
-├── core/         config.py, database.py, logging.py, security.py
+├── core/         config.py, database.py, logging.py, request_context.py, security.py
 ├── models/       SQLAlchemy models (one file per aggregate)
 ├── schemas/      Pydantic request/response models
 ├── services/     cross-cutting logic (ai_notetaker.py)
@@ -119,18 +119,27 @@ for field, value in data.model_dump(exclude_unset=True).items():
 ## Logging
 
 `app/core/logging.py` configures the whole process: `setup_logging()` runs in
-`main.py` before the app is built, and every record — the app's, uvicorn's startup
-and shutdown lines, and its access log — is written to **stdout as one line of
-JSON**. `LOG_LEVEL` and `ENVIRONMENT` come from `Settings`.
+`main.py` before the app is built, and every record — the app's and uvicorn's
+startup and shutdown lines — is written to **stdout as one line of JSON**.
+`LOG_LEVEL` and `ENVIRONMENT` come from `Settings`.
 
-**What `LOG_LEVEL` affects.** It is applied in three places:
+**What `LOG_LEVEL` affects.** It is applied in three places, and the asymmetry
+below is deliberate:
 
 - the **root logger**, so every application record obeys it;
 - the **stdout handler**, so a library that pins its own logger level cannot
   smuggle records past it — a logger's level is consulted before root's, so a
   propagating record never sees root's level at all;
-- **uvicorn's own loggers**, so raising the level quietens the server's startup
-  chatter and lowering it reaches its debug records.
+- **uvicorn's `uvicorn` and `uvicorn.error` loggers**, so raising the level
+  quietens the server's startup chatter and lowering it reaches its debug records.
+  They used to be pinned at `INFO`, which made the setting look broken from outside.
+
+**`uvicorn.access` is the exception: it stays muted at `WARNING` at every level**,
+including `DEBUG`. It only ever logs at `INFO`, so `WARNING` silences its built-in
+line without disabling the logger, and the point of doing that is to stop the
+platform's ten-second liveness probe burying the stream. Our middleware emits the
+access record instead — and at `DEBUG` the probes reappear _there_, which is the
+supported way to see them. The env var is not broken; don't "fix" the access logger.
 
 `JsonFormatter` promotes every non-standard record attribute to a top-level field,
 so it explicitly drops uvicorn's `color_message`: an ANSI-coloured duplicate of
@@ -153,6 +162,31 @@ logger = logging.getLogger(__name__)
 
 logger.info("Pitch declined", extra={"pitch_id": str(pitch.id), "reason": reason})
 ```
+
+### Request correlation
+
+`app/core/request_context.py` gives every request an id. It is taken from the
+inbound `X-Request-ID` header when that value is safe (the header is
+caller-controlled and reaches both the response and the logs, so an implausible
+one is replaced with a generated id), returned on **every** response, and stamped
+onto **every** record written while the request is handled — so a header value a
+user quotes locates the whole request's output, not just its access record. The
+middleware also writes one access record per request (method, path without the
+query string, status, duration, and the acting user when authenticated).
+
+- **Register it after `CORSMiddleware` in `main.py`.** `add_middleware` inserts at
+  index 0 and the stack runs outermost-first, so the _last_ registration is the
+  _outermost_ layer — which is what makes it see every request and lets its header
+  survive out to the client. This is counter-intuitive; don't reorder it.
+- **`CORSMiddleware` must list the header in `expose_headers`.** A browser hides
+  any response header the server doesn't expose, and Starlette builds that list
+  from config — it cannot detect a header an outer middleware added.
+- Authentication is a dependency, so it runs _inside_ the middleware and can't be
+  read back through a `ContextVar` (`call_next` runs the app in a child task).
+  `get_current_user` stashes the acting user on `request.state`, which is backed
+  by the shared ASGI scope and so is visible to the middleware afterwards.
+- Successful liveness/readiness requests are logged at `DEBUG` rather than `INFO`,
+  so routine probes don't bury real signal but are still available at `LOG_LEVEL=DEBUG`.
 
 ## Unit tests (pytest + TestClient)
 

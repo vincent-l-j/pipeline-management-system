@@ -162,10 +162,17 @@ never reaches the branch App Platform deploys from. CI also runs database migrat
   turn raw meeting notes into structured records, with a basic text-parser fallback when
   `ANTHROPIC_API_KEY` is unset.
 - **Observability** — `backend/app/core/logging.py` configures the process at import time so
-  every record, including uvicorn's own startup/shutdown and access lines, is emitted to stdout
-  as a single line of JSON (timestamp, level, logger, service, environment, message, plus any
-  `extra=` fields). `LOG_LEVEL` and `ENVIRONMENT` are settings, so a container can be restarted
-  at `DEBUG` without a code change. Nothing writes log files — the platform collects stdout.
+  every record, including uvicorn's own startup/shutdown lines, is emitted to stdout as a single
+  line of JSON (timestamp, level, logger, service, environment, message, plus any `extra=`
+  fields). `LOG_LEVEL` and `ENVIRONMENT` are settings, so a container can be restarted at
+  `DEBUG` without a code change. Nothing writes log files — the platform collects stdout.
+  `backend/app/core/request_context.py` correlates that stream: it is the outermost middleware,
+  it gives each request an id (reusing a safe inbound `X-Request-ID`, replacing an unsafe one),
+  returns it on every response — CORS exposes the header so the browser can read it — and stamps
+  it on every record the request produces, including the one access record it writes per request
+  (method, path without the query string, status, duration, and the acting user when the request
+  is authenticated). uvicorn's own access log is muted in favour of that record; successful
+  health probes are logged at `DEBUG` so routine polling doesn't bury real signal.
 - **Schema** — owned by Alembic (`backend/alembic/`). The `PRE_DEPLOY` `migrate` job runs
   `alembic upgrade head` before each release; the app never creates tables on startup. See
   `sop/db-change.md` for the schema-change runbook.

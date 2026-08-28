@@ -134,7 +134,13 @@ def client():
 
 
 class _AuthenticatedTestClient:
-    """Wrapper around TestClient that manages authentication per request."""
+    """Wrapper around TestClient that manages authentication per request.
+
+    The override replaces `get_current_user` wholesale, so the real dependency —
+    including the stamping of the acting user onto `request.state` for the access
+    log — never runs. Requests made through these fixtures are therefore logged
+    without a user, which is correct; don't "fix" it by widening the lambda.
+    """
 
     def __init__(self, user):
         self.user = user

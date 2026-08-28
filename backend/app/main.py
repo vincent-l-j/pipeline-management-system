@@ -19,6 +19,7 @@ from app.api.routes import (
 )
 from app.core.config import settings
 from app.core.logging import setup_logging
+from app.core.request_context import REQUEST_ID_HEADER, install_request_context
 
 setup_logging()
 
@@ -32,14 +33,20 @@ app = FastAPI(
 
 app.router.redirect_slashes = False
 
-# Allow the frontend to talk to the backend
+# Allow the frontend to talk to the backend. expose_headers is required for the SPA
+# to read the request id — a browser hides any header the server does not list.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BACKEND_CORS_ORIGINS.split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=[REQUEST_ID_HEADER],
 )
+
+# Must stay registered after CORS to end up outside it; see "Request correlation" in
+# docs/best-practices/backend-fastapi.md. Don't reorder.
+install_request_context(app)
 
 # Register all route groups
 app.include_router(auth.router, prefix="/api")

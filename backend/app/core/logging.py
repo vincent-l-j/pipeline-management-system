@@ -4,10 +4,14 @@ import json
 import logging
 import logging.config
 import sys
+from contextvars import ContextVar
 from datetime import UTC, datetime
 from typing import Any
 
 from app.core.config import settings
+
+# Set by the request-context middleware; empty outside a request, where there is no id.
+request_id_var: ContextVar[str] = ContextVar("request_id", default="")
 
 _STANDARD_RECORD_ATTRS = frozenset(logging.LogRecord("", 0, "", 0, "", None, None).__dict__) | {
     "message",
@@ -16,6 +20,16 @@ _STANDARD_RECORD_ATTRS = frozenset(logging.LogRecord("", 0, "", 0, "", None, Non
 
 # Dropped rather than promoted; see "Logging" in docs/best-practices/backend-fastapi.md.
 _NOISE_RECORD_ATTRS = frozenset({"color_message"})
+
+
+class RequestIdFilter(logging.Filter):
+    """Attaches the in-flight request's id to every record that passes through."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        request_id = request_id_var.get()
+        if request_id:
+            record.request_id = request_id
+        return True
 
 
 class JsonFormatter(logging.Formatter):
@@ -63,20 +77,30 @@ def setup_logging() -> None:
                     "environment": settings.ENVIRONMENT,
                 }
             },
+            "filters": {"request_id": {"()": "app.core.logging.RequestIdFilter"}},
             "handlers": {
                 "stdout": {
                     "class": "logging.StreamHandler",
                     "formatter": "json",
                     "stream": sys.stdout,
                     "level": level,
+                    # On the handler, not the loggers: a logger's filters are skipped for
+                    # records propagating up from its children, missing most of the stream.
+                    "filters": ["request_id"],
                 }
             },
             "root": {"handlers": ["stdout"], "level": level},
             # `"handlers": []` must be spelled out — dictConfig only clears a logger's
             # handlers when the key is present, and uvicorn's would double every line.
             "loggers": {
-                name: {"handlers": [], "propagate": True, "level": level}
-                for name in ("uvicorn", "uvicorn.error", "uvicorn.access")
+                name: {"handlers": [], "propagate": True, "level": logger_level}
+                # `uvicorn.access` is muted at every level on purpose; see "Logging" in
+                # docs/best-practices/backend-fastapi.md before changing it.
+                for name, logger_level in (
+                    ("uvicorn", level),
+                    ("uvicorn.error", level),
+                    ("uvicorn.access", "WARNING"),
+                )
             },
         }
     )

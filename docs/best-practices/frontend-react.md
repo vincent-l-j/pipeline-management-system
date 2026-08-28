@@ -209,6 +209,11 @@ Guidelines:
 - **Drag-and-drop:** `@hello-pangea/dnd` is aliased to a stub (`src/test/mocks/dnd.js`)
   in `vitest.config.js`; test the stage-change _handler/callback_, not the drag
   physics.
+- **Assert on what the component rendered or the helper sent, not on what the test
+  arranged.** A mock's own return value, a stubbed prop echoed back, or a fixture's
+  own contents will all pass against a gutted implementation. When you assert a
+  request was made, assert the payload the code built — not the object the mock was
+  primed with. The check to apply: if you deleted the behaviour, would this fail?
 
 ## Checklist before handoff
 

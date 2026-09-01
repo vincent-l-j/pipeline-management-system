@@ -73,7 +73,10 @@ boundaries, or if a feature's `expectedBehavior` conflicts with an assertion in
 ## Frontend Conventions (React 18, Vite, React Router 6, Tailwind)
 
 - Function components + hooks. Routes live in `App.tsx` wrapped in `ProtectedRoute`;
-  admin-only routes additionally guard on role.
+  admin-only routes additionally guard on role. One exception, and only one:
+  `src/components/ErrorBoundary.tsx` is a class because React 18 gives
+  `getDerivedStateFromError` / `componentDidCatch` no hook equivalent. Don't add
+  another class component.
 - **All HTTP goes through `src/services/api.ts`** (axios, `baseURL: '/api'`, bearer-token
   and 401 interceptors). Do not call `fetch`/`axios` directly elsewhere.
 - Auth/role via `useAuth()` (`AuthContext`); `token`/`user` persist in `localStorage`.

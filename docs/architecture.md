@@ -193,7 +193,20 @@ never reaches the branch App Platform deploys from. CI also runs database migrat
   the backend records it at `ERROR` and returns `202` with the correlating request id. The reported
   strings travel as `extra=` fields only, so a crafted stack is escaped into one line rather than
   forging a second record, and the identity on the record comes from the credential rather than the
-  body. Nothing in the SPA calls it yet.
+  body. The SPA closes the loop: `frontend/src/services/api.ts` records the `X-Request-ID` off every
+  response (fulfilled or rejected) and `frontend/src/components/ErrorBoundary.tsx`, mounted in
+  `main.tsx` above the router and `AuthProvider`, catches an uncaught render error, posts the report
+  through the shared client, and shows a fallback whose reference is the id the `202` handed back —
+  falling back to the last `X-Request-ID` only when the report produced none. The report is
+  fire-and-forget — it never throws, never retries, ignores a second report while one is in flight,
+  and a `401` on it is exempt from the interceptor's redirect to `/login`, so a failed report cannot
+  log the user out. **The hop is best-effort, so a browser failure does not always reach the
+  stream**: the endpoint is authenticated, so a crash on the login page before a token exists is
+  rejected and never recorded, as is one during a network outage or a report dropped in flight by
+  the reload that follows. The fallback therefore states the reporting outcome only once it is
+  known — reporting, reported with the reference, or could not be reported and here is who to tell —
+  and offers a sign-out action, because clearing the stored session is the only escape from a crash
+  caused by a corrupted one; reloading and returning to the dashboard both re-run it.
 - **Schema** — owned by Alembic (`backend/alembic/`). The `PRE_DEPLOY` `migrate` job runs
   `alembic upgrade head` before each release; the app never creates tables on startup. See
   `sop/db-change.md` for the schema-change runbook.

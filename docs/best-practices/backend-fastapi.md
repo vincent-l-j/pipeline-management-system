@@ -8,7 +8,7 @@ code; match them rather than introducing new patterns.
 ```
 backend/app/
 ├── api/routes/   one router per resource (pitches.py, contacts.py, …)
-├── core/         config.py, database.py, security.py
+├── core/         config.py, database.py, logging.py, request_context.py, security.py
 ├── models/       SQLAlchemy models (one file per aggregate)
 ├── schemas/      Pydantic request/response models
 ├── services/     cross-cutting logic (ai_notetaker.py)
@@ -109,12 +109,116 @@ for field, value in data.model_dump(exclude_unset=True).items():
 
 - `404` not found, `403` wrong role, `400` conflict/bad state, `422` is automatic
   from schema validation. Keep `detail` messages short and human-readable.
+- **Anything unhandled becomes a generic 500 with a quotable id.** The handler in
+  `app/core/request_context.py` (wired by `install_request_context`) answers with
+  `500 {"detail": "Internal server error", "request_id": "..."}`, repeats the id in
+  the `X-Request-ID` header, and logs the exception with its traceback and that id —
+  exactly once; see **One traceback per failure** under Logging for why the web
+  server's uncorrelated second copy is filtered out.
+  The body deliberately carries no exception message, stack frame, SQL or file path —
+  the caller quotes the id, and the log holds the detail.
+- **`HTTPException` responses are unchanged by that handler**, and must stay that
+  way: a `404`/`403`/`400` still returns exactly `{"detail": ...}` with no
+  `request_id`, because the frontend's `src/services/apiError.ts` parses that shape.
+  Registering a handler for `Exception` doesn't intercept `HTTPException`; there is a
+  regression test pinning it.
+- The handler sets the header on the response itself rather than relying on the
+  middleware. Starlette's `ServerErrorMiddleware` sits _outside_ all user middleware,
+  so a 500 built there never passes back out through `RequestContextMiddleware` — and
+  for the same reason it bypasses `CORSMiddleware`, so a **cross-origin** 500 arrives
+  without CORS headers. Harmless here: production is same-origin behind the platform
+  ingress, and development goes through the Vite proxy.
 
 ## Config
 
 - All settings via `app/core/config.py` (`pydantic-settings`), read from env / `.env`.
 - Secrets (`SECRET_KEY`, Azure, `ANTHROPIC_API_KEY`) come from the environment —
   never hardcode or commit them. Defaults in `config.py` are dev-only placeholders.
+
+## Logging
+
+`app/core/logging.py` configures the whole process: `setup_logging()` runs in
+`main.py` before the app is built, and every record — the app's and uvicorn's
+startup and shutdown lines — is written to **stdout as one line of JSON**.
+`LOG_LEVEL` and `ENVIRONMENT` come from `Settings`.
+
+**What `LOG_LEVEL` affects.** It is applied in three places, and the asymmetry
+below is deliberate:
+
+- the **root logger**, so every application record obeys it;
+- the **stdout handler**, so a library that pins its own logger level cannot
+  smuggle records past it — a logger's level is consulted before root's, so a
+  propagating record never sees root's level at all;
+- **uvicorn's `uvicorn` and `uvicorn.error` loggers**, so raising the level
+  quietens the server's startup chatter and lowering it reaches its debug records.
+  They used to be pinned at `INFO`, which made the setting look broken from outside.
+
+**`uvicorn.access` is the exception: it stays muted at `WARNING` at every level**,
+including `DEBUG`. It only ever logs at `INFO`, so `WARNING` silences its built-in
+line without disabling the logger, and the point of doing that is to stop the
+platform's ten-second liveness probe burying the stream. Our middleware emits the
+access record instead — and at `DEBUG` the probes reappear _there_, which is the
+supported way to see them. The env var is not broken; don't "fix" the access logger.
+
+**One traceback per failure.** Registering an exception handler _adds_ a record, it
+does not replace one: `ServerErrorMiddleware` re-raises after calling our handler so
+the server can log the failure itself, and uvicorn writes the same ~8 KB traceback
+through `uvicorn.error` — by then the middleware has reset the request-id ContextVar,
+so that copy carries no id and cannot be correlated with the one the caller quotes.
+`unhandled_exception_handler` therefore calls `mark_traceback_logged(exc)` once its
+own record is out, and `DuplicateTracebackFilter` on the stdout handler drops any
+later record carrying that same exception object. The stamp lives on the exception
+rather than on a match against the server's message text, so it survives a uvicorn
+upgrade, and it is narrow by construction: startup, shutdown and
+`"Invalid HTTP request received."` carry no exception at all, and a failure that
+never reached our handler is never stamped — all of them still reach the stream.
+
+`JsonFormatter` promotes every non-standard record attribute to a top-level field,
+so it explicitly drops uvicorn's `color_message`: an ANSI-coloured duplicate of
+`message` with an unexpanded `%d` still in it, which is noise rather than caller
+data. Add to `_NOISE_RECORD_ATTRS` if another dependency does the same thing.
+
+- Get a logger with `logging.getLogger(__name__)` at module level. Don't add
+  handlers to it; the JSON handler lives on the root logger and app loggers
+  propagate to it (which is also what keeps pytest's `caplog` working).
+- **Never f-string caller-supplied data into the message.** Pass it via `extra=`,
+  where `json.dumps` escapes it — otherwise a newline in user input splits one
+  record across two log lines and a downstream parser sees garbage.
+- `extra=` keys become top-level fields, so they must not collide with the
+  reserved `LogRecord` attributes (`message`, `module`, `filename`, `args`,
+  `asctime`, `name`, `levelname`, …) — `Logger.makeRecord` raises `KeyError` if
+  they do. Prefix domain fields instead (`pitch_id`, `organisation_name`).
+
+```python
+logger = logging.getLogger(__name__)
+
+logger.info("Pitch declined", extra={"pitch_id": str(pitch.id), "reason": reason})
+```
+
+### Request correlation
+
+`app/core/request_context.py` gives every request an id. It is taken from the
+inbound `X-Request-ID` header when that value is safe (the header is
+caller-controlled and reaches both the response and the logs, so an implausible
+one is replaced with a generated id), returned on **every** response, and stamped
+onto **every** record written while the request is handled — so a header value a
+user quotes locates the whole request's output, not just its access record. The
+middleware also writes one access record per request (method, path without the
+query string, status, duration, and the acting user when authenticated).
+
+- **Register it after `CORSMiddleware` in `main.py`.** `add_middleware` inserts at
+  index 0 and the stack runs outermost-first, so the _last_ registration is the
+  _outermost_ layer — which is what makes it see every request and lets its header
+  survive out to the client. This is counter-intuitive; don't reorder it.
+- **`CORSMiddleware` must list the header in `expose_headers`.** A browser hides
+  any response header the server doesn't expose, and Starlette builds that list
+  from config — it cannot detect a header an outer middleware added.
+- Authentication is a dependency, so it runs _inside_ the middleware and can't be
+  read back through a `ContextVar` (`call_next` runs the app in a child task).
+  `get_current_user` stashes the acting user on `request.state`, which is backed
+  by the shared ASGI scope and so is visible to the middleware afterwards.
+- Successful liveness/readiness requests are logged at `DEBUG` rather than `INFO`,
+  so routine probes don't bury real signal but are still available at `LOG_LEVEL=DEBUG`.
 
 ## Unit tests (pytest + TestClient)
 
@@ -190,6 +294,20 @@ def test_organisation_rbac(request, role, operation, expected):
   the test claims.
 - For data-integrity features (orphan/cascade), assert the _side effects_: the
   child survives with a nulled FK, or the join row is gone.
+- **Assert on what the code produced, not on what the test arranged.** Asserting
+  a value the setup just wrote proves the setup ran. `assert
+logging.getLogger().level == ...` after configuring logging, `assert
+duration_ms >= 0` (true of a hardcoded zero), and `assert "Authorization" not
+in client.headers` all pass against a gutted implementation — one of them is
+  why `LOG_LEVEL` silently stopped reaching uvicorn's loggers. Assert on emitted
+  output instead: the `log_stream` fixture in `conftest.py` re-runs
+  `setup_logging()` against a buffer so a test can read the bytes the real
+  pipeline wrote. The check to apply when writing a test: if you deleted the
+  behaviour, would this fail?
+- **When you add a handler or a logger to machinery you don't own, count the
+  records one event produces.** Adding a handler _adds_ a record; it rarely
+  replaces one. Asserting that your record exists won't catch the duplicate next
+  to it — assert the count, then the content.
 
 ## Checklist before handoff
 

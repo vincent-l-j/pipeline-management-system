@@ -21,3 +21,15 @@ def test_missing_azure_client_secret_is_fatal(monkeypatch):
     monkeypatch.delenv("AZURE_CLIENT_SECRET", raising=False)
     with pytest.raises(ValidationError):
         Settings(_env_file=None)
+
+
+# conftest.py sets LOG_LEVEL and ENVIRONMENT for the test run, so these have to be
+# cleared before the defaults in config.py are observable.
+def test_log_level_defaults_to_info(monkeypatch):
+    monkeypatch.delenv("LOG_LEVEL", raising=False)
+    assert Settings(_env_file=None).LOG_LEVEL == "INFO"
+
+
+def test_environment_defaults_to_development(monkeypatch):
+    monkeypatch.delenv("ENVIRONMENT", raising=False)
+    assert Settings(_env_file=None).ENVIRONMENT == "development"

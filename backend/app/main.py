@@ -1,5 +1,7 @@
 """Rozetta PMS — FastAPI application entry point."""
 
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -16,6 +18,12 @@ from app.api.routes import (
     users,
 )
 from app.core.config import settings
+from app.core.logging import setup_logging
+from app.core.request_context import REQUEST_ID_HEADER, install_request_context
+
+setup_logging()
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Rozetta PMS",
@@ -25,14 +33,20 @@ app = FastAPI(
 
 app.router.redirect_slashes = False
 
-# Allow the frontend to talk to the backend
+# Allow the frontend to talk to the backend. expose_headers is required for the SPA
+# to read the request id — a browser hides any header the server does not list.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.BACKEND_CORS_ORIGINS.split(","),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=[REQUEST_ID_HEADER],
 )
+
+# Must stay registered after CORS to end up outside it; see "Request correlation" in
+# docs/best-practices/backend-fastapi.md. Don't reorder.
+install_request_context(app)
 
 # Register all route groups
 app.include_router(auth.router, prefix="/api")
@@ -55,9 +69,7 @@ if settings.ENABLE_DEV_LOGIN:
 
         app.include_router(dev.router, prefix="/api")
     except ImportError:
-        import logging
-
-        logging.getLogger("uvicorn.error").warning(
+        logger.warning(
             "ENABLE_DEV_LOGIN is set, but dev routes are not present in this build — ignoring."
         )
 

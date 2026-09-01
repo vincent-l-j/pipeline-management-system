@@ -3,7 +3,7 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -29,6 +29,7 @@ def create_access_token(user_id: str, email: str, role: str) -> str:
 
 
 def get_current_user(
+    request: Request,
     credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
     db: Session = Depends(get_db),
 ) -> User:
@@ -45,6 +46,11 @@ def get_current_user(
     user = db.query(User).filter(User.id == uuid.UUID(user_id)).first()
     if user is None or not user.is_active:
         raise HTTPException(status_code=401, detail="User not found or inactive")
+
+    # `request.state`, not a ContextVar: only the ASGI scope is visible to the
+    # access-log middleware, which runs outside this dependency.
+    request.state.user_id = str(user.id)
+    request.state.user_role = user.role.value
     return user
 
 

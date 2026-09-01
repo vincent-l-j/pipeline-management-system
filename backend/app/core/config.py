@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     # CORS
     BACKEND_CORS_ORIGINS: str = "http://localhost:5173"
 
+    # Observability
+    LOG_LEVEL: str = "INFO"
+    ENVIRONMENT: str = "development"
+
     class Config:
         env_file = ".env"
 

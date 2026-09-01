@@ -14,6 +14,7 @@ and wired together differs.
 | `/api` routing | Vite proxy → `backend:8000`                           | Same-origin route (`/api` → backend service)                                                         |
 | TLS            | none (plain HTTP)                                     | Terminated by App Platform                                                                           |
 | Dev login      | enabled (`ENABLE_DEV_LOGIN=true`)                     | disabled; `dev.py` route stripped from the `prod` image                                              |
+| Logging        | JSON to stdout, `docker compose logs`                 | JSON to stdout, collected by App Platform's runtime logs                                             |
 | Config source  | `.env` file                                           | `.do/app.yaml` + DO control panel (secrets)                                                          |
 | Deploy         | `docker compose up --build`                           | CI GitOps: push to `main` → `deploy-production.yml` applies `.do/app.yaml` (`deploy_on_push: false`) |
 
@@ -160,6 +161,25 @@ never reaches the branch App Platform deploys from. CI also runs database migrat
 - **AI Notetaker** — `backend/app/services/ai_notetaker.py` calls the Anthropic Claude API to
   turn raw meeting notes into structured records, with a basic text-parser fallback when
   `ANTHROPIC_API_KEY` is unset.
+- **Observability** — `backend/app/core/logging.py` configures the process at import time so
+  every record, including uvicorn's own startup/shutdown lines, is emitted to stdout as a single
+  line of JSON (timestamp, level, logger, service, environment, message, plus any `extra=`
+  fields). `LOG_LEVEL` and `ENVIRONMENT` are settings, so a container can be restarted at
+  `DEBUG` without a code change. Nothing writes log files — the platform collects stdout.
+  `backend/app/core/request_context.py` correlates that stream: it is the outermost middleware,
+  it gives each request an id (reusing a safe inbound `X-Request-ID`, replacing an unsafe one),
+  returns it on every response — CORS exposes the header so the browser can read it — and stamps
+  it on every record the request produces, including the one access record it writes per request
+  (method, path without the query string, status, duration, and the acting user when the request
+  is authenticated). uvicorn's own access log is muted at every level in favour of that record;
+  successful health probes are logged at `DEBUG` so routine polling doesn't bury real signal. The
+  same module handles anything that reaches the server unhandled: the exception and its traceback
+  are logged at `ERROR` with the request id — once, the uncorrelated copy uvicorn re-logs after
+  the handler runs being filtered back out — and the caller gets
+  `500 {"detail": "Internal server error", "request_id": "..."}` plus the id on the header —
+  a value a user can quote that locates the traceback, with no exception message, stack frame
+  or file path in the response. Expected errors (`HTTPException`) are untouched and keep their
+  `{"detail": ...}` body.
 - **Schema** — owned by Alembic (`backend/alembic/`). The `PRE_DEPLOY` `migrate` job runs
   `alembic upgrade head` before each release; the app never creates tables on startup. See
   `sop/db-change.md` for the schema-change runbook.

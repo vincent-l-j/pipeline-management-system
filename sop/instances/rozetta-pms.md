@@ -21,20 +21,20 @@ The **code artifacts** for managed Alembic are done and committed:
 
 - **Staging** — cutover **complete**. It was deployed on the `fresh` branch (empty dev-tier
   DB), the migrate job ran `alembic upgrade head`, and the app runs on managed Alembic.
-- **Production** — **stamped; awaiting first deploy.** Cutover ran on the **`stamp`** branch
-  (`CUTOVER_BRANCH=stamp` in `.env`) because the prod DB already holds real data built by the
+- **Production** — cutover **complete and deployed**. Cutover ran on the **`stamp`** branch
+  (`CUTOVER_BRANCH=stamp` in `.env`) because the prod DB already held real data built by the
   old `create_all()` schema. Completed: full backup of the cluster (`defaultdb` + `db`) with
   `verify-full` SSL and an on-cluster restore check; schema-parity diff vs genesis (one real
   drift found and reconciled — see "Production stamp cutover" below); and `alembic stamp head`,
-  which set `alembic_version` to `a1a27441d35c`. **Still pending:** the first production deploy
-  (push `main` → `deploy-production.yml`), where the `PRE_DEPLOY` `alembic upgrade head` is now
-  a **no-op** (already at head). Merge the genesis migration + `.do/app.yaml` to `main` first —
-  the deploy spec pins `branch: main`.
+  which set `alembic_version` to `a1a27441d35c`. Production has since deployed from `main`
+  (`deploy-production.yml`) with the genesis migration + `.do/app.yaml` merged — the deploy spec
+  pins `branch: main` — and the `PRE_DEPLOY` `alembic upgrade head` is a **no-op** there (already
+  at head). The local `prod-*.sql` dumps have been deleted.
 
 Managed-DB tier: production is the backed-up HA tier (`production: true` in `.do/app.yaml`);
 staging is dev-tier (`production: false` in `.do/staging.yaml`).
 
-Once production is stamped and deployed, the ongoing path becomes
+Both environments are now on managed Alembic, so the ongoing path for schema changes is
 [`db-change.md`](../db-change.md). The **Bootstrap** section below is the generic procedure
 and the reference record of how the cutover was done.
 
@@ -262,13 +262,15 @@ Re-diff was then clean (only benign hunks), and prod was `alembic stamp head`-ed
 stamp a schema that isn't head; baseline the migration history on prod's real schema and
 migrate forward instead.
 
-**Still pending for production:**
+**Post-deploy smoke check (kept as a standing check).** After any production deploy:
 
-1. First production deploy — push to `main` (triggers `.github/workflows/deploy-production.yml`);
-   the `PRE_DEPLOY` migrate job's `alembic upgrade head` is then a no-op (already at head).
-   Merge the genesis migration + `.do/app.yaml` to `main` first (the spec pins `branch: main`).
-2. Post-deploy: `curl -sf https://ims.rozettainstitute.com/api/health` and delete the local
-   `prod-*.sql` dumps.
+```bash
+curl -sf https://ims.rozettainstitute.com/api/health/ready
+```
+
+Readiness — not plain `/api/health` — is the documented check because it also opens the
+database connection, so a 200 proves the app reached its DB rather than merely that the
+process is up.
 
 ## Disaster Recovery: Cluster Restoration
 

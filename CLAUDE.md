@@ -14,18 +14,19 @@ on DigitalOcean App Platform. See `README.md` for the product overview and
 
 Canonical commands live in `services.yaml`. In short:
 
-| Task                 | Command                                     |
-| -------------------- | ------------------------------------------- |
-| Run the whole stack  | `docker compose up --build`                 |
-| Backend tests        | `cd backend && pytest`                      |
-| Frontend tests       | `cd frontend && npm test`                   |
-| Frontend build       | `cd frontend && npm run build`              |
-| Backend health       | `curl -sf http://localhost:8000/api/health` |
-| API docs (Swagger)   | http://localhost:8000/docs                  |
-| Lint (both sides)    | `npm run lint`                              |
-| Lint, autofix        | `npm run lint:fix`                          |
-| Typecheck (frontend) | `npm run typecheck`                         |
-| Format               | `npm run format` / `npm run format:check`   |
+| Task                 | Command                                           |
+| -------------------- | ------------------------------------------------- |
+| Run the whole stack  | `docker compose up --build`                       |
+| Backend tests        | `cd backend && pytest`                            |
+| Frontend tests       | `cd frontend && npm test`                         |
+| Frontend build       | `cd frontend && npm run build`                    |
+| Backend health       | `curl -sf http://localhost:8000/api/health`       |
+| Backend readiness    | `curl -sf http://localhost:8000/api/health/ready` |
+| API docs (Swagger)   | http://localhost:8000/docs                        |
+| Lint (both sides)    | `npm run lint`                                    |
+| Lint, autofix        | `npm run lint:fix`                                |
+| Typecheck (frontend) | `npm run typecheck`                               |
+| Format               | `npm run format` / `npm run format:check`         |
 
 All of these run from the **repo root**, but only prettier lives there — the root
 `package.json` is a thin delegator. eslint + typescript are `frontend/`

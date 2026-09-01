@@ -113,7 +113,15 @@ this from `.do/staging.yaml`. Platform primitives:
 - **Backend (service)** — built from `backend/Dockerfile`; App Platform builds the **final
   stage** (`prod`), which carries runtime deps only (no test tooling) and removes `dev.py`.
   `run_command` overrides the image CMD to run uvicorn without `--reload`. Routed at `/api`
-  (`preserve_path_prefix: true`), with a health check at `/api/health`.
+  (`preserve_path_prefix: true`). Two probes, deliberately split: **liveness**
+  (`/api/health`) answers "is this process up" and never touches the database — it is what
+  App Platform polls (`health_check.http_path`) and what restarts a failing instance, so
+  making it depend on Postgres would turn a brief database blip into a crash loop across
+  healthy instances. **Readiness** (`/api/health/ready`) does check the database and returns
+  503 when it is unreachable, reporting the failing dependency and `APP_VERSION` in the body;
+  it is for operators and external monitors and is deliberately **not** wired to App
+  Platform's restart gate. `APP_VERSION` is a hand-bumped marker set per environment in
+  `.do/*.yaml`, not a git SHA — App Platform exposes no bindable commit hash.
 - **Migrate job (`PRE_DEPLOY`)** — a short-lived job runs `alembic upgrade head` before each
   release, so schema changes ship atomically with their code. The app does **not** create tables
   on startup. The job needs only `DATABASE_URL` (`env.py` reads it from the environment, not the

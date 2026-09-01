@@ -9,6 +9,7 @@ from app.api.routes import (
     assessments,
     auth,
     contacts,
+    health,
     meetings,
     organisations,
     pitches,
@@ -59,6 +60,7 @@ app.include_router(assessments.router, prefix="/api")
 app.include_router(search.router, prefix="/api")
 app.include_router(timeline.router, prefix="/api")
 app.include_router(reports.router, prefix="/api")
+app.include_router(health.router, prefix="/api")
 
 # Dev-only login routes live in an optional module that is stripped from
 # production images. We import it only when explicitly enabled, so enabling the
@@ -72,8 +74,3 @@ if settings.ENABLE_DEV_LOGIN:
         logger.warning(
             "ENABLE_DEV_LOGIN is set, but dev routes are not present in this build — ignoring."
         )
-
-
-@app.get("/api/health")
-def health_check():
-    return {"status": "ok", "app": "Rozetta PMS"}

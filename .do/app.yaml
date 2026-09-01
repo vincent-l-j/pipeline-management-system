@@ -79,6 +79,9 @@ services:
       - key: ENVIRONMENT
         scope: RUN_TIME
         value: production
+      - key: APP_VERSION
+        scope: RUN_TIME
+        value: "0.1.0"
     github:
       branch: main
       deploy_on_push: false

@@ -7,7 +7,7 @@ code; match them rather than introducing new patterns.
 
 ```
 backend/app/
-├── api/routes/   one router per resource (pitches.py, contacts.py, …)
+├── api/routes/   one router per resource (pitches.py, contacts.py, health.py, …)
 ├── core/         config.py, database.py, logging.py, request_context.py, security.py
 ├── models/       SQLAlchemy models (one file per aggregate)
 ├── schemas/      Pydantic request/response models
@@ -109,6 +109,18 @@ for field, value in data.model_dump(exclude_unset=True).items():
 
 - `404` not found, `403` wrong role, `400` conflict/bad state, `422` is automatic
   from schema validation. Keep `detail` messages short and human-readable.
+- **One documented exception: operational probes.** `routes/health.py` returns its
+  `ReadinessOut` model and sets `503` on an **injected `Response`** instead of
+  raising. Raising `HTTPException` collapses the body to `{"detail": ...}` and
+  throws away `database` and `version` — the two facts an operator needs at exactly
+  the moment the probe is failing. It declares `responses={503: {"model": ReadinessOut}}`
+  so `/docs` is honest about the failure shape. This applies only to machine-read
+  probes that the frontend's error parser never sees; **user-facing errors still
+  raise `HTTPException`.** It also logs the failure with `logger.error` and the
+  exception's **type and message, not `logger.exception` and a traceback**: the
+  platform polls readiness continuously, so a traceback per poll is the same 8 KB
+  SQLAlchemy stack every few seconds for the length of an outage, burying the one
+  signal that matters. The 503 body already names the dependency that is down.
 - **Anything unhandled becomes a generic 500 with a quotable id.** The handler in
   `app/core/request_context.py` (wired by `install_request_context`) answers with
   `500 {"detail": "Internal server error", "request_id": "..."}`, repeats the id in

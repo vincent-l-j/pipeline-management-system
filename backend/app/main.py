@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import (
     assessments,
     auth,
+    client_errors,
     contacts,
     health,
     meetings,
@@ -61,6 +62,7 @@ app.include_router(search.router, prefix="/api")
 app.include_router(timeline.router, prefix="/api")
 app.include_router(reports.router, prefix="/api")
 app.include_router(health.router, prefix="/api")
+app.include_router(client_errors.router, prefix="/api")
 
 # Dev-only login routes live in an optional module that is stripped from
 # production images. We import it only when explicitly enabled, so enabling the

@@ -200,12 +200,70 @@ data. Add to `_NOISE_RECORD_ATTRS` if another dependency does the same thing.
   reserved `LogRecord` attributes (`message`, `module`, `filename`, `args`,
   `asctime`, `name`, `levelname`, …) — `Logger.makeRecord` raises `KeyError` if
   they do. Prefix domain fields instead (`pitch_id`, `organisation_name`).
+- **No credential reaches the log, in any field.** This is a property of the
+  record, not of a field, so write it that way. Credentials travel in query
+  parameters — our own sign-in redirect is `/auth/callback?token=<JWT>` — and a
+  URL turns up in far more than a `url` field: an `axios` message quotes the
+  request it failed, and every stack frame carries the script's URL. Two rules,
+  both in `app/core/redaction.py` so there is one copy to fix:
+  - `reduce_url_to_path` drops everything from the first query or fragment
+    separator. The access record logs `request.url.path`, and `ClientErrorReport`
+    reduces the reported URL in a validator.
+  - `redact_credentials` replaces the _value_ of a credential-shaped assignment
+    (`token`, `access_token`, `code`, `secret`, `password`, `api_key`, `key`,
+    `authorization`, … — the list is in that module) wherever it appears in free
+    text, keeping the parameter name and the surrounding words. `?token=REDACTED`
+    is still a useful stack frame; a blanked line is not.
+- **Normalise before you match.** A literal comparison is bypassed by an encoded
+  one: the first version of the rule above split on `?` and `#` only, and
+  `/auth/callback%3Ftoken=<JWT>` walked straight through it. `_URL_SEPARATOR`
+  therefore matches `%3F`/`%23` in any case and at any depth of re-encoding, and
+  the redaction accepts a percent-escape in place of a word boundary. A real
+  browser sends the literal character, so a caller sending the escape is exactly
+  the caller the rule exists for.
+- Enforce both at the boundary that accepts the value, not at each call site that
+  logs it — a rule living in one comment is a rule the next code path won't
+  inherit, and "which fields?" is a question with no complete answer.
 
 ```python
 logger = logging.getLogger(__name__)
 
 logger.info("Pitch declined", extra={"pitch_id": str(pitch.id), "reason": reason})
 ```
+
+`app/api/routes/client_errors.py` is the worked example of all of these, because it
+logs nothing _but_ caller-supplied data: `POST /api/client-errors` takes a browser
+error report and writes it to the stream at `ERROR` on a named logger
+(`app.client_errors`).
+
+- The message string is the constant `"Client error reported"`. The reported
+  message, page URL, stack and component stack all travel in `extra=`, so
+  `json.dumps` escapes them and the record stays on exactly one line — a stack
+  containing `\n{"level": "ERROR", ...}` cannot forge a second record. That is the
+  security property of the endpoint, and there is a regression test formatting a
+  captured record with `JsonFormatter` and asserting no newline survives.
+- Every field is prefixed (`client_message`, `client_url`, `client_stack`, …).
+  `client_message` in particular _has_ to be: `message` is a reserved `LogRecord`
+  attribute, so `extra={"message": ...}` raises `KeyError` at call time.
+- The acting user is read from `current_user`, never from the request body. A body
+  claiming `"user_role": "admin"` changes nothing about what is logged.
+- Bound what one caller can emit: the request schema caps every field's length as a
+  module-level constant, so an over-long report is a `422` rather than a log entry.
+- Sanitising happens in `ClientErrorReport`, not in the route. The SPA sends
+  `window.location.pathname` already, but the schema is the allowlist every caller
+  crosses — a stale bundle, a cached SPA or a direct POST cannot get a query string
+  past it. The URL is reduced to its path in a field validator; a
+  `model_validator(mode="after")` then redacts credentials from **every** string on
+  the model, found by iterating `model_fields` rather than by naming them, so a
+  field added tomorrow inherits the rule instead of quietly reopening the hole.
+- A URL whose path is empty (`?token=…`) logs the placeholder `(no path)`. Not `""`,
+  which reads as a broken reporter, and not `/`, which would claim the crash
+  happened on the home page — and not a `422`, because losing the report is worse
+  than losing its page reference.
+- The tests assert on the record **formatted by `JsonFormatter`**, not on one
+  attribute. Checking `client_url` alone is how a token in `client_message` stayed
+  invisible for a release; the property is that the secret is absent from the line
+  that gets written.
 
 ### Request correlation
 

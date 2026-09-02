@@ -1,0 +1,20 @@
+{
+  "description": "Accept a file for a pitch, validate it, send it to the document store and record the result. Validation runs before the store is called, so a rejected file never leaves the process. The file lands in a folder keyed by the pitch's identifier rather than its title, because a retitled pitch must not orphan its files. The record is written only after the store confirms the upload: a row pointing at a file that was never stored reads as success until someone clicks it, which is worse than the failure it hides.",
+  "milestone": "pitch-attachments",
+  "expectedBehavior": [
+    "A file within the size limit and of an allowed type is stored and a record is created",
+    "The stored file is byte-identical to what was uploaded",
+    "An oversized file or a disallowed type is refused with a message naming the limit, and the store is never called",
+    "A store failure returns an error and creates no record",
+    "Editing rights are required; the check is server-side",
+    "The folder is keyed by the pitch's identifier, so renaming the pitch does not move or orphan files"
+  ],
+  "verificationSteps": [
+    "cd backend && pytest",
+    "With the fake store forced to fail, upload a file and confirm the response is an error and the pitch's attachment list is unchanged",
+    "Upload an oversized file and a disallowed type, and assert the fake store recorded no call",
+    "Against the real tenant, upload a file and compare a checksum of the source with a checksum of the stored file; record both"
+  ],
+  "fulfills": ["VAL-ATTACH-002", "VAL-ATTACH-004", "VAL-ATTACH-005"],
+  "dependsOn": ["sharepoint-client", "attachment-schemas"]
+}

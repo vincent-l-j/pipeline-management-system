@@ -1,0 +1,21 @@
+{
+  "description": "Frontend access to the attachment endpoints, added to the single API module every request already goes through, so the bearer token and the unauthorised-response handling apply here too. Upload needs multipart rather than the JSON default, and download needs a binary response — both are reasons to extend the shared client rather than reach for a direct call at the component.",
+  "milestone": "pitch-attachments",
+  "expectedBehavior": [
+    "List, upload, download and delete are exposed as functions on the shared API module",
+    "Upload sends multipart and reports progress well enough for a large file to show movement",
+    "No component calls the network directly",
+    "Field names match the API exactly — no renaming across the wire"
+  ],
+  "verificationSteps": [
+    "cd frontend && npm test",
+    "npm run typecheck",
+    "Grep the frontend source for direct network calls outside the shared API module and confirm there are none"
+  ],
+  "fulfills": [],
+  "dependsOn": [
+    "attachment-list-endpoint",
+    "attachment-delete-endpoint",
+    "attachment-download-proxy"
+  ]
+}

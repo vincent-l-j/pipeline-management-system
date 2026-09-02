@@ -1,0 +1,12 @@
+{
+  "description": "List a pitch's attachments. Readable by anyone who can read the pitch, including viewers — seeing that a document exists is not the same as being able to change it, and a read-only user with no visibility of attachments cannot do their job. Returns only the display schema.",
+  "milestone": "pitch-attachments",
+  "expectedBehavior": [
+    "Any caller who can read the pitch can list its attachments, viewers included",
+    "The list contains only that pitch's attachments",
+    "The store's item identifier is not present in the response"
+  ],
+  "verificationSteps": ["cd backend && pytest"],
+  "fulfills": [],
+  "dependsOn": ["attachment-schemas"]
+}

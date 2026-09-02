@@ -1,0 +1,18 @@
+{
+  "description": "Serve an attachment's bytes through the backend rather than handing out a link to the document library. Redirecting to a store URL would move the decision about who may read a file from this application to the document library's own permissions, and the backend is the only security boundary this system has. Proxying also keeps signed URLs out of the browser, where they become a credential in history and referrer headers. This feature owns the scoping assertion for the resource: the attachment identifier is resolved against the pitch in the path, so an identifier belonging to another pitch resolves to nothing — for download and for delete alike.",
+  "milestone": "pitch-attachments",
+  "expectedBehavior": [
+    "The file is streamed through the backend with the recorded content type and filename",
+    "Read access follows the pitch: a caller who cannot read the pitch cannot download its attachments",
+    "An attachment identifier named under a pitch it does not belong to is not found, for download and for delete, even when the caller may edit the pitch named",
+    "No signed store URL is returned to the client",
+    "Large files stream rather than loading wholly into memory — the instance has 512 MB"
+  ],
+  "verificationSteps": [
+    "cd backend && pytest",
+    "Request a valid attachment identifier under a different pitch and confirm download and delete are both refused and the file still exists",
+    "Search the response headers and body of a successful download for a signature parameter and confirm there is none"
+  ],
+  "fulfills": ["VAL-ATTACH-006"],
+  "dependsOn": ["attachment-upload-endpoint"]
+}

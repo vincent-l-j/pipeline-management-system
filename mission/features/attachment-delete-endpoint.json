@@ -1,0 +1,16 @@
+{
+  "description": "Remove an attachment from a pitch and from the document store. Requires editing rights, enforced server-side. This feature owns the read-only-user assertion for the whole resource: by the time it lands both mutating endpoints exist, so one test module can prove a viewer is refused on upload and on delete together, rather than each endpoint asserting half of it. If the store deletion fails, the record stays — a row whose file is gone is recoverable, a file with no row is invisible.",
+  "milestone": "pitch-attachments",
+  "expectedBehavior": [
+    "A viewer is refused on delete and on upload, by the server, on a direct request",
+    "An editor's delete removes both the record and the stored file",
+    "A failed store deletion leaves the record in place and reports the failure",
+    "Deleting an attachment does not affect other attachments on the same pitch"
+  ],
+  "verificationSteps": [
+    "cd backend && pytest",
+    "Call the upload and delete endpoints directly with a viewer's credentials and confirm both are refused with the same status; call the list endpoint with the same credentials and confirm it succeeds"
+  ],
+  "fulfills": ["VAL-ATTACH-003"],
+  "dependsOn": ["attachment-upload-endpoint"]
+}

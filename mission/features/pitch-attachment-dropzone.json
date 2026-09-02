@@ -1,0 +1,19 @@
+{
+  "description": "The requested interaction: drop a file onto a pitch and see it attached. The drop target is the pitch detail page, the list updates in place, and failures say what went wrong rather than leaving the row in limbo. Upload and delete controls are hidden from read-only users for clarity only — the server refuses them regardless, and the hidden control is not the protection.",
+  "milestone": "pitch-attachments",
+  "expectedBehavior": [
+    "Dragging a file over the drop target shows it will be accepted; dropping it uploads it",
+    "The new attachment appears in the list without a page reload, with its name and uploader",
+    "A rejected or failed upload shows the server's reason and adds no row",
+    "A viewer sees the list and the download control but no upload or delete control",
+    "The same file can be chosen through a normal file picker — drag and drop is not the only way in"
+  ],
+  "verificationSteps": [
+    "cd frontend && npm test",
+    "npm run typecheck",
+    "npm run lint",
+    "Drop a file on a pitch in a browser and confirm it appears without a reload; repeat as a viewer and confirm the controls are absent"
+  ],
+  "fulfills": ["VAL-ATTACH-001"],
+  "dependsOn": ["attachment-api-client"]
+}

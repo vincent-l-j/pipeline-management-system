@@ -1,3 +1,8 @@
+# DEPLOYMENT_FAILED only: staging declares no domains, so DOMAIN_FAILED would
+# watch nothing, and utilisation noise from a UAT box is what trains people to
+# ignore the channel.
+alerts:
+  - rule: DEPLOYMENT_FAILED
 databases:
   - engine: PG
     name: db

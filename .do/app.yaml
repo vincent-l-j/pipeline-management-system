@@ -1,3 +1,6 @@
+alerts:
+  - rule: DEPLOYMENT_FAILED
+  - rule: DOMAIN_FAILED
 databases:
   - cluster_name: db-pgsql-syd1-51653
     engine: PG
@@ -38,7 +41,19 @@ jobs:
 name: production
 region: syd
 services:
-  - dockerfile_path: backend/Dockerfile
+  # On a 512 MB instance an OOM kill is the likeliest way this dies, and the
+  # liveness probe cannot catch it: /api/health is a static literal, so App
+  # Platform only ever restarts this service when the platform itself killed it.
+  - alerts:
+      - rule: RESTART_COUNT
+        value: 3
+        operator: GREATER_THAN
+        window: TEN_MINUTES
+      - rule: MEM_UTILIZATION
+        value: 85
+        operator: GREATER_THAN
+        window: FIVE_MINUTES
+    dockerfile_path: backend/Dockerfile
     envs:
       - key: SECRET_KEY
         scope: RUN_TIME

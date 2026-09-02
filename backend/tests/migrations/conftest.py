@@ -9,7 +9,7 @@ They are skipped when TEST_DATABASE_URL is unset, so the ordinary SQLite run nee
 no Postgres. Point them at a throwaway one with:
 
     TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/pms_migrations_test \\
-        pytest tests/migrations -m migrations
+        pytest tests/migrations
 
 Once that variable is set the database is required: an unreachable one fails the
 run with the driver's error rather than skipping.

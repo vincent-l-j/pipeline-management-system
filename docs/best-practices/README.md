@@ -35,7 +35,7 @@ subtly-wrong lore:
    (layers, directories, conventions like "no trailing slashes") in preference to a
    single function name, which is more likely to be renamed.
 4. **Mark forward references.** If a doc cites a symbol that is _planned but not yet
-   implemented_ (e.g. a schema described in `features.json` but not yet built), say
+   implemented_ (e.g. a schema described in a queued feature but not yet built), say
    so ("planned as `X`") rather than presenting it as existing. Reconcile it when
    the feature lands.
 5. **No tooling needed.** Four short docs don't warrant link-checkers or doctests;
@@ -47,6 +47,7 @@ themselves (server-side authz, tests-first, integrity-in-app-code, the SOLID
 definitions). Only the anchoring examples need maintenance.
 
 The same "fix it in the same change / code-wins" spirit applies to the
-implementation-anchored parts of the mission-control docs (`features.json`
-`verificationSteps`, `services.yaml` commands). The black-box `validation-contract.md`
-is deliberately implementation-independent and should not need this upkeep.
+implementation-anchored parts of the mission-control docs (a feature's
+`verificationSteps`, `services.yaml` commands). The black-box assertions under
+`mission/contract/` are deliberately implementation-independent and should not need
+this upkeep.

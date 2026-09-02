@@ -48,27 +48,36 @@ silently doesn't force.
 backend/app/   FastAPI: api/routes, core (config/db/security), models, schemas, services
 frontend/src/  React: pages, components, contexts, services/api.ts
 docs/          architecture.md, best-practices/
+mission/       the work queues: contract/, features/, lessons/, proposals/
 sop/           db bootstrap/migration runbooks, tooling, instance sheets
 ```
 
 ## How work is organized (read these first)
 
 This repo follows the multi-agent methodology in **`methodology.md`**. The
-mission-control artifacts at the root are:
+mission-control artifacts are:
 
-- **`validation-contract.md`** — the black-box `VAL-*` behavioural assertions that
-  define correctness. This is the source of truth for "done".
-- **`features.json`** — the feature list; each feature declares which `VAL-*`
-  assertions it `fulfills` and lists its `verificationSteps`.
+- **`mission/contract/VAL-<id>.md`** — one black-box behavioural assertion per file.
+  Together they are the source of truth for "done".
+- **`mission/features/<id>.json`** — one feature per file; the filename is the id.
+  Each declares which assertions it `fulfills`, its `verificationSteps`, and its
+  `dependsOn`.
 - **`AGENTS.md`** — mission boundaries + coding conventions. Read before editing.
 - **`services.yaml`** — build/run/test commands and services.
 - **`sop/`** — Standard Operating Procedures: runbooks for database bootstrap
   (`db-bootstrap.md`), schema changes (`db-change.md`), and tooling (`bin/db.sh`).
   See `sop/instances/rozetta-pms.md` for app-specific values.
 
-To implement a feature: read its `features.json` entry → the `VAL-*` assertions it
+**These are queues that drain, not logs that grow.** There is no `status` field:
+presence is pending, absence is done. An empty `mission/features/` means the mission
+is complete. `mission/` also holds `lessons/` and `proposals/` on the same terms —
+see `methodology.md` for what each drains into.
+
+To implement a feature: read its `mission/features/` entry → the assertions it
 fulfills → `AGENTS.md` → the relevant best-practices doc → **write tests first** →
-implement → run the feature's `verificationSteps`.
+implement → run the feature's `verificationSteps`. The commit that implements a
+feature also **deletes that feature's file**, so spec and implementation land
+together and cannot desync.
 
 ## Reference docs
 
@@ -84,8 +93,8 @@ in the same change that alters the pattern it describes).
 ## Golden rules
 
 1. **Tests first (TDD).** Tests encode intended behaviour; write them before code.
-   Final correctness is judged by validators against `validation-contract.md`, not
-   by the implementer.
+   Final correctness is judged by validators against the assertions in
+   `mission/contract/`, not by the implementer.
 2. **The backend is the only security boundary.** Enforce authz server-side with
    `require_role`. Frontend role checks (`user.role`) are UX only — `localStorage`
    is client-controlled.
@@ -109,6 +118,8 @@ in the same change that alters the pattern it describes).
 ## Boundaries
 
 Ports: frontend 5173, backend 8000, Postgres 5432 — this project only. Don't touch
-other containers/ports. Don't rewrite `methodology.md` / `validation-contract.md`
-or invent assertions; a worker's only edit to `features.json` is its own feature's
-`status`. Full details in `AGENTS.md`.
+other containers/ports. Don't rewrite `methodology.md` or anything in
+`mission/contract/`, and don't invent assertions; the only queue file a worker
+touches is its own `mission/features/` entry, which its implementation commit
+deletes. Never reference a queue id from a tracked file outside `mission/` — ids
+name files that are deleted when the work drains. Full details in `AGENTS.md`.

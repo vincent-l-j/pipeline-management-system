@@ -1,3 +1,5 @@
+alerts:
+  - rule: DEPLOYMENT_FAILED
 databases:
   - engine: PG
     name: db
@@ -35,7 +37,16 @@ jobs:
 name: staging
 region: syd
 services:
-  - dockerfile_path: backend/Dockerfile
+  - alerts:
+      - rule: RESTART_COUNT
+        value: 3
+        operator: GREATER_THAN
+        window: TEN_MINUTES
+      - rule: MEM_UTILIZATION
+        value: 85
+        operator: GREATER_THAN
+        window: FIVE_MINUTES
+    dockerfile_path: backend/Dockerfile
     envs:
       - key: SECRET_KEY
         scope: RUN_TIME

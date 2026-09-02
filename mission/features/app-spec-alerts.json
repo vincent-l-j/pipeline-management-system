@@ -1,0 +1,17 @@
+{
+  "description": "Declare alert rules in both deployment specs so a failure notifies a person. Neither spec has an alerts key, and the specs are applied on every deploy — the platform's create-time default alerts may already have been overwritten, so confirm the live spec before writing config. Production gets failed-deployment and failed-domain alerts plus restart-count and memory alerts on the backend service; staging gets failed-deployment only, because it declares no domain and utilisation noise on staging trains people to ignore the channel.",
+  "milestone": "alerting",
+  "expectedBehavior": [
+    "A failed deployment notifies a configured recipient in both environments",
+    "The backend service alerts on repeated restarts and on sustained high memory — the two signals that catch an out-of-memory kill on a 512 MB instance, which the liveness probe cannot catch because it is a static literal",
+    "Staging declares no domain alert, having no domain",
+    "The alert recipient is a real inbox, not an unattended address"
+  ],
+  "verificationSteps": [
+    "Fetch the live spec for each app and diff it against the committed spec; record any pre-existing drift before changing anything",
+    "Deploy, then fetch the live spec again and confirm the declared alert rules are present",
+    "Trigger a deliberately failing deploy on staging and confirm the notification arrives at the configured inbox"
+  ],
+  "fulfills": ["VAL-ALERT-001", "VAL-ALERT-002"],
+  "dependsOn": []
+}

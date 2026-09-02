@@ -1,0 +1,14 @@
+{
+  "description": "Reject unregistered pytest markers. Markers are declared but not enforced, so a misspelled marker is a warning — and a marker-selected job silently runs nothing.",
+  "milestone": "deploy-safety",
+  "expectedBehavior": [
+    "A test carrying an undeclared marker causes the run to fail, naming the marker",
+    "The existing declared markers still select their tests"
+  ],
+  "verificationSteps": [
+    "Apply a misspelled marker to one test and confirm the run fails naming it, then revert",
+    "cd backend && pytest"
+  ],
+  "fulfills": ["VAL-CI-004"],
+  "dependsOn": []
+}

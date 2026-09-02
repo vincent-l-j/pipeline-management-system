@@ -1,0 +1,16 @@
+{
+  "description": "Treat an explicitly configured but unreachable test database as a failure. The reachability helper collapses every exception to a boolean, so in the job where the database URL is set a real connection or auth failure degrades to a skip and the job exits zero. Remove the boolean rather than adding a flag to it — discarding the exception is what erased the diagnosis.",
+  "milestone": "deploy-safety",
+  "expectedBehavior": [
+    "With the database URL set and the database unreachable, the suite exits non-zero and the driver's error message is visible",
+    "With no database URL set, the suite still skips with its stated reason and exits zero"
+  ],
+  "verificationSteps": [
+    "Stop the compose db, then run the migration suite with TEST_DATABASE_URL set and confirm it fails with the connection error rather than skipping",
+    "Start the compose db and confirm the same command passes",
+    "Run the migration suite with no TEST_DATABASE_URL and confirm it skips with a reason",
+    "cd backend && pytest"
+  ],
+  "fulfills": ["VAL-CI-001", "VAL-CI-002"],
+  "dependsOn": []
+}

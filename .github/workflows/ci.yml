@@ -119,7 +119,10 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt -r requirements-dev.txt
         working-directory: backend
-      - run: pytest tests/migrations -m migrations
+      # Scoped by path, not by `-m migrations`: the marker is applied module-wide
+      # and selects the same tests, so the flag only added a string that silently
+      # empties the selection when it is misspelled.
+      - run: pytest tests/migrations
         working-directory: backend
         env:
           TEST_DATABASE_URL: postgresql://pms:pms@localhost:5432/pms_migrations_test

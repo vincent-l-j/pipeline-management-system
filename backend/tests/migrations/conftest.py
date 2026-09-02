@@ -5,10 +5,14 @@ NOT the in-memory SQLite used by the rest of the suite (see the top-level
 tests/conftest.py). Migrations are Postgres-specific (enums, UUID, server
 defaults); SQLite cannot faithfully test them.
 
-They are skipped unless a throwaway Postgres is available. Point them at one with:
+They are skipped when TEST_DATABASE_URL is unset, so the ordinary SQLite run needs
+no Postgres. Point them at a throwaway one with:
 
     TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/pms_migrations_test \\
         pytest tests/migrations -m migrations
+
+Once that variable is set the database is required: an unreachable one fails the
+run with the driver's error rather than skipping.
 
 The database is wiped (DROP SCHEMA public CASCADE) between tests, so it MUST be a
 disposable database, never a real one.
@@ -19,6 +23,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import psycopg2
 import pytest
 
 # backend/ — the directory containing alembic.ini.
@@ -26,28 +31,19 @@ BACKEND_DIR = Path(__file__).resolve().parents[2]
 VERSIONS_DIR = BACKEND_DIR / "alembic" / "versions"
 
 
-def _reachable(url: str) -> bool:
-    try:
-        import psycopg2
-
-        conn = psycopg2.connect(url)
-        conn.close()
-        return True
-    except Exception:
-        return False
-
-
 @pytest.fixture(scope="session")
 def pg_url() -> str:
-    """The disposable Postgres URL, or skip the whole module if unavailable."""
+    """The disposable Postgres URL, or skip the whole module if unconfigured."""
     url = os.environ.get("TEST_DATABASE_URL")
     if not url:
         pytest.skip(
             "TEST_DATABASE_URL not set — migration tests need a disposable Postgres. "
             "See tests/migrations/conftest.py for how to run them."
         )
-    if not _reachable(url):
-        pytest.skip(f"TEST_DATABASE_URL is set but not reachable: {url}")
+    # Connect eagerly and let the driver's error propagate. A configured database
+    # that cannot be reached is a broken run, not an absent one, and catching the
+    # exception to return a boolean is what erased the diagnosis.
+    psycopg2.connect(url).close()
     return url
 
 

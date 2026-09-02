@@ -155,9 +155,12 @@ they're a separate target that CI builds explicitly.
   files, not Node — no need to ship `node_modules` or source.
 
 CI (`.github/workflows/ci.yml`) runs `docker build --target test` (backend + frontend) and
-`--target build` (frontend) on every push and PR, so a red test fails the build there.
-Production builds don't re-run tests — protect `main` with required CI checks so untested code
-never reaches the branch App Platform deploys from. CI also runs database migrations tests too.
+`--target build` (frontend) on every pull request, so a red test fails the build there. It also
+runs the database migration tests. Production builds don't re-run tests; instead both deploy
+workflows call `ci.yml` as a reusable workflow and their deploy job `needs:` it, so the checks
+run against the exact commit being released and a failure skips the deploy. That covers the
+direct push to a deploy branch, which branch protection cannot — protection blocks a merge, but
+the deploy fires on the push the merge produces.
 
 ---
 

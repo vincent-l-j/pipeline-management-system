@@ -1,8 +1,5 @@
 name: CI
 
-# workflow_call is what the deploy workflows gate on, so the checks run against
-# the exact commit being released. Triggering on push instead would report the
-# result alongside the deploy rather than in front of it.
 on:
   pull_request:
   workflow_call:

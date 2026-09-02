@@ -277,9 +277,10 @@ Kept simple for the pilot; do these before real users depend on the system:
 The backend has a `pytest` suite (in `backend/tests/`) that runs against an in-memory SQLite
 database — no Postgres needed. The frontend has a [Vitest](https://vitest.dev/) +
 React Testing Library suite (co-located in `__tests__/` folders under `frontend/src/`).
-**GitHub Actions runs jobs on every push and pull request** — backend tests,
-frontend build, frontend tests and db migration tests (`.github/workflows/ci.yml`) — so regressions are
-caught before deploy.
+**GitHub Actions runs jobs on every pull request, and again as the gate in front of every
+deploy** — backend tests, frontend build, frontend tests and db migration tests
+(`.github/workflows/ci.yml`). The deploy workflows call that workflow and depend on it, so a
+red check skips the deploy rather than being reported alongside it.
 
 ### Running the backend tests
 

@@ -1,8 +1,9 @@
 # AGENTS.md — Rozetta PMS
 
 Mission boundaries and coding conventions for workers on this codebase. Read this
-before implementing a feature. The mission-level contract is `validation-contract.md`;
-the feature list is `features.json`; build/run/test commands are in `services.yaml`.
+before implementing a feature. The mission-level contract is one assertion per file
+under `mission/contract/`; the feature queue is one feature per file under
+`mission/features/`; build/run/test commands are in `services.yaml`.
 
 ## Mission Boundaries
 
@@ -24,16 +25,20 @@ Do not bind other ports or assume services on them.
 **Off-limits:**
 
 - Docker containers and ports not belonging to this project.
-- `methodology.md`, `validation-contract.md`, and the _shape_ of `features.json`
-  — do not rewrite the contract or invent assertions. The only edit a worker
-  makes to `features.json` is flipping its own feature's `status`.
+- `methodology.md`, anything under `mission/contract/`, and the _shape_ of a
+  `mission/features/` entry — do not rewrite the contract or invent assertions.
+  The only queue file a worker touches is its own feature's, and it touches it
+  once: the implementation commit **deletes** it. There is no `status` field to
+  flip — presence is pending, absence is done.
+- Queue ids outside `mission/`. An id names a file that is deleted when its work
+  drains, so no tracked file elsewhere may reference one.
 - Secrets: never commit `.env` or hardcode keys. `SECRET_KEY`, Azure, and
   `ANTHROPIC_API_KEY` come from the environment. Leave `ENABLE_DEV_LOGIN=false`
   for anything prod-like.
 
 Workers: return to the orchestrator if you cannot complete the work within these
 boundaries, or if a feature's `expectedBehavior` conflicts with an assertion in
-`validation-contract.md`.
+`mission/contract/`.
 
 ## Test-Driven Development
 
@@ -44,8 +49,9 @@ boundaries, or if a feature's `expectedBehavior` conflicts with an assertion in
 - Frontend: Vitest + React Testing Library, co-located in `__tests__/` next to the
   component; mock `src/services/api`.
 - **Do not reference `VAL-*` assertions in test docstrings or source code comments.**
-  Assertions are declared in `features.json` and verified independently; test names
-  and docstrings should describe what they test, not which assertion they fulfill.
+  Assertions are declared under `mission/contract/`, claimed by a feature's
+  `fulfills`, and verified independently; test names and docstrings should describe
+  what they test, not which assertion they fulfill.
 - You iterate until you believe the work is correct, then hand off. Final
   correctness is decided by an independent validator against the contract — do not
   mark your own work validated.
@@ -94,7 +100,7 @@ preferred.
 
 - **Start clean.** Begin from a clean working tree; never commit on a detached
   `HEAD` or directly on `main`. Create a branch off `main` first.
-- **A branch and PR per feature.** One `features.json` id → one branch
+- **A branch and PR per feature.** One `mission/features/` id → one branch
   (`feat/<feature-id>`) → one PR. Backend and frontend are separate feature ids,
   so they land as separate, smaller PRs — don't combine them.
 - **Small, focused commits.** Split a feature into coherent steps (e.g. schema,
@@ -114,4 +120,6 @@ preferred.
 - Tests written first and passing (`services.yaml` → `test-backend` / `test-frontend`).
 - Every `VAL-*` id the feature `fulfills` is observably satisfied on the running stack.
 - Server-side authorization verified for any restricted action (not just hidden UI).
-- No new lint/secret/boundary violations; `status` flipped to reflect completion.
+- No new lint/secret/boundary violations.
+- The feature's `mission/features/` file is deleted by the same commit that
+  implements it — that deletion is what records completion.

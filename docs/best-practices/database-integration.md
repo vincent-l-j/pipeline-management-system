@@ -92,7 +92,7 @@ The frontend never talks to the database, and never constructs URLs beyond the
 - **Frontend**: mock `services/api` so components are tested against the _contract_
   (the shapes above), not a live backend. Keep mock payloads faithful to the real
   `*Out` schema — a drifted mock hides integration breaks.
-- **End-to-end**: the validation-contract `VAL-*` assertions are verified black-box
+- **End-to-end**: the contract's `VAL-*` assertions are verified black-box
   against the running stack (`services.yaml` brings it up; health at
   `/api/health`). That's the layer that catches proxy/CORS/field-name mismatches
   the unit tests can't.

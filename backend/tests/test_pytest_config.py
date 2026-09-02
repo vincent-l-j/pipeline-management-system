@@ -5,6 +5,7 @@ the behaviour under test is what that config does at collection time — it cann
 be observed from inside a run that has already collected.
 """
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -62,5 +63,6 @@ def test_declared_marker_still_selects_the_migration_suite():
     result = _run_pytest("tests/migrations", "-m", "migrations", "--collect-only", "-q")
 
     assert result.returncode == 0, result.stdout + result.stderr
-    assert "no tests ran" not in result.stdout
-    assert "test" in result.stdout
+    collected = re.search(r"(\d+) tests collected", result.stdout)
+    assert collected, result.stdout
+    assert int(collected.group(1)) > 0

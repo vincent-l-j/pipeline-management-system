@@ -101,8 +101,14 @@ preferred.
 - **Start clean.** Begin from a clean working tree; never commit on a detached
   `HEAD` or directly on `main`. Create a branch off `main` first.
 - **A branch and PR per feature.** One `mission/features/` id → one branch
-  (`feat/<feature-id>`) → one PR. Backend and frontend are separate feature ids,
+  (`<type>/<short-slug>`) → one PR. Backend and frontend are separate feature ids,
   so they land as separate, smaller PRs — don't combine them.
+- **Name the branch for what it does.** The prefix is the Conventional Commit
+  type of the work it carries, not a fixed `feat/` — `ci/lint-workflows`,
+  `refactor/clean-test-output`, `docs/frontend-typescript-best-practice`. Where
+  the commits mix types, use the dominant one; a feature plus its docs is still
+  `feat/`. A branch prefixed `feat/` whose commits are all `fix:` misleads the
+  reviewer before they open a single file.
 - **Small, focused commits.** Split a feature into coherent steps (e.g. schema,
   then route, then wiring) rather than one big commit. Keep a test with the code
   it covers. Each commit should build; all tests must be green at the branch tip

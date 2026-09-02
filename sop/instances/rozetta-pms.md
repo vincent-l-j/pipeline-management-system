@@ -43,6 +43,28 @@ and the reference record of how the cutover was done.
 Standard stack: FastAPI + SQLAlchemy 2.0 + Alembic + PostgreSQL 16 + DigitalOcean App
 Platform. No deviations.
 
+## Alerting
+
+Alert **rules** are declared in the specs and applied on every deploy, so a rule added in
+review is a rule that is actually armed:
+
+- `.do/app.yaml` — `DEPLOYMENT_FAILED` and `DOMAIN_FAILED` at app level; `RESTART_COUNT`
+  (>3 / 10 min) and `MEM_UTILIZATION` (>85% / 5 min) on the `backend` service. Those two
+  are the pair that catches an out-of-memory kill on the 512 MB instance, which the
+  liveness probe cannot: `health_check.http_path` is `/api/health`, a static literal that
+  never fails, so a restart means the platform killed the process.
+- `.do/staging.yaml` — `DEPLOYMENT_FAILED` only. Staging declares no `domains:`, and
+  utilisation noise from a UAT box trains people to ignore the channel.
+- `frontend` is a `static_sites` entry with no instance, so there is nothing to alert on.
+
+Alert **destinations are not in the spec.** App Platform emails the app's team members,
+configured in the DO control panel. Confirm that list resolves to a real person or a shared
+inbox — an alert with no destination looks done and is worse than no alert.
+
+To check the running app matches, `doctl apps spec get <app-id>` and diff against the
+committed spec. The spec is fully declarative, so an out-of-band console edit is drift that
+the next deploy silently reverts.
+
 ## Configuration
 
 **Configuration comes from `.env` in the repo root** — copy `.env.example` and customize

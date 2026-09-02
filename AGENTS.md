@@ -105,8 +105,11 @@ preferred.
   refactors. Update any docs the change touches in the same PR (see
   `docs/best-practices/README.md`).
 - **Messages:** Conventional Commits, imperative mood —
-  `feat:` / `test:` / `fix:` / `refactor:` / `docs:`, e.g.
-  `feat(contacts): cascade-delete join rows on contact delete`.
+  `feat:` / `test:` / `fix:` / `refactor:` / `docs:` / `chore:` / `build:`, e.g.
+  `fix: enforce one link per pitch-contact pair`.
+- **No scopes in the subject.** Write `feat:`, never `feat(contacts):`. Every
+  commit since mid-July is bare; the type plus an imperative summary is the whole
+  subject.
 - **Never commit** secrets, `.env`, or generated/vendored files.
 
 ## Definition of Done (per feature)

@@ -6,6 +6,7 @@ import pytest
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 
+from app.api.routes.attachments import MAX_ATTACHMENT_BYTES
 from app.models.attachment import PitchAttachment
 from app.models.user import User, UserRole
 from app.schemas import attachment as attachment_schemas
@@ -245,3 +246,227 @@ def test_a_pitch_with_no_attachments_lists_nothing(admin_client):
     pitch_id = _new_pitch(admin_client, "Empty Attachment List Pitch")
 
     assert admin_client.get(f"/api/pitches/{pitch_id}/attachments").json() == []
+
+
+# --- Uploading a file -------------------------------------------------------
+
+
+def _upload(client, pitch_id, *, name="deck.pdf", body=b"a pitch deck", content_type=None):
+    return client.post(
+        f"/api/pitches/{pitch_id}/attachments",
+        files={"file": (name, body, content_type or "application/pdf")},
+    )
+
+
+def test_an_acceptable_file_is_stored_and_recorded(admin_client, document_store):
+    pitch_id = _new_pitch(admin_client, "Uploadable Pitch")
+
+    response = _upload(admin_client, pitch_id)
+
+    assert response.status_code == 201
+    assert response.json()["filename"] == "deck.pdf"
+    assert len(document_store.files) == 1
+
+
+def test_the_stored_file_is_byte_identical_to_what_was_uploaded(admin_client, document_store):
+    pitch_id = _new_pitch(admin_client, "Byte Identical Pitch")
+    body = bytes(range(256)) * 64
+
+    _upload(admin_client, pitch_id, body=body)
+
+    (stored,) = document_store.files.values()
+    assert stored.content == body
+
+
+def test_an_uploaded_file_appears_in_the_pitchs_list(admin_client):
+    pitch_id = _new_pitch(admin_client, "Upload Then List Pitch")
+
+    _upload(admin_client, pitch_id, name="business-case.docx")
+
+    listed = admin_client.get(f"/api/pitches/{pitch_id}/attachments").json()
+    assert [row["filename"] for row in listed] == ["business-case.docx"]
+
+
+def test_the_record_names_the_caller_as_the_uploader(admin_client, db_session):
+    pitch_id = _new_pitch(admin_client, "Attributed Upload Pitch")
+
+    _upload(admin_client, pitch_id)
+
+    stored = db_session.query(PitchAttachment).filter_by(pitch_id=pitch_id).one()
+    assert stored.uploaded_by_id == admin_client.user.id
+
+
+def test_the_recorded_size_is_the_size_of_the_file(admin_client, db_session):
+    pitch_id = _new_pitch(admin_client, "Recorded Size Pitch")
+
+    _upload(admin_client, pitch_id, body=b"x" * 1234)
+
+    stored = db_session.query(PitchAttachment).filter_by(pitch_id=pitch_id).one()
+    assert stored.size_bytes == 1234
+
+
+def test_the_recorded_content_type_comes_from_the_name_not_the_caller(admin_client, db_session):
+    """A caller's declared type is a claim about a file we already hold; the
+    extension is what the library and the browser will act on."""
+    pitch_id = _new_pitch(admin_client, "Declared Type Pitch")
+
+    _upload(admin_client, pitch_id, name="deck.pdf", content_type="text/html")
+
+    stored = db_session.query(PitchAttachment).filter_by(pitch_id=pitch_id).one()
+    assert stored.content_type == "application/pdf"
+
+
+# --- The folder is the pitch's id, not its title ----------------------------
+
+
+def test_the_file_lands_in_a_folder_named_by_the_pitchs_identifier(admin_client, document_store):
+    pitch_id = _new_pitch(admin_client, "Folder Keying Pitch")
+
+    _upload(admin_client, pitch_id)
+
+    assert document_store.uploads == [(str(pitch_id), "deck.pdf")]
+
+
+def test_renaming_a_pitch_does_not_move_where_its_files_go(admin_client, document_store):
+    pitch_id = _new_pitch(admin_client, "Original Title Pitch")
+    _upload(admin_client, pitch_id, name="before.pdf")
+
+    admin_client.patch(f"/api/pitches/{pitch_id}", json={"title": "Renamed Entirely"})
+    _upload(admin_client, pitch_id, name="after.pdf")
+
+    assert {folder for folder, _ in document_store.uploads} == {str(pitch_id)}
+
+
+# --- Unacceptable files are refused before the store is called --------------
+
+
+def test_an_oversized_file_is_refused(admin_client):
+    pitch_id = _new_pitch(admin_client, "Oversized Upload Pitch")
+
+    response = _upload(admin_client, pitch_id, body=b"x" * (MAX_ATTACHMENT_BYTES + 1))
+
+    assert response.status_code == 400
+
+
+def test_the_refusal_of_an_oversized_file_names_the_limit(admin_client):
+    pitch_id = _new_pitch(admin_client, "Oversized Message Pitch")
+
+    response = _upload(admin_client, pitch_id, body=b"x" * (MAX_ATTACHMENT_BYTES + 1))
+
+    assert str(MAX_ATTACHMENT_BYTES // (1024 * 1024)) in response.json()["detail"]
+
+
+def test_an_oversized_file_never_reaches_the_store(admin_client, document_store):
+    pitch_id = _new_pitch(admin_client, "Oversized Untouched Store Pitch")
+
+    _upload(admin_client, pitch_id, body=b"x" * (MAX_ATTACHMENT_BYTES + 1))
+
+    assert document_store.calls == 0
+
+
+def test_a_file_exactly_on_the_limit_is_accepted(admin_client):
+    pitch_id = _new_pitch(admin_client, "Exactly On The Limit Pitch")
+
+    response = _upload(admin_client, pitch_id, body=b"x" * MAX_ATTACHMENT_BYTES)
+
+    assert response.status_code == 201
+
+
+@pytest.mark.parametrize("name", ["payload.exe", "script.sh", "archive.zip", "noextension"])
+def test_a_disallowed_type_is_refused(admin_client, name):
+    pitch_id = _new_pitch(admin_client, f"Disallowed {name} Pitch")
+
+    response = _upload(admin_client, pitch_id, name=name)
+
+    assert response.status_code == 400
+
+
+def test_the_refusal_of_a_disallowed_type_names_what_is_allowed(admin_client):
+    pitch_id = _new_pitch(admin_client, "Disallowed Message Pitch")
+
+    response = _upload(admin_client, pitch_id, name="payload.exe")
+
+    assert ".pdf" in response.json()["detail"]
+
+
+def test_a_disallowed_type_never_reaches_the_store(admin_client, document_store):
+    pitch_id = _new_pitch(admin_client, "Disallowed Untouched Store Pitch")
+
+    _upload(admin_client, pitch_id, name="payload.exe")
+
+    assert document_store.calls == 0
+
+
+def test_a_request_carrying_no_file_at_all_is_rejected(admin_client):
+    """A part with no filename is a form field, not a file, so this never reaches
+    the route: `File(...)` is unsatisfied and the automatic 422 answers it."""
+    pitch_id = _new_pitch(admin_client, "Nameless Upload Pitch")
+
+    response = _upload(admin_client, pitch_id, name="")
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize("name", [".", "..", "/", "decks/"])
+def test_a_name_that_reduces_to_no_file_is_refused(admin_client, name):
+    pitch_id = _new_pitch(admin_client, f"Unusable Name {name} Pitch")
+
+    response = _upload(admin_client, pitch_id, name=name)
+
+    assert response.status_code == 400
+
+
+def test_a_refused_file_adds_no_row(admin_client):
+    pitch_id = _new_pitch(admin_client, "Refused Adds Nothing Pitch")
+
+    _upload(admin_client, pitch_id, name="payload.exe")
+
+    assert admin_client.get(f"/api/pitches/{pitch_id}/attachments").json() == []
+
+
+# --- A failed store leaves nothing behind -----------------------------------
+
+
+def test_a_store_failure_is_reported_to_the_caller(admin_client, document_store):
+    pitch_id = _new_pitch(admin_client, "Failing Store Pitch")
+    document_store.fail_upload = True
+
+    assert _upload(admin_client, pitch_id).status_code == 502
+
+
+def test_a_store_failure_creates_no_record(admin_client, document_store):
+    pitch_id = _new_pitch(admin_client, "Failing Store No Record Pitch")
+    document_store.fail_upload = True
+
+    _upload(admin_client, pitch_id)
+
+    assert admin_client.get(f"/api/pitches/{pitch_id}/attachments").json() == []
+
+
+def test_a_store_failure_quotes_nothing_the_store_said(admin_client, document_store):
+    """The detail is fixed text. The store's own message goes to the log with the
+    request id instead — the caller quotes the id, the log holds the detail, and
+    nothing derived from a credential crosses the wire."""
+    pitch_id = _new_pitch(admin_client, "Opaque Store Failure Pitch")
+    document_store.fail_upload = True
+
+    detail = _upload(admin_client, pitch_id).json()["detail"]
+
+    assert "refused the upload" not in detail
+
+
+# --- Editing rights, enforced by the server ---------------------------------
+
+
+def test_an_assessor_can_upload(assessor_client, admin_client):
+    pitch_id = _new_pitch(admin_client, "Assessor Upload Pitch")
+
+    assert _upload(assessor_client, pitch_id).status_code == 201
+
+
+def test_uploading_to_a_pitch_that_does_not_exist_is_not_found(admin_client):
+    assert _upload(admin_client, UNKNOWN_ID).status_code == 404
+
+
+def test_unauthenticated_upload_is_rejected(client):
+    assert _upload(client, UNKNOWN_ID).status_code == 403

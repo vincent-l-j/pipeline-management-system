@@ -35,11 +35,13 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.documents import get_document_store
 from app.core.logging import setup_logging
 from app.core.security import get_current_user
 from app.main import app
 from app.models import Base
 from app.models.user import User, UserRole
+from tests.fake_document_store import FakeDocumentStore
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
@@ -111,6 +113,21 @@ def log_stream():
 
     sys.stdout, settings.LOG_LEVEL = saved_stdout, saved_level
     setup_logging()
+
+
+@pytest.fixture(autouse=True)
+def document_store():
+    """The in-memory document store, injected in place of the real adapter.
+
+    Autouse so no test can reach a tenant: the real `get_document_store` builds a
+    Graph client from configuration, and a test that forgot to override it would
+    try to acquire a token over the network. Tests that care about the store take
+    this fixture by name to arrange a forced failure or assert on the calls.
+    """
+    store = FakeDocumentStore()
+    app.dependency_overrides[get_document_store] = lambda: store
+    yield store
+    app.dependency_overrides.pop(get_document_store, None)
 
 
 @pytest.fixture

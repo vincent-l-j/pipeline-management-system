@@ -8,6 +8,45 @@ permissions:
   contents: read
 
 jobs:
+  # A `paths-ignore:` here would skip the workflow, and a required check that
+  # never reports leaves the PR pending forever. So the gate is a job-level `if:`.
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      run_code_jobs: ${{ steps.filter.outputs.run_code_jobs }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0 # a shallow clone omits the PR base this diffs against
+      - id: filter
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Mirrors the deploy workflows' paths-ignore; the two move together.
+          docs_paths='(^docs/|^mission/|^sop/|\.md$)'
+
+          decide() {
+            echo "run_code_jobs=$1" >> "$GITHUB_OUTPUT"
+            echo "run_code_jobs=$1 ($2)"
+            exit 0
+          }
+
+          if [ "$EVENT_NAME" != "pull_request" ]; then
+            decide true "$EVENT_NAME is not a pull request"
+          fi
+
+          changed=$(git diff --name-only "$BASE_SHA...$HEAD_SHA") \
+            || decide true "could not diff $BASE_SHA...$HEAD_SHA"
+          [ -n "$changed" ] || decide true "empty diff"
+
+          non_docs=$(printf '%s\n' "$changed" | grep -vE "$docs_paths") || true
+          [ -z "$non_docs" ] || decide true "$(echo "$non_docs" | wc -l) non-docs files"
+          decide false "docs only"
+
+  # Ungated: prettier formats markdown, so docs-only is what this job catches.
   format:
     name: Format
     runs-on: ubuntu-latest
@@ -30,6 +69,8 @@ jobs:
 
   typecheck:
     name: Typecheck (frontend)
+    needs: changes
+    if: needs.changes.outputs.run_code_jobs == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -44,6 +85,8 @@ jobs:
 
   lint-frontend:
     name: Lint (frontend)
+    needs: changes
+    if: needs.changes.outputs.run_code_jobs == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -58,6 +101,8 @@ jobs:
 
   lint-backend:
     name: Lint (backend)
+    needs: changes
+    if: needs.changes.outputs.run_code_jobs == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -71,6 +116,8 @@ jobs:
 
   checks:
     name: ${{ matrix.name }}
+    needs: changes
+    if: needs.changes.outputs.run_code_jobs == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -94,6 +141,8 @@ jobs:
   # them, so this job is what actually exercises them.
   migrations:
     name: Migration tests
+    needs: changes
+    if: needs.changes.outputs.run_code_jobs == 'true'
     runs-on: ubuntu-latest
     services:
       postgres:

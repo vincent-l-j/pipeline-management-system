@@ -3,6 +3,11 @@ name: App Platform Production
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "mission/**"
+      - "sop/**"
 
 permissions:
   contents: read

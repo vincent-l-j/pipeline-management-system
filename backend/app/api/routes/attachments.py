@@ -66,6 +66,28 @@ def _readable_pitch(pitch_id: UUID, db: Session) -> Pitch:
     return pitch
 
 
+def _attachment_of_pitch(pitch_id: UUID, attachment_id: UUID, db: Session) -> PitchAttachment:
+    """The attachment, resolved *against the pitch in the path*, or a 404.
+
+    Both ids are filtered on, never just the attachment's. An identifier is not an
+    authorisation: naming a real attachment under a pitch it does not belong to
+    has to resolve to nothing, even for a caller who may edit the pitch they
+    named. Filtering on the attachment alone would make the pitch in the URL
+    decorative, and the check it carries would quietly stop being a check.
+    """
+    attachment = (
+        db.query(PitchAttachment)
+        .filter(
+            PitchAttachment.id == attachment_id,
+            PitchAttachment.pitch_id == pitch_id,
+        )
+        .first()
+    )
+    if not attachment:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+    return attachment
+
+
 def _accepted_name(upload: UploadFile) -> tuple[str, str]:
     """The file's own name and the content type it will be recorded with.
 
@@ -182,3 +204,41 @@ def list_attachments(
         .order_by(PitchAttachment.created_at.desc())
         .all()
     )
+
+
+@router.delete("/{pitch_id}/attachments/{attachment_id}")
+def delete_attachment(
+    pitch_id: UUID,
+    attachment_id: UUID,
+    db: Session = Depends(get_db),
+    store: DocumentStore = Depends(get_document_store),
+    current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.ASSESSOR)),
+):
+    """Remove an attachment from the pitch and from the document store.
+
+    The store goes first and the row only if it agreed. Should the store refuse,
+    the record stays: a row whose file is gone can be found and cleaned up, while
+    a file with no row is invisible to everyone.
+    """
+    _readable_pitch(pitch_id, db)
+    attachment = _attachment_of_pitch(pitch_id, attachment_id, db)
+
+    try:
+        store.delete(attachment.store_item_id)
+    except DocumentStoreError as exc:
+        logger.error(
+            "Attachment deletion failed at the document store",
+            extra={
+                "pitch_id": str(pitch_id),
+                "attachment_id": str(attachment_id),
+                "store_error": str(exc),
+            },
+        )
+        raise HTTPException(
+            status_code=502,
+            detail="The file could not be removed from the document library. Please try again.",
+        ) from exc
+
+    db.delete(attachment)
+    db.commit()
+    return {"detail": "Attachment deleted"}

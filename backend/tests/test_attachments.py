@@ -470,3 +470,160 @@ def test_uploading_to_a_pitch_that_does_not_exist_is_not_found(admin_client):
 
 def test_unauthenticated_upload_is_rejected(client):
     assert _upload(client, UNKNOWN_ID).status_code == 403
+
+
+# --- Deleting an attachment -------------------------------------------------
+
+
+def _first_attachment(client, pitch_id) -> str:
+    return client.get(f"/api/pitches/{pitch_id}/attachments").json()[0]["id"]
+
+
+def test_an_editors_delete_removes_the_record(admin_client):
+    pitch_id = _new_pitch(admin_client, "Deletable Attachment Pitch")
+    attachment_id = _upload(admin_client, pitch_id).json()["id"]
+
+    assert (
+        admin_client.delete(f"/api/pitches/{pitch_id}/attachments/{attachment_id}").status_code
+        == 200
+    )
+    assert admin_client.get(f"/api/pitches/{pitch_id}/attachments").json() == []
+
+
+def test_an_editors_delete_removes_the_stored_file(admin_client, document_store):
+    pitch_id = _new_pitch(admin_client, "Deletable Stored File Pitch")
+    attachment_id = _upload(admin_client, pitch_id).json()["id"]
+
+    admin_client.delete(f"/api/pitches/{pitch_id}/attachments/{attachment_id}")
+
+    assert document_store.files == {}
+
+
+def test_deleting_one_attachment_leaves_the_others_on_the_pitch(admin_client):
+    pitch_id = _new_pitch(admin_client, "Several Attachments Pitch")
+    doomed = _upload(admin_client, pitch_id, name="doomed.pdf").json()["id"]
+    _upload(admin_client, pitch_id, name="kept.pdf")
+
+    admin_client.delete(f"/api/pitches/{pitch_id}/attachments/{doomed}")
+
+    listed = admin_client.get(f"/api/pitches/{pitch_id}/attachments").json()
+    assert [row["filename"] for row in listed] == ["kept.pdf"]
+
+
+def test_deleting_one_attachment_leaves_the_others_stored(admin_client, document_store):
+    pitch_id = _new_pitch(admin_client, "Several Stored Files Pitch")
+    doomed = _upload(admin_client, pitch_id, name="doomed.pdf").json()["id"]
+    _upload(admin_client, pitch_id, name="kept.pdf")
+
+    admin_client.delete(f"/api/pitches/{pitch_id}/attachments/{doomed}")
+
+    assert [stored.filename for stored in document_store.files.values()] == ["kept.pdf"]
+
+
+def test_deleting_an_attachment_that_does_not_exist_is_not_found(admin_client):
+    pitch_id = _new_pitch(admin_client, "Missing Attachment Pitch")
+
+    assert (
+        admin_client.delete(f"/api/pitches/{pitch_id}/attachments/{UNKNOWN_ID}").status_code == 404
+    )
+
+
+# --- A failed store deletion keeps the record -------------------------------
+
+
+def test_a_failed_store_deletion_reports_the_failure(admin_client, document_store):
+    pitch_id = _new_pitch(admin_client, "Failing Delete Pitch")
+    attachment_id = _upload(admin_client, pitch_id).json()["id"]
+    document_store.fail_delete = True
+
+    assert (
+        admin_client.delete(f"/api/pitches/{pitch_id}/attachments/{attachment_id}").status_code
+        == 502
+    )
+
+
+def test_a_failed_store_deletion_leaves_the_record_in_place(admin_client, document_store):
+    """A row whose file is gone can be found and cleaned up; a file with no row
+    is invisible. So the row goes last, and only if the store agreed."""
+    pitch_id = _new_pitch(admin_client, "Failing Delete Keeps Row Pitch")
+    attachment_id = _upload(admin_client, pitch_id).json()["id"]
+    document_store.fail_delete = True
+
+    admin_client.delete(f"/api/pitches/{pitch_id}/attachments/{attachment_id}")
+
+    listed = admin_client.get(f"/api/pitches/{pitch_id}/attachments").json()
+    assert [row["id"] for row in listed] == [attachment_id]
+
+
+# --- The server refuses a read-only user, whatever the interface shows -------
+
+_ATTACHMENT_OPERATIONS = {
+    "list": lambda client, pitch_id, attachment_id: client.get(
+        f"/api/pitches/{pitch_id}/attachments"
+    ),
+    "upload": lambda client, pitch_id, attachment_id: _upload(client, pitch_id, name="new.pdf"),
+    "delete": lambda client, pitch_id, attachment_id: client.delete(
+        f"/api/pitches/{pitch_id}/attachments/{attachment_id}"
+    ),
+}
+
+
+@pytest.mark.parametrize(
+    ("role", "operation", "expected"),
+    [
+        # Spelled out rather than ALLOWED/DENIED: a successful upload is 201, so
+        # the column would have to mean two different codes to read as "may they?".
+        ("viewer", "list", 200),
+        ("viewer", "upload", 403),
+        ("viewer", "delete", 403),
+        ("assessor", "list", 200),
+        ("assessor", "upload", 201),
+        ("assessor", "delete", 200),
+        ("admin", "list", 200),
+        ("admin", "upload", 201),
+        ("admin", "delete", 200),
+    ],
+)
+def test_attachment_rbac(request, admin_client, role, operation, expected):
+    pitch_id = _new_pitch(admin_client, f"RBAC {role} {operation} Pitch")
+    attachment_id = _upload(admin_client, pitch_id).json()["id"]
+    client = request.getfixturevalue(f"{role}_client")
+
+    assert (
+        _ATTACHMENT_OPERATIONS[operation](client, pitch_id, attachment_id).status_code == expected
+    )
+
+
+def test_a_viewers_refused_delete_leaves_the_file_stored(
+    viewer_client, admin_client, document_store
+):
+    """The refusal is the server's, not a hidden button's — so the file is still
+    there afterwards."""
+    pitch_id = _new_pitch(admin_client, "Viewer Refused Delete Pitch")
+    attachment_id = _upload(admin_client, pitch_id).json()["id"]
+
+    viewer_client.delete(f"/api/pitches/{pitch_id}/attachments/{attachment_id}")
+
+    assert len(document_store.files) == 1
+
+
+def test_a_viewers_refused_upload_reaches_no_store(viewer_client, admin_client, document_store):
+    pitch_id = _new_pitch(admin_client, "Viewer Refused Upload Pitch")
+
+    _upload(viewer_client, pitch_id)
+
+    assert document_store.calls == 0
+
+
+def test_unauthenticated_delete_is_rejected(client):
+    assert client.delete(f"/api/pitches/{UNKNOWN_ID}/attachments/{UNKNOWN_ID}").status_code == 403
+
+
+def test_deleting_an_attachment_named_under_another_pitch_is_not_found(admin_client):
+    owner = _new_pitch(admin_client, "Owning Pitch For Delete")
+    other = _new_pitch(admin_client, "Unrelated Pitch For Delete")
+    attachment_id = _upload(admin_client, owner).json()["id"]
+
+    assert (
+        admin_client.delete(f"/api/pitches/{other}/attachments/{attachment_id}").status_code == 404
+    )

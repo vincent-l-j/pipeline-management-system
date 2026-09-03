@@ -1,0 +1,12 @@
+{
+  "description": "Request and response schemas for attachments, as allowlists. The response carries what a caller needs to render and open a row — name, content type, size, uploader, timestamp — and withholds the store's internal item identifier, which is an addressing detail the client has no use for and which invites callers to route around the download endpoint. The client does not choose where the file is stored, so no field naming a path, folder or site is settable.",
+  "milestone": "pitch-attachments",
+  "expectedBehavior": [
+    "The response exposes only display fields and the app's own attachment identifier",
+    "The store's item identifier is absent from every response schema",
+    "No request schema accepts a path, folder, site or uploader field — those are server-determined"
+  ],
+  "verificationSteps": ["cd backend && pytest"],
+  "fulfills": [],
+  "dependsOn": ["attachment-model"]
+}

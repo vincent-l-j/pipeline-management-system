@@ -1,0 +1,16 @@
+{
+  "description": "The attachment record and its migration. Stores a pointer to the file in the document store — its item identifier and a display name — never the bytes, so the document library stays the system of record for content. Belongs to exactly one pitch and records who uploaded it and when. Deleting a pitch removes its attachment rows in application code, not by a database cascade: the unit suite runs on SQLite, which does not enforce foreign keys, so a cascade would be untested here and only discovered in production.",
+  "milestone": "pitch-attachments",
+  "expectedBehavior": [
+    "An attachment belongs to one pitch and cannot exist without one",
+    "The record holds the store's item identifier, a display name, a content type, a size and an uploader",
+    "Deleting a pitch removes its attachment rows",
+    "The migration applies and reverses cleanly against a real Postgres"
+  ],
+  "verificationSteps": [
+    "cd backend && pytest",
+    "Run the migration suite against a disposable Postgres and confirm upgrade and downgrade both succeed"
+  ],
+  "fulfills": [],
+  "dependsOn": []
+}

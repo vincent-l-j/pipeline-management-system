@@ -1,0 +1,18 @@
+{
+  "description": "A document-store adapter the rest of the app depends on through an interface, plus an in-memory fake for tests. Acquires a token with the app's own credentials — not the signed-in user's — because the login flow keeps no user token: it requests only basic profile scope and discards the access token after reading the identity claims, so acting as the user would mean persisting and refreshing a per-user refresh token, a new secret at rest, to buy attribution that a recorded uploader field gives for free. Uploads small files in one request and larger ones through a resumable session; a pitch deck routinely exceeds the single-request ceiling, so the session path is not deferrable. Every credential the adapter handles — the client secret, the access token, and any signed URL it is given — must be unloggable, extending the existing redaction rather than adding a second mechanism.",
+  "milestone": "pitch-attachments",
+  "expectedBehavior": [
+    "Callers depend on an interface, not on the vendor SDK — the concrete client is constructed at the edge and injected",
+    "A fake implementation supports the whole interface, including forced failure, so the failure paths are testable without a tenant",
+    "Files above the single-request ceiling upload through a resumable session and arrive intact",
+    "No log line or error response contains the client secret, an access token, or a signed URL's signature parameter",
+    "A store failure surfaces as a typed error the caller can distinguish from a bad request"
+  ],
+  "verificationSteps": [
+    "cd backend && pytest",
+    "Grep the diff for vendor SDK imports outside the adapter module and confirm there are none",
+    "Run an upload with logging at its most verbose, capture the output, and search it for the secret, the token and the signature parameter"
+  ],
+  "fulfills": ["VAL-ATTACH-007"],
+  "dependsOn": []
+}

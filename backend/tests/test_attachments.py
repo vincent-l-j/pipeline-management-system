@@ -3,10 +3,13 @@
 from uuid import UUID
 
 import pytest
+from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 
 from app.models.attachment import PitchAttachment
 from app.models.user import User, UserRole
+from app.schemas import attachment as attachment_schemas
+from app.schemas.attachment import AttachmentOut
 
 
 def _attachment(pitch_id: UUID | None, **overrides) -> PitchAttachment:
@@ -92,3 +95,76 @@ def test_deleting_a_pitch_leaves_another_pitchs_attachments(admin_client, db_ses
 
     db_session.expire_all()
     assert db_session.query(PitchAttachment).filter_by(pitch_id=survivor).count() == 1
+
+
+# --- Schemas are allowlists -------------------------------------------------
+
+
+def _attachment_schemas() -> dict[str, type[BaseModel]]:
+    return {
+        name: value
+        for name, value in vars(attachment_schemas).items()
+        if isinstance(value, type) and issubclass(value, BaseModel) and value is not BaseModel
+    }
+
+
+def test_the_response_exposes_exactly_the_fields_needed_to_render_a_row():
+    assert set(AttachmentOut.model_fields) == {
+        "id",
+        "pitch_id",
+        "filename",
+        "content_type",
+        "size_bytes",
+        "uploaded_by_name",
+        "created_at",
+    }
+
+
+def test_no_schema_carries_the_stores_item_identifier():
+    """The store's address for the item is how a caller would route around the
+    download endpoint, which is the only thing enforcing read access.
+
+    Over every schema in the module rather than the one that exists today, so a
+    schema added tomorrow inherits the rule instead of quietly reopening the hole.
+    """
+    carrying = [
+        name
+        for name, schema in _attachment_schemas().items()
+        if "store_item_id" in schema.model_fields
+    ]
+    assert carrying == []
+
+
+def test_there_is_no_request_schema_for_the_client_to_widen():
+    """The client chooses nothing about where a file goes: the folder is the
+    pitch's id and the uploader is the authenticated caller. A request body with
+    a path, folder, site or uploader field is not a field to leave out — it is a
+    schema that should not exist.
+    """
+    settable = [name for name in _attachment_schemas() if name.endswith(("Create", "Update"))]
+    assert settable == []
+
+
+def test_the_response_names_the_uploader(admin_client, db_session):
+    pitch_id = _new_pitch(admin_client, "Uploader Name Pitch")
+    uploader = User(
+        email="named@rozettainstitute.com",
+        display_name="Named Uploader",
+        role=UserRole.ASSESSOR,
+    )
+    db_session.add(uploader)
+    db_session.flush()
+    db_session.add(_attachment(pitch_id, uploaded_by_id=uploader.id))
+    db_session.commit()
+
+    stored = db_session.query(PitchAttachment).filter_by(pitch_id=pitch_id).one()
+    assert AttachmentOut.model_validate(stored).uploaded_by_name == "Named Uploader"
+
+
+def test_the_response_tolerates_an_attachment_with_no_uploader(admin_client, db_session):
+    pitch_id = _new_pitch(admin_client, "Unattributed Upload Pitch")
+    db_session.add(_attachment(pitch_id, uploaded_by_id=None))
+    db_session.commit()
+
+    stored = db_session.query(PitchAttachment).filter_by(pitch_id=pitch_id).one()
+    assert AttachmentOut.model_validate(stored).uploaded_by_name is None

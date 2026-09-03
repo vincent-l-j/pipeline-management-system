@@ -35,3 +35,10 @@ class PitchAttachment(Base, TimestampMixin):
 
     pitch = relationship("Pitch", back_populates="attachments")
     uploaded_by = relationship("User")
+
+    @property
+    def uploaded_by_name(self) -> str | None:
+        """The uploader's name, as `AttachmentOut` reports it. Mirrors
+        `Pitch.contact_ids`: the join stays an implementation detail, and a row
+        whose uploader has since been removed still lists."""
+        return self.uploaded_by.display_name if self.uploaded_by else None

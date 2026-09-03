@@ -107,6 +107,12 @@ class Pitch(Base, TimestampMixin):
         "PitchContact", back_populates="pitch", cascade="all, delete-orphan"
     )
     file_links = relationship("PitchFileLink", back_populates="pitch", cascade="all, delete-orphan")
+    # Owned children, so the rows go with the pitch. The files themselves stay in
+    # the document library — it is the system of record for content, and a delete
+    # here is not a mandate to destroy documents someone may still be citing.
+    attachments = relationship(
+        "PitchAttachment", back_populates="pitch", cascade="all, delete-orphan"
+    )
     meetings = relationship("Meeting", back_populates="pitch", cascade="all, delete-orphan")
     assessments = relationship("Assessment", back_populates="pitch", cascade="all, delete-orphan")
 

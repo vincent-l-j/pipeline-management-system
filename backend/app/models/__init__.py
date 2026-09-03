@@ -1,4 +1,5 @@
 from app.models.assessment import Assessment
+from app.models.attachment import PitchAttachment
 from app.models.base import Base
 from app.models.contact import Contact, ContactOrganisation
 from app.models.meeting import Meeting, MeetingAttendee
@@ -15,6 +16,7 @@ __all__ = [
     "MeetingAttendee",
     "Organisation",
     "Pitch",
+    "PitchAttachment",
     "PitchContact",
     "PitchFileLink",
     "PitchStageHistory",

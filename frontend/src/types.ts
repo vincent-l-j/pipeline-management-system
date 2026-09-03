@@ -105,3 +105,21 @@ export interface ApiError {
     status?: number;
   };
 }
+
+/**
+ * A file a pitch has in the document library.
+ *
+ * Field names are the API's, unchanged — the wire is snake_case on both sides.
+ * There is deliberately no field naming the document store's own item id: the
+ * backend withholds it so a client cannot route around the download endpoint,
+ * which is the only thing enforcing who may read the file.
+ */
+export interface Attachment {
+  id: string;
+  pitch_id: string;
+  filename: string;
+  content_type: string;
+  size_bytes: number;
+  uploaded_by_name: string | null;
+  created_at: string;
+}

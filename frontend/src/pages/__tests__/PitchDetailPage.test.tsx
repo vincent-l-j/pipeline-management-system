@@ -102,6 +102,9 @@ vi.mock("../../components/pitch/ActivityTimeline", () => ({
   default: () => <div />,
 }));
 vi.mock("../../components/pitch/FileLinks", () => ({ default: () => <div /> }));
+vi.mock("../../components/pitch/PitchAttachments", () => ({
+  default: () => <div />,
+}));
 
 const BASE_PITCH: Pitch = {
   id: "42",

@@ -8,6 +8,7 @@ import PageHeader from "../components/PageHeader";
 import ActivityTimeline from "../components/pitch/ActivityTimeline";
 import DeletePitchModal from "../components/pitch/DeletePitchModal";
 import FileLinks from "../components/pitch/FileLinks";
+import PitchAttachments from "../components/pitch/PitchAttachments";
 import AddPitchContactsModal from "../components/pitch/AddPitchContactsModal";
 import { pickedContacts } from "../components/contacts/ContactPicker";
 import { contactName } from "../components/contacts/contactName";
@@ -554,6 +555,9 @@ export default function PitchDetailPage(): React.JSX.Element {
               </ul>
             )}
           </div>
+
+          {/* Files uploaded to the document library */}
+          <PitchAttachments pitchId={pitchId} />
 
           {/* File links */}
           <FileLinks pitchId={pitchId} />

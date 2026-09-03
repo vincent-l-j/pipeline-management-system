@@ -8,10 +8,13 @@ also the authorization story — an attachment is reachable only through its pit
 
 import logging
 import os
+from collections.abc import Iterator
 from pathlib import PurePosixPath
+from urllib.parse import quote
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.database import get_db
@@ -242,3 +245,68 @@ def delete_attachment(
     db.delete(attachment)
     db.commit()
     return {"detail": "Attachment deleted"}
+
+
+def _content_disposition(filename: str) -> str:
+    """An `attachment` disposition that survives a non-ASCII file name.
+
+    Both spellings, because they are read by different clients: the quoted form
+    for anything old, and RFC 5987's `filename*` for everything else. A name is
+    whatever the uploader called their file, so assuming Latin-1 would mangle it.
+    """
+    ascii_name = filename.encode("ascii", "replace").decode("ascii").replace('"', "")
+    return f"attachment; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(filename)}"
+
+
+@router.get("/{pitch_id}/attachments/{attachment_id}/download")
+def download_attachment(
+    pitch_id: UUID,
+    attachment_id: UUID,
+    db: Session = Depends(get_db),
+    store: DocumentStore = Depends(get_document_store),
+    current_user: User = Depends(get_current_user),
+):
+    """Stream the file's bytes through the backend.
+
+    Proxied rather than redirected, deliberately. Handing out a link to the
+    document library would move the decision about who may read a file from this
+    application to the library's own permissions, and the backend is the only
+    security boundary this system has. It also keeps signed URLs out of the
+    browser, where they become a credential in history and referrer headers.
+
+    Read access follows the pitch, so a viewer can download what they can list.
+    """
+    _readable_pitch(pitch_id, db)
+    attachment = _attachment_of_pitch(pitch_id, attachment_id, db)
+
+    # Pulled eagerly, so a store that refuses outright is a 502 with a JSON body
+    # rather than a truncated 200 the browser has already started saving.
+    chunks = store.download(attachment.store_item_id)
+    try:
+        first = next(iter(chunks), b"")
+    except DocumentStoreError as exc:
+        logger.error(
+            "Attachment download failed at the document store",
+            extra={
+                "pitch_id": str(pitch_id),
+                "attachment_id": str(attachment_id),
+                "store_error": str(exc),
+            },
+        )
+        raise HTTPException(
+            status_code=502,
+            detail="The file could not be read from the document library. Please try again.",
+        ) from exc
+
+    def body() -> Iterator[bytes]:
+        yield first
+        yield from chunks
+
+    # A StreamingResponse over the iterator, not a Response over its contents:
+    # this instance has 512 MB, and a deck read whole into memory competes with
+    # everything else running on it.
+    return StreamingResponse(
+        body(),
+        media_type=attachment.content_type,
+        headers={"Content-Disposition": _content_disposition(attachment.filename)},
+    )

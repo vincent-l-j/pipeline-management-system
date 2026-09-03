@@ -627,3 +627,134 @@ def test_deleting_an_attachment_named_under_another_pitch_is_not_found(admin_cli
     assert (
         admin_client.delete(f"/api/pitches/{other}/attachments/{attachment_id}").status_code == 404
     )
+
+
+# --- Downloading through the backend ----------------------------------------
+
+
+def _download(client, pitch_id, attachment_id):
+    return client.get(f"/api/pitches/{pitch_id}/attachments/{attachment_id}/download")
+
+
+def test_a_download_returns_the_bytes_that_were_uploaded(admin_client):
+    pitch_id = _new_pitch(admin_client, "Downloadable Pitch")
+    body = bytes(range(256)) * 8
+    attachment_id = _upload(admin_client, pitch_id, body=body).json()["id"]
+
+    response = _download(admin_client, pitch_id, attachment_id)
+
+    assert response.status_code == 200
+    assert response.content == body
+
+
+def test_a_download_is_served_with_the_recorded_content_type(admin_client):
+    pitch_id = _new_pitch(admin_client, "Download Content Type Pitch")
+    attachment_id = _upload(admin_client, pitch_id, name="notes.txt").json()["id"]
+
+    response = _download(admin_client, pitch_id, attachment_id)
+
+    assert response.headers["content-type"].startswith("text/plain")
+
+
+def test_a_download_is_served_with_the_recorded_filename(admin_client):
+    pitch_id = _new_pitch(admin_client, "Download Filename Pitch")
+    attachment_id = _upload(admin_client, pitch_id, name="business-case.docx").json()["id"]
+
+    response = _download(admin_client, pitch_id, attachment_id)
+
+    assert 'filename="business-case.docx"' in response.headers["content-disposition"]
+
+
+def test_a_download_hands_out_no_link_to_the_document_library(admin_client):
+    """A redirect would move "who may read this" from this application to the
+    library's own permissions, and would put a signed URL in browser history."""
+    pitch_id = _new_pitch(admin_client, "No Redirect Pitch")
+    attachment_id = _upload(admin_client, pitch_id).json()["id"]
+
+    response = _download(admin_client, pitch_id, attachment_id)
+
+    assert response.status_code == 200
+    assert "location" not in response.headers
+
+
+def test_a_download_streams_rather_than_buffering_the_whole_file(admin_client):
+    """No Content-Length: the body is produced by an iterator, so the bytes go out
+    as they arrive. Replacing that with a buffered read would set the header and
+    fail here — which is the point, on an instance with 512 MB."""
+    pitch_id = _new_pitch(admin_client, "Streamed Download Pitch")
+    attachment_id = _upload(admin_client, pitch_id, body=b"x" * 4096).json()["id"]
+
+    response = _download(admin_client, pitch_id, attachment_id)
+
+    assert "content-length" not in response.headers
+
+
+@pytest.mark.parametrize("role", ["admin", "assessor", "viewer"])
+def test_anyone_who_can_read_the_pitch_can_download_its_attachments(request, role, admin_client):
+    pitch_id = _new_pitch(admin_client, f"Downloadable Pitch For {role}")
+    attachment_id = _upload(admin_client, pitch_id).json()["id"]
+    client = request.getfixturevalue(f"{role}_client")
+
+    assert _download(client, pitch_id, attachment_id).status_code == 200
+
+
+def test_unauthenticated_download_is_rejected(client):
+    assert _download(client, UNKNOWN_ID, UNKNOWN_ID).status_code == 403
+
+
+def test_downloading_an_attachment_that_does_not_exist_is_not_found(admin_client):
+    pitch_id = _new_pitch(admin_client, "Missing Download Pitch")
+
+    assert _download(admin_client, pitch_id, UNKNOWN_ID).status_code == 404
+
+
+def test_a_store_failure_on_download_is_reported(admin_client, document_store):
+    pitch_id = _new_pitch(admin_client, "Failing Download Pitch")
+    attachment_id = _upload(admin_client, pitch_id).json()["id"]
+    document_store.fail_download = True
+
+    assert _download(admin_client, pitch_id, attachment_id).status_code == 502
+
+
+# --- An identifier is not an authorisation ----------------------------------
+
+
+def test_downloading_an_attachment_named_under_another_pitch_is_not_found(admin_client):
+    """The caller may edit the pitch they named — that is the point. The
+    attachment still belongs to a different one."""
+    owner = _new_pitch(admin_client, "Owning Pitch For Download")
+    editable = _new_pitch(admin_client, "Editable Wrong Pitch For Download")
+    attachment_id = _upload(admin_client, owner).json()["id"]
+
+    assert _download(admin_client, editable, attachment_id).status_code == 404
+
+
+def test_a_refused_cross_pitch_delete_leaves_the_file_stored(admin_client, document_store):
+    owner = _new_pitch(admin_client, "Owning Pitch Keeps Its File")
+    editable = _new_pitch(admin_client, "Editable Wrong Pitch Keeps Nothing")
+    attachment_id = _upload(admin_client, owner).json()["id"]
+
+    admin_client.delete(f"/api/pitches/{editable}/attachments/{attachment_id}")
+
+    assert len(document_store.files) == 1
+
+
+def test_a_refused_cross_pitch_delete_leaves_the_record(admin_client):
+    owner = _new_pitch(admin_client, "Owning Pitch Keeps Its Row")
+    editable = _new_pitch(admin_client, "Editable Wrong Pitch Removes Nothing")
+    attachment_id = _upload(admin_client, owner).json()["id"]
+
+    admin_client.delete(f"/api/pitches/{editable}/attachments/{attachment_id}")
+
+    listed = admin_client.get(f"/api/pitches/{owner}/attachments").json()
+    assert [row["id"] for row in listed] == [attachment_id]
+
+
+def test_a_cross_pitch_download_reads_nothing_from_the_store(admin_client, document_store):
+    owner = _new_pitch(admin_client, "Owning Pitch Unread")
+    editable = _new_pitch(admin_client, "Editable Wrong Pitch Unread")
+    attachment_id = _upload(admin_client, owner).json()["id"]
+
+    _download(admin_client, editable, attachment_id)
+
+    assert document_store.downloads == []

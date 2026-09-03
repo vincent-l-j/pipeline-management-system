@@ -10,6 +10,7 @@ from app.models.attachment import PitchAttachment
 from app.models.user import User, UserRole
 from app.schemas import attachment as attachment_schemas
 from app.schemas.attachment import AttachmentOut
+from tests.constants import UNKNOWN_ID
 
 
 def _attachment(pitch_id: UUID | None, **overrides) -> PitchAttachment:
@@ -168,3 +169,79 @@ def test_the_response_tolerates_an_attachment_with_no_uploader(admin_client, db_
 
     stored = db_session.query(PitchAttachment).filter_by(pitch_id=pitch_id).one()
     assert AttachmentOut.model_validate(stored).uploaded_by_name is None
+
+
+# --- Listing a pitch's attachments ------------------------------------------
+
+
+@pytest.mark.parametrize("role", ["admin", "assessor", "viewer"])
+def test_anyone_who_can_read_the_pitch_can_list_its_attachments(request, role, admin_client):
+    """Viewers included: seeing that a document exists is not being able to
+    change it, and a read-only user who cannot see the attachments cannot do
+    their job."""
+    pitch_id = _new_pitch(admin_client, f"Listable Pitch For {role}")
+    client = request.getfixturevalue(f"{role}_client")
+
+    assert client.get(f"/api/pitches/{pitch_id}/attachments").status_code == 200
+
+
+def test_listing_attachments_needs_authentication(client):
+    assert client.get(f"/api/pitches/{UNKNOWN_ID}/attachments").status_code == 403
+
+
+def test_listing_the_attachments_of_a_pitch_that_does_not_exist_is_not_found(admin_client):
+    assert admin_client.get(f"/api/pitches/{UNKNOWN_ID}/attachments").status_code == 404
+
+
+def test_the_list_holds_only_that_pitchs_attachments(admin_client, db_session):
+    wanted = _new_pitch(admin_client, "Listed Pitch")
+    other = _new_pitch(admin_client, "Unlisted Pitch")
+    db_session.add_all(
+        [
+            _attachment(wanted, filename="wanted.pdf"),
+            _attachment(other, filename="other.pdf"),
+        ]
+    )
+    db_session.commit()
+
+    listed = admin_client.get(f"/api/pitches/{wanted}/attachments").json()
+    assert [row["filename"] for row in listed] == ["wanted.pdf"]
+
+
+def test_the_list_reports_each_attachment_as_the_display_schema(admin_client, db_session):
+    pitch_id = _new_pitch(admin_client, "Shape Of A Listed Row Pitch")
+    db_session.add(
+        _attachment(pitch_id, filename="deck.pdf", content_type="application/pdf", size_bytes=2048)
+    )
+    db_session.commit()
+
+    (row,) = admin_client.get(f"/api/pitches/{pitch_id}/attachments").json()
+    assert set(row) == {
+        "id",
+        "pitch_id",
+        "filename",
+        "content_type",
+        "size_bytes",
+        "uploaded_by_name",
+        "created_at",
+    }
+    assert (row["filename"], row["content_type"], row["size_bytes"]) == (
+        "deck.pdf",
+        "application/pdf",
+        2048,
+    )
+
+
+def test_the_list_never_names_the_stores_item_identifier(admin_client, db_session):
+    pitch_id = _new_pitch(admin_client, "No Store Id Pitch")
+    db_session.add(_attachment(pitch_id, store_item_id="01SECRETADDRESS"))
+    db_session.commit()
+
+    response = admin_client.get(f"/api/pitches/{pitch_id}/attachments")
+    assert "01SECRETADDRESS" not in response.text
+
+
+def test_a_pitch_with_no_attachments_lists_nothing(admin_client):
+    pitch_id = _new_pitch(admin_client, "Empty Attachment List Pitch")
+
+    assert admin_client.get(f"/api/pitches/{pitch_id}/attachments").json() == []

@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import (
     assessments,
+    attachments,
     auth,
     client_errors,
     contacts,
@@ -56,6 +57,7 @@ app.include_router(users.router, prefix="/api")
 app.include_router(organisations.router, prefix="/api")
 app.include_router(contacts.router, prefix="/api")
 app.include_router(pitches.router, prefix="/api")
+app.include_router(attachments.router, prefix="/api")
 app.include_router(meetings.router, prefix="/api")
 app.include_router(assessments.router, prefix="/api")
 app.include_router(search.router, prefix="/api")

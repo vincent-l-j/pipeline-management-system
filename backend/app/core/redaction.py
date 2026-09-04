@@ -32,8 +32,24 @@ _CREDENTIAL_PARAM_NAMES = (
     "auth",
     "credential",
     "signature",
-    # Azure hands out storage URLs whose `?sig=` *is* the credential.
+    # Object stores hand out URLs whose query string *is* the credential, under a
+    # different name each. `sig` is Azure's and `tempauth` is Graph's; both are
+    # here because this list is cheap and a URL from anywhere can reach a log line.
+    # Spelled out rather than left to `auth`, which cannot match `tempauth`: the
+    # word boundary refuses a match that starts mid-word.
     "sig",
+    "tempauth",
+    # S3 signs with the same idea and hyphenates every name, which is why these
+    # need naming too: `signature` and `credential` above cannot reach them,
+    # because a hyphen is what precedes them.
+    "x-amz-signature",
+    "x-amz-credential",
+    "x-amz-security-token",
+    # The key pair, in the spellings a config dump or a client library uses. Named
+    # in full for the same reason: `secret` is followed by a separator rather than
+    # an `=`, and `key` is preceded by one.
+    "secret_access_key",
+    "access_key_id",
     # The OAuth authorization code: one exchange away from a token.
     "code",
     "session",

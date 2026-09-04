@@ -9,6 +9,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.core.config import settings
+from app.core.redaction import redact_credentials
 
 # Set by the request-context middleware; empty outside a request, where there is no id.
 request_id_var: ContextVar[str] = ContextVar("request_id", default="")
@@ -84,7 +85,14 @@ class JsonFormatter(logging.Formatter):
             payload["exception"] = self.formatException(record.exc_info)
 
         # ensure_ascii stays on: plain ASCII bytes whatever locale the container runs under.
-        return json.dumps(payload, default=str)
+        #
+        # Redacted after serialising, not before: this is the last point that sees
+        # the message, every promoted extra and the formatted traceback as one
+        # thing, so a credential in any of them is caught by one rule. Our own call
+        # sites don't log secrets, but a dependency's do — an HTTP client names the
+        # URL it just requested, and the document store's upload-session and
+        # download URLs carry a working credential in their query string.
+        return redact_credentials(json.dumps(payload, default=str))
 
 
 def setup_logging() -> None:
@@ -128,6 +136,14 @@ def setup_logging() -> None:
                     ("uvicorn", level),
                     ("uvicorn.error", level),
                     ("uvicorn.access", "WARNING"),
+                    # httpx logs the full URL of every request it makes at INFO.
+                    # The document store signs in headers, so its URLs carry no
+                    # credential today — but a presigned URL is one entirely, in
+                    # the query string, and this is what stops the day someone
+                    # reaches for one from also being the day a working credential
+                    # starts being written to the log. The formatter's redaction is
+                    # the backstop, not the plan.
+                    ("httpx", "WARNING"),
                 )
             },
         }

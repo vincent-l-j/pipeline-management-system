@@ -71,6 +71,10 @@ class CapturedLog:
     def __init__(self, stream: io.StringIO):
         self._stream = stream
 
+    def text(self) -> str:
+        """Every byte written, unparsed — what a `grep` for a secret would see."""
+        return self._stream.getvalue()
+
     def records(self) -> list[dict]:
         return [json.loads(line) for line in self._stream.getvalue().splitlines() if line]
 

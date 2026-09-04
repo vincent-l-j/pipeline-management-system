@@ -257,3 +257,100 @@ def test_the_web_servers_access_record_stays_suppressed_at_every_level(log_strea
     logging.getLogger(SERVER_ACCESS_LOGGER).info('127.0.0.1:0 - "GET /api/health HTTP/1.1" 200')
 
     assert captured.messages() == []
+
+
+# --- No credential survives the trip to the stream --------------------------
+#
+# The app's own call sites don't log secrets, but a dependency's do — so these
+# assert on the formatted line, which is the last thing every record passes
+# through, rather than on any one field.
+
+_CREDENTIAL_IN_A_URL = "https://store.example/upload?tempauth=eyJ0eXAiOiJKV1QifQ.session"
+
+
+def test_a_credential_in_the_message_is_redacted_in_the_written_line():
+    formatted = _format(_make_record(f"PUT {_CREDENTIAL_IN_A_URL} 202"))
+
+    assert (
+        json.loads(formatted)["message"] == "PUT https://store.example/upload?tempauth=REDACTED 202"
+    )
+
+
+def test_a_credential_in_an_extra_field_is_redacted_in_the_written_line():
+    formatted = _format(_make_record("stored", store_url=_CREDENTIAL_IN_A_URL))
+
+    assert json.loads(formatted)["store_url"] == "https://store.example/upload?tempauth=REDACTED"
+
+
+def test_a_credential_in_a_traceback_is_redacted_in_the_written_line():
+    try:
+        raise RuntimeError(f"could not reach {_CREDENTIAL_IN_A_URL}")
+    except RuntimeError as exc:
+        record = _make_record("upload failed", level=logging.ERROR)
+        record.exc_info = (type(exc), exc, exc.__traceback__)
+
+    assert "eyJ0eXAiOiJKV1QifQ.session" not in _format(record)
+
+
+# The object store signs every request and can presign a URL. Both spell their
+# credentials with hyphens, which the pattern's word boundary cannot reach unless
+# the compound name is listed in its own right.
+_SIGNATURE = "8ba0b2c1f4e6d7a9c3b5e8f1a2d4c6b8e0f2a4c6d8e0f2a4c6d8e0f2a4c6d8e0"
+_ACCESS_KEY_ID = "DO00EXAMPLEACCESSKEYID"
+_SECRET_ACCESS_KEY = "Xy7+n0tAr3alSp4c3sS3cr3t/K3y0123456789abcdefgh"
+_SCOPE = f"{_ACCESS_KEY_ID}%2F20260904%2Fsyd1%2Fs3%2Faws4_request"
+
+
+def test_a_presigned_signature_in_a_url_is_redacted_in_the_written_line():
+    url = f"https://syd1.digitaloceanspaces.com/bucket/deck.pdf?X-Amz-Signature={_SIGNATURE}"
+
+    formatted = _format(_make_record(f"GET {url} 200"))
+
+    assert _SIGNATURE not in formatted
+
+
+def test_a_presigned_credential_in_a_url_is_redacted_in_the_written_line():
+    url = f"https://syd1.digitaloceanspaces.com/bucket/deck.pdf?X-Amz-Credential={_SCOPE}"
+
+    formatted = _format(_make_record(f"GET {url} 200"))
+
+    assert _ACCESS_KEY_ID not in formatted
+
+
+def test_a_signing_authorization_header_is_redacted_in_the_written_line():
+    """Both values, not just the signature: the credential names the key id."""
+    header = (
+        f"AWS4-HMAC-SHA256 Credential={_SCOPE}, "
+        f"SignedHeaders=host;x-amz-date, Signature={_SIGNATURE}"
+    )
+
+    formatted = _format(_make_record("refused", authorization=header))
+
+    assert _SIGNATURE not in formatted
+    assert _ACCESS_KEY_ID not in formatted
+
+
+def test_a_key_pair_assignment_is_redacted_in_the_written_line():
+    """The spellings a config dump uses, where the name itself carries a separator."""
+    formatted = _format(
+        _make_record(f"access_key_id={_ACCESS_KEY_ID} secret_access_key={_SECRET_ACCESS_KEY}")
+    )
+
+    assert _ACCESS_KEY_ID not in formatted
+    assert _SECRET_ACCESS_KEY not in formatted
+
+
+def test_a_line_with_no_credential_in_it_is_written_word_for_word():
+    formatted = _format(_make_record("Pitch declined", pitch_id="42"))
+
+    assert json.loads(formatted)["message"] == "Pitch declined"
+
+
+def test_the_http_clients_request_line_stays_suppressed_at_every_level(log_stream):
+    """httpx logs the URL it just called at INFO, and the document store's signed
+    URLs carry a working credential in the query string."""
+    captured = log_stream("DEBUG")
+
+    logging.getLogger("httpx").info("HTTP Request: PUT %s 202", _CREDENTIAL_IN_A_URL)
+
+    assert captured.messages() == []

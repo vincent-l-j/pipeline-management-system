@@ -186,6 +186,9 @@ def test_a_token_quoted_in_a_free_text_field_is_redacted(admin_client, error_rec
         "key",
         "authorization",
         "signature",
+        "sig",
+        # What Graph calls the signature on the URLs it signs.
+        "tempauth",
         # Case is the caller's choice, not ours.
         "Token",
         "ACCESS_TOKEN",

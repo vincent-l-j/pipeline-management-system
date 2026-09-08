@@ -1,15 +1,37 @@
 """Shared test fixtures.
 
-The app normally talks to Postgres; tests run against a shared in-memory SQLite
-database instead (StaticPool keeps a single connection so the schema and data
-persist across sessions). We force DATABASE_URL to SQLite *before* importing the
-app, so the module-level engine and table creation don't try to reach Postgres.
+Tests run against a real PostgreSQL database, whose schema is built by the same
+Alembic migrations the deploy job runs. SQLite was faster and needed nothing
+running, but it is not the database this app ships on and it cannot fail the way
+Postgres does: it has no native enum types, ignores `VARCHAR` lengths, drops the
+timezone off a `TIMESTAMP WITH TIME ZONE`, does not enforce foreign keys, and
+compiles `ILIKE` to an ASCII-only `lower() LIKE lower()`. Every one of those is a
+production behaviour a green test run used to assert nothing about.
+
+`APP_TEST_DATABASE_URL` selects the database; it defaults to the compose `db`
+service. It MUST NOT be the same database as the migration suite's
+`TEST_DATABASE_URL` — that suite runs `DROP SCHEMA public CASCADE` between tests
+and would pull this schema out from under a concurrent run. Both are disposable:
+this one is dropped and rebuilt at the start of every session.
+
+Isolation is per test, by `TRUNCATE` rather than by rolling back a wrapping
+transaction. Rollback would have been cheaper, but it makes the whole of a test
+one transaction — so `server_default=func.now()` stamps every row a test creates
+with the same instant, and application `commit()` calls stop being commits. The
+point of moving off SQLite was to stop the test database behaving unlike the real
+one; buying speed back with a second such difference would undo it.
 """
 
 import os
 
-# Must be set before app.core.config / app.core.database are imported.
-os.environ["DATABASE_URL"] = "sqlite://"
+# Must be set before app.core.config / app.core.database are imported, so the
+# app's own module-level engine points at the test database too. Written into the
+# environment rather than into a module variable, which is the only shape allowed
+# ahead of the imports below; it is read back once they are done.
+os.environ["DATABASE_URL"] = os.environ.get(
+    "APP_TEST_DATABASE_URL",
+    "postgresql://rozetta:change_me_to_a_strong_password@db:5432/pms_app_test",
+)
 os.environ["ENABLE_DEV_LOGIN"] = "false"
 # config.py has no defaults for these secrets (a missing secret must crash prod,
 # not run on a guessable key); give the test app throwaway values to boot with.
@@ -23,15 +45,18 @@ os.environ["ENVIRONMENT"] = "test"
 
 import io
 import json
+import subprocess
 import sys
 import uuid
 from datetime import UTC, datetime
+from pathlib import Path
 
+import psycopg2
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
 from app.core.config import settings
 from app.core.database import get_db
@@ -43,20 +68,50 @@ from app.models import Base
 from app.models.user import User, UserRole
 from tests.fake_document_store import FakeDocumentStore
 
+# backend/ — the directory containing alembic.ini.
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+
+# The URL the preamble settled on, whether from the environment or the default.
+_TEST_DATABASE_URL = os.environ["DATABASE_URL"]
+
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
-# Fixed UUIDs so test users have non-None IDs without needing a DB insert
+# Fixed UUIDs, so a test can name the acting user without first reading it back.
 _ADMIN_ID = uuid.UUID("aaaaaaaa-0000-0000-0000-000000000001")
 _ASSESSOR_ID = uuid.UUID("aaaaaaaa-0000-0000-0000-000000000002")
 _VIEWER_ID = uuid.UUID("aaaaaaaa-0000-0000-0000-000000000003")
 
-_engine = create_engine(
-    "sqlite://",
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
+# One spec per acting role, used both to seed the row and to build the object the
+# auth dependency returns. They have to agree: `users.id` is a real foreign key
+# target now, so a `current_user` with no row behind it fails every route that
+# stamps an actor (`assessor_id`, `uploaded_by_id`, `changed_by_id`).
+_FIXTURE_USERS = {
+    UserRole.ADMIN: {"id": _ADMIN_ID, "email": "tester@rozettainstitute.com", "name": "Tester"},
+    UserRole.ASSESSOR: {
+        "id": _ASSESSOR_ID,
+        "email": "assessor@rozettainstitute.com",
+        "name": "Assessor",
+    },
+    UserRole.VIEWER: {"id": _VIEWER_ID, "email": "viewer@rozettainstitute.com", "name": "Viewer"},
+}
+
+# Lazy: constructing an Engine opens nothing, so importing this module — which
+# `--collect-only` does — still needs no database.
+_engine = create_engine(_TEST_DATABASE_URL)
 _TestSession = sessionmaker(bind=_engine, autoflush=False, autocommit=False)
-Base.metadata.create_all(bind=_engine)
+
+
+def _fixture_user(role: UserRole) -> User:
+    spec = _FIXTURE_USERS[role]
+    return User(
+        id=spec["id"],
+        email=spec["email"],
+        display_name=spec["name"],
+        role=role,
+        is_active=True,
+        created_at=_NOW,
+        updated_at=_NOW,
+    )
 
 
 def _get_test_db():
@@ -65,6 +120,107 @@ def _get_test_db():
         yield db
     finally:
         db.close()
+
+
+def _create_database_if_absent() -> None:
+    """Create the test database, so no environment needs a manual prep step.
+
+    Connects to `postgres`, the maintenance database every server has. An absent
+    *database* is something we can fix; an unreachable *server* is not, and its
+    error propagates — a configured database that cannot be reached is a broken
+    run, not an absent one.
+    """
+    target = make_url(_TEST_DATABASE_URL)
+    admin = target.set(database="postgres")
+    connection = psycopg2.connect(admin.render_as_string(hide_password=False))
+    connection.autocommit = True  # CREATE DATABASE cannot run inside a transaction
+    try:
+        cursor = connection.cursor()
+        cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s", (target.database,))
+        if cursor.fetchone() is None:
+            # Interpolated because an identifier cannot be a bind parameter. The
+            # name comes from our own environment, and it is quoted.
+            cursor.execute(f'CREATE DATABASE "{target.database}"')
+    finally:
+        connection.close()
+
+
+def _upgrade_to_head() -> None:
+    """Build the schema with Alembic, not `create_all`.
+
+    `create_all` renders the models directly, which is not what deploys apply and
+    not what production holds. Running the migrations is what puts the native enum
+    types, the `TIMESTAMP WITH TIME ZONE` columns and the real foreign-key
+    constraints in front of these tests. A subprocess, so it uses the same CLI
+    path the pre-deploy job does.
+    """
+    result = subprocess.run(
+        ["alembic", "upgrade", "head"],
+        cwd=BACKEND_DIR,
+        env={**os.environ, "DATABASE_URL": _TEST_DATABASE_URL},
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise AssertionError(
+            f"`alembic upgrade head` failed ({result.returncode}) against "
+            f"{make_url(_TEST_DATABASE_URL).render_as_string()}:\n"
+            f"{result.stdout}\n{result.stderr}"
+        )
+
+
+@pytest.fixture(scope="session")
+def _database():
+    """A schema built from the migrations, once per session.
+
+    Dropped and rebuilt rather than reused, so a run cannot inherit rows or a
+    stale schema from the last one. `DROP SCHEMA ... CASCADE` also clears the
+    enum types and `alembic_version`, which `DROP TABLE` would leave behind.
+    """
+    _create_database_if_absent()
+    with _engine.begin() as connection:
+        connection.execute(text("DROP SCHEMA IF EXISTS public CASCADE"))
+        connection.execute(text("CREATE SCHEMA public"))
+    _upgrade_to_head()
+    yield
+    _engine.dispose()
+
+
+# Every table the models own. `alembic_version` is deliberately absent: truncating
+# it would tell the next `upgrade` the schema is empty.
+_TRUNCATE_TARGETS = ", ".join(f'public."{name}"' for name in Base.metadata.tables)
+
+
+@pytest.fixture(autouse=True)
+def _clean_database(request):
+    """Empty every table before each test, then seed the acting users.
+
+    Before rather than after, so a failing test leaves its rows in place to be
+    inspected while the next test still starts from a known state. One `TRUNCATE`
+    for all tables at once: separate statements would each need the FK graph
+    walked, and `CASCADE` on already-empty tables is cheap.
+
+    `tests/migrations` is exempt, and the marker is how: that suite manages its own
+    schema in its own database and must not need this one to exist. Pulling
+    `_database` in by name rather than declaring it makes that conditional — as an
+    autouse session fixture it would build the application schema even for a run
+    that only selected migration tests, so `pytest tests/migrations` would demand
+    a database it never touches.
+    """
+    if request.node.get_closest_marker("migrations"):
+        yield
+        return
+
+    request.getfixturevalue("_database")
+    with _engine.begin() as connection:
+        connection.execute(text(f"TRUNCATE {_TRUNCATE_TARGETS} RESTART IDENTITY CASCADE"))
+    db = _TestSession()
+    try:
+        db.add_all([_fixture_user(role) for role in _FIXTURE_USERS])
+        db.commit()
+    finally:
+        db.close()
+    yield
 
 
 class CapturedLog:
@@ -134,7 +290,8 @@ def document_store():
 @pytest.fixture
 def db_session():
     """A direct DB session for arranging/asserting on rows the API doesn't expose
-    (e.g. PitchContact join rows). Shares the in-memory engine with the app."""
+    (e.g. PitchContact join rows). Shares the engine with the app, and commits for
+    real — `_clean_database` is what undoes the writes, not a rollback here."""
     db = _TestSession()
     try:
         yield db
@@ -203,16 +360,7 @@ class _AuthenticatedTestClient:
 @pytest.fixture
 def admin_client():
     """Client authenticated as an admin (auth dependency overridden)."""
-    admin = User(
-        id=_ADMIN_ID,
-        email="tester@rozettainstitute.com",
-        display_name="Tester",
-        role=UserRole.ADMIN,
-        is_active=True,
-        created_at=_NOW,
-        updated_at=_NOW,
-    )
-    client = _AuthenticatedTestClient(admin)
+    client = _AuthenticatedTestClient(_fixture_user(UserRole.ADMIN))
     yield client
     app.dependency_overrides.clear()
 
@@ -220,16 +368,7 @@ def admin_client():
 @pytest.fixture
 def assessor_client():
     """Client authenticated as an assessor."""
-    assessor = User(
-        id=_ASSESSOR_ID,
-        email="assessor@rozettainstitute.com",
-        display_name="Assessor",
-        role=UserRole.ASSESSOR,
-        is_active=True,
-        created_at=_NOW,
-        updated_at=_NOW,
-    )
-    client = _AuthenticatedTestClient(assessor)
+    client = _AuthenticatedTestClient(_fixture_user(UserRole.ASSESSOR))
     yield client
     app.dependency_overrides.clear()
 
@@ -237,15 +376,6 @@ def assessor_client():
 @pytest.fixture
 def viewer_client():
     """Client authenticated as a viewer (read-only role)."""
-    viewer = User(
-        id=_VIEWER_ID,
-        email="viewer@rozettainstitute.com",
-        display_name="Viewer",
-        role=UserRole.VIEWER,
-        is_active=True,
-        created_at=_NOW,
-        updated_at=_NOW,
-    )
-    client = _AuthenticatedTestClient(viewer)
+    client = _AuthenticatedTestClient(_fixture_user(UserRole.VIEWER))
     yield client
     app.dependency_overrides.clear()

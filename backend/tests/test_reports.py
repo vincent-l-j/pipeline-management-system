@@ -79,6 +79,10 @@ def test_velocity_recent_activity_fields(admin_client):
 
 
 def test_export_pitches_csv(admin_client):
+    # An empty export is the string "No data" and carries no header row, so the
+    # arrangement is what makes this a test of the header rather than of that.
+    admin_client.post("/api/pitches", json={"title": "Csv Exported Pitch"})
+
     resp = admin_client.get("/api/reports/export/pitches")
     assert resp.status_code == 200
     assert "text/csv" in resp.headers["content-type"]
@@ -89,6 +93,8 @@ def test_export_pitches_csv(admin_client):
 
 
 def test_export_organisations_csv(admin_client):
+    admin_client.post("/api/organisations", json={"name": "Csv Exported Org"})
+
     resp = admin_client.get("/api/reports/export/organisations")
     assert resp.status_code == 200
     assert "text/csv" in resp.headers["content-type"]

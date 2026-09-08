@@ -7,6 +7,9 @@ probe would become a restart loop across otherwise-healthy instances.
 The outage cases run against a real `Session` over a SQLite file that cannot be
 opened, so `.execute` raises a genuine `OperationalError` — the same failure a
 dead Postgres produces — rather than a hand-rolled stub that only resembles one.
+The one deliberate use of SQLite left in the suite, and not a leftover: what is
+under test is how the route answers a driver error, and an unopenable file raises
+one without needing a database to take away.
 """
 
 import json

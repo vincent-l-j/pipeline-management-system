@@ -92,6 +92,38 @@ DigitalOcean Database UI:
 The manual connection string will include your exact username and database name, so the app
 connects as intended.
 
+## Object storage: exercising attachments locally
+
+`docker compose --profile objectstore up` adds MinIO as a sibling container. Fill
+the object-store keys in `.env` (see `.env.example`) — the key point is
+`SPACES_ENDPOINT=http://minio:9000`, which is what sends the app there instead of
+to a real Space. The bucket is created for you by the one-shot `minio-bucket`
+service; MinIO does not create one on its own.
+
+**In the dev container there is no flag to pass and none is needed.** There is no
+Docker socket in there, so the stack is brought up on your behalf — but
+`devcontainer.json` names `minio` and `minio-bucket` in `runServices`, and naming a
+profiled service is itself what enables its profile. The store is already up when
+you attach.
+
+Browse what landed at **http://localhost:9001**, logging in with
+`SPACES_ACCESS_KEY_ID` / `SPACES_SECRET_ACCESS_KEY` — those double as MinIO's root
+credentials, so there is one pair to keep in step rather than two.
+
+**Why this exists rather than just running the unit tests.** `SpacesStub` in
+`backend/tests/test_spaces_document_store.py` does not verify signatures, so the
+whole suite would pass with a broken signer — the published AWS vector in
+`test_sigv4.py` is what guards that, and it is a static check. MinIO speaks the
+same S3 API and _does_ check the signature, so a request signed wrongly is refused
+here rather than first discovered against a real Space.
+
+**The devcontainer cannot reach a real Space at all** — `appnet` is `internal: true`
+there, which removes the route to the internet but not the route between these
+containers. That is the whole reason a local store is worth having.
+
+One thing it does not prove: DO's own behaviour at the edges. A real Space is
+still what closes VAL-ATTACH-002, by checksum.
+
 ## Environment: where and how to run SOP commands
 
 **This host has no local `python`, `alembic`, `psql`, or `pg_dump`.** The whole

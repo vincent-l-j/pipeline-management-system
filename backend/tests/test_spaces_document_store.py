@@ -68,7 +68,9 @@ class SpacesStub:
         upload_id: str | None = "EXAMPLEUPLOADID",
         error_inside_completion: bool = False,
         redirect: bool = False,
+        endpoint: str = ENDPOINT,
     ) -> None:
+        self.endpoint = endpoint
         self.download_body = download_body
         self.error_status = error_status
         self.error_body = error_body
@@ -84,7 +86,7 @@ class SpacesStub:
     @property
     def client(self) -> httpx.Client:
         return httpx.Client(
-            base_url=ENDPOINT,
+            base_url=self.endpoint,
             transport=httpx.MockTransport(self._handle),
             auth=SigV4Auth(
                 Credentials(
@@ -345,6 +347,22 @@ def test_an_item_outside_the_prefix_is_refused(item_id):
         list(_store(stub).download(item_id))
 
     assert stub.requests == []
+
+
+def test_a_compatible_store_on_another_endpoint_is_addressed_and_signed_the_same_way():
+    """`SPACES_ENDPOINT` points local development at MinIO, which is plain HTTP on
+    a port. The host that gets signed has to be the host that is sent, port and
+    all — a store that reconstructs a different one refuses a signature it cannot
+    reproduce, and says only that it did not match.
+    """
+    stub = SpacesStub(endpoint="http://minio:9000")
+    stored = _upload(_store(stub, single_request_ceiling=64), b"a short deck")
+
+    (request,) = stub.requests
+    assert request.headers["host"] == "minio:9000"
+    assert "SignedHeaders=host;x-amz-content-sha256;x-amz-date," in request.headers["authorization"]
+    assert request.url.path == f"/{BUCKET}/{stored.item_id}"
+    assert stub.uploaded == b"a short deck"
 
 
 # --- An unconfigured store is a store failure, not a crash ------------------

@@ -33,6 +33,11 @@ router = APIRouter(prefix="/pitches", tags=["attachments"])
 # case, and the instance this runs on has 512 MB of memory in total.
 MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
 
+# Read off the column rather than restated, so the cap and the schema cannot drift.
+# This bounds the *display* name only; the adapter budgets the store key itself,
+# which is why an over-long name got as far as the insert to fail there.
+MAX_FILENAME_LENGTH = PitchAttachment.__table__.c.filename.type.length
+
 # The types a pitch actually arrives as, and the content type each is recorded
 # and served with. Keyed by extension rather than by the caller's declared type:
 # the declaration is a claim about a file we already hold, while the extension is
@@ -97,6 +102,12 @@ def _accepted_name(upload: UploadFile) -> tuple[str, str]:
     filename = PurePosixPath((upload.filename or "").replace("\\", "/")).name
     if not filename:
         raise HTTPException(status_code=400, detail="No file was provided")
+
+    if len(filename) > MAX_FILENAME_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"The file's name is longer than the {MAX_FILENAME_LENGTH} character limit",
+        )
 
     suffix = os.path.splitext(filename)[1].lower()
     content_type = ALLOWED_TYPES.get(suffix)

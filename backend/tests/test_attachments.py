@@ -6,7 +6,7 @@ import pytest
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 
-from app.api.routes.attachments import MAX_ATTACHMENT_BYTES
+from app.api.routes.attachments import MAX_ATTACHMENT_BYTES, MAX_FILENAME_LENGTH
 from app.models.attachment import PitchAttachment
 from app.models.user import User, UserRole
 from app.schemas import attachment as attachment_schemas
@@ -368,6 +368,48 @@ def test_a_file_exactly_on_the_limit_is_accepted(admin_client):
     pitch_id = _new_pitch(admin_client, "Exactly On The Limit Pitch")
 
     response = _upload(admin_client, pitch_id, body=b"x" * MAX_ATTACHMENT_BYTES)
+
+    assert response.status_code == 201
+
+
+def _name_of_length(total: int, suffix: str = ".pdf") -> str:
+    return "x" * (total - len(suffix)) + suffix
+
+
+def test_a_file_whose_name_exceeds_the_column_is_refused(admin_client):
+    """`filename` is the display name, capped by the column it lands in.
+
+    The adapter budgets the *key* it builds, so the store is safe either way — but
+    the row is not, and an over-long name reached Postgres as a truncation error
+    the route does not catch. That is a 400 the caller can act on, not a 500.
+    """
+    pitch_id = _new_pitch(admin_client, "Long Name Pitch")
+
+    response = _upload(admin_client, pitch_id, name=_name_of_length(MAX_FILENAME_LENGTH + 1))
+
+    assert response.status_code == 400
+
+
+def test_the_refusal_of_a_long_name_names_the_limit(admin_client):
+    pitch_id = _new_pitch(admin_client, "Long Name Message Pitch")
+
+    response = _upload(admin_client, pitch_id, name=_name_of_length(MAX_FILENAME_LENGTH + 1))
+
+    assert str(MAX_FILENAME_LENGTH) in response.json()["detail"]
+
+
+def test_a_long_name_never_reaches_the_store(admin_client, document_store):
+    pitch_id = _new_pitch(admin_client, "Long Name Untouched Store Pitch")
+
+    _upload(admin_client, pitch_id, name=_name_of_length(MAX_FILENAME_LENGTH + 1))
+
+    assert document_store.calls == 0
+
+
+def test_a_name_exactly_on_the_limit_is_accepted(admin_client):
+    pitch_id = _new_pitch(admin_client, "Name Exactly On The Limit Pitch")
+
+    response = _upload(admin_client, pitch_id, name=_name_of_length(MAX_FILENAME_LENGTH))
 
     assert response.status_code == 201
 

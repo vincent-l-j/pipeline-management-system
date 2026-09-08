@@ -50,7 +50,7 @@ def test_attachment_records_the_store_pointer_and_its_uploader(admin_client, db_
     db_session.add(
         _attachment(
             pitch_id,
-            store_item_id="01DRIVEITEMID",
+            store_item_id="pitches/8f2b1c04-9a3e-4d77-8b21-5c6e0f1a2d33/3c9d5e71-4a2b-4f18-9c60-7d8e1b0a4f52/business-case.docx",
             filename="business-case.docx",
             content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             size_bytes=51_200,
@@ -67,7 +67,7 @@ def test_attachment_records_the_store_pointer_and_its_uploader(admin_client, db_
         stored.size_bytes,
         stored.uploaded_by_id,
     ) == (
-        "01DRIVEITEMID",
+        "pitches/8f2b1c04-9a3e-4d77-8b21-5c6e0f1a2d33/3c9d5e71-4a2b-4f18-9c60-7d8e1b0a4f52/business-case.docx",
         "business-case.docx",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         51_200,

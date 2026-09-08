@@ -119,10 +119,11 @@ def log_stream():
 def document_store():
     """The in-memory document store, injected in place of the real adapter.
 
-    Autouse so no test can reach a tenant: the real `get_document_store` builds a
-    Graph client from configuration, and a test that forgot to override it would
-    try to acquire a token over the network. Tests that care about the store take
-    this fixture by name to arrange a forced failure or assert on the calls.
+    Autouse so no test can reach a real bucket: the real `get_document_store` builds
+    the Spaces adapter from configuration, and a test that forgot to override it
+    would sign and send a request to whatever `SPACES_*` names in the environment it
+    happens to run in. Tests that care about the store take this fixture by name to
+    arrange a forced failure or assert on the calls.
     """
     store = FakeDocumentStore()
     app.dependency_overrides[get_document_store] = lambda: store

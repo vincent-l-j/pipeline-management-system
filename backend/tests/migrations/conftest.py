@@ -1,21 +1,23 @@
 """Fixtures for the Alembic migration tests.
 
-These tests exercise real Alembic migrations against a real PostgreSQL database —
-NOT the in-memory SQLite used by the rest of the suite (see the top-level
-tests/conftest.py). Migrations are Postgres-specific (enums, UUID, server
-defaults); SQLite cannot faithfully test them.
+These tests exercise the migrations themselves — that they apply, reverse, stay
+linear, and carry data across a shape change. The rest of the suite exercises the
+application against a schema the migrations have already built (see the top-level
+tests/conftest.py); this module is what proves that schema is the one they
+produce.
 
-They are skipped when TEST_DATABASE_URL is unset, so the ordinary SQLite run needs
-no Postgres. Point them at a throwaway one with:
+It needs a database of its **own**, and that is the reason for a second variable.
+The schema here is wiped with `DROP SCHEMA public CASCADE` between tests, which
+would pull the application suite's schema out from under it if they shared one.
+So `TEST_DATABASE_URL` must not name the same database as
+`APP_TEST_DATABASE_URL`; both are disposable, never a real one.
 
     TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/pms_migrations_test \\
         pytest tests/migrations
 
-Once that variable is set the database is required: an unreachable one fails the
-run with the driver's error rather than skipping.
-
-The database is wiped (DROP SCHEMA public CASCADE) between tests, so it MUST be a
-disposable database, never a real one.
+Skipped when TEST_DATABASE_URL is unset, so `pytest --ignore=tests/migrations` is
+not the only way to run without it. Once it is set the database is required: an
+unreachable one fails the run with the driver's error rather than skipping.
 """
 
 import os
@@ -62,9 +64,10 @@ def _require_migrations(pg_url):
 def alembic(pg_url):
     """Return a runner that invokes the Alembic CLI against the test DB.
 
-    Runs in a subprocess with DATABASE_URL pointed at the test database, so it
-    gets a fresh `settings` (the in-process one is pinned to SQLite by the root
-    conftest) and exercises the exact CLI path the deploy job uses.
+    Runs in a subprocess with DATABASE_URL pointed at *this module's* database, so
+    it gets a fresh `settings` — the in-process one is pinned to the application
+    suite's database by the root conftest, which this must not touch — and
+    exercises the exact CLI path the deploy job uses.
     """
 
     def run(*args: str, check: bool = True) -> subprocess.CompletedProcess:

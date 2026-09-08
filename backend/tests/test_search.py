@@ -23,6 +23,22 @@ def test_search_finds_pitch_by_title(admin_client):
     assert any("UniqueSearchablePitch2026" in p["title"] for p in pitches)
 
 
+def test_search_ignores_case(admin_client):
+    """The defining property of the 20-odd `ilike` calls the route is built from.
+
+    Untested until the suite moved to Postgres, where it could not have been: in
+    SQLite `LIKE` is itself case-insensitive for ASCII, so a plain `like` would
+    have passed this and then matched nothing in production.
+    """
+    admin_client.post("/api/pitches", json={"title": "MixedCaseSearchablePitch2026"})
+
+    resp = admin_client.get("/api/search?q=mixedcasesearchablepitch2026")
+
+    assert resp.status_code == 200
+    titles = [p["title"] for p in resp.json()["pitches"]]
+    assert "MixedCaseSearchablePitch2026" in titles
+
+
 def test_search_finds_organisation_by_name(admin_client):
     admin_client.post("/api/organisations", json={"name": "SearchableOrgName2026"})
 

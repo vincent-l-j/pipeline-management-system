@@ -124,9 +124,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Backend tests
+          # `dev`, not `test`: the backend suite needs a Postgres, and a build
+          # stage cannot reach a service container. This entry proves the image
+          # builds; `backend-tests` below runs the suite.
+          - name: Backend image
             service: backend
-            target: test
+            target: dev
           - name: Frontend build
             service: frontend
             target: build
@@ -137,9 +140,50 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - run: docker build --target ${{ matrix.target }} ./${{ matrix.service }}
 
-  # Alembic migration tests need a real Postgres (enums, UUID, server defaults).
-  # The `checks` job's `docker build --target test` runs with no DB and skips
-  # them, so this job is what actually exercises them.
+  # The backend suite runs against a real Postgres, built by the migrations. It
+  # used to run inside `docker build --target test` on in-memory SQLite, which
+  # asserted nothing about native enums, VARCHAR limits, TIMESTAMPTZ or foreign
+  # keys — see the docstring in backend/tests/conftest.py.
+  backend-tests:
+    name: Backend tests
+    needs: changes
+    if: needs.changes.outputs.run_code_jobs == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: pms
+          POSTGRES_PASSWORD: pms
+          # A different database from the migration job's: that suite runs
+          # DROP SCHEMA public CASCADE between tests.
+          POSTGRES_DB: pms_app_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+        working-directory: backend
+      # tests/migrations is excluded, not merely unconfigured: TEST_DATABASE_URL
+      # is unset here so it would skip anyway, but naming the exclusion keeps this
+      # job's scope from depending on that.
+      - run: pytest --ignore=tests/migrations
+        working-directory: backend
+        env:
+          APP_TEST_DATABASE_URL: postgresql://pms:pms@localhost:5432/pms_app_test
+
+  # Alembic migration tests need their own disposable Postgres, because they wipe
+  # the schema between tests. Separate from `backend-tests` so a migration failure
+  # and an application failure stay distinguishable.
   migrations:
     name: Migration tests
     needs: changes

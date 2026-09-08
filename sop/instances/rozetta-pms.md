@@ -122,7 +122,56 @@ there, which removes the route to the internet but not the route between these
 containers. That is the whole reason a local store is worth having.
 
 One thing it does not prove: DO's own behaviour at the edges. A real Space is
-still what closes VAL-ATTACH-002, by checksum.
+still what closes VAL-ATTACH-002, by checksum. The lifecycle rule in the next
+section is a billing concern with no local equivalent either.
+
+## Object storage: the Space pitch attachments live in ⚠️
+
+Attachments are objects in a DigitalOcean Space, one per upload, under
+`pitches/<pitch-id>/<uuid>/<filename>`. The backend proxies every download, so the
+bucket is never reached by a browser.
+
+**Two Spaces, not one bucket with two prefixes** — `pipeline-management-system-prod`
+and `pipeline-management-system-staging`, both in `syd1` to match `region: syd`.
+Separate Spaces mean separate key pairs, so staging's credential is genuinely unable
+to touch production objects; the `SPACES_ROOT_PREFIX` is then belt and braces rather
+than the isolation. It is worth checking that separation is real: identical `EV[1:…]`
+blobs in the two specs mean one was pasted from the other, not that both are valid.
+
+**`SPACES_ENDPOINT` stays unset in both specs**, so `Settings.spaces_endpoint_url`
+derives `https://syd1.digitaloceanspaces.com` from the region. The adapter addresses
+objects path-style (`/{bucket}/{key}`), so a bucket-scoped endpoint would name the
+bucket a second time and file everything under a redundant top-level folder. Only a
+non-DO store — MinIO locally — needs the override.
+
+**Bucket settings that are not expressible in the app spec**, so they have to be set
+by hand and re-checked if a Space is ever recreated:
+
+| Setting        | Value                                          | Why                                                                                                                                                                          |
+| -------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| File listing   | Off                                            | Private; the app is the only reader.                                                                                                                                         |
+| CORS           | None                                           | The backend proxies. A browser never talks to the Space.                                                                                                                     |
+| Lifecycle rule | Abort incomplete multipart uploads after 1 day | Parts from a failed upload are stored and billed until aborted, and nothing expires them on its own. The adapter aborts on failure, but a process killed mid-request cannot. |
+
+**The key pair is `type: SECRET` and cannot be written by hand.** `EV[1:…]` values are
+app-scoped ciphertexts that only App Platform can produce, and
+`app_action/deploy@v2` applies the committed spec **wholesale** — so a placeholder
+committed for a secret _overwrites the real one_ on the next deploy. The order is
+therefore:
+
+1. DO control panel → **API → Spaces Keys** → generate a key pair, scoped to the one
+   Space. This is not a DO API token, and not an AWS key.
+2. Set `SPACES_ACCESS_KEY_ID` and `SPACES_SECRET_ACCESS_KEY` on the **backend**
+   component in the control panel, both as encrypted secrets.
+3. `doctl apps spec get <app-id>` and commit the returned spec, `EV[1:…]` blobs and
+   all. The committed spec must mirror the live app, or the next deploy reverts it.
+
+Staging has been through that order and `.do/staging.yaml` carries its pair.
+**Production has not**: `.do/app.yaml` carries the region, bucket and prefix but
+**not** the key pair, so attachments there will fail with a 502 saying the file could
+not be saved until step 3 lands. Nothing else in the app is affected. Do not paste
+staging's blobs across to fill the gap — they are ciphertext scoped to the staging
+app and the production app cannot decrypt them.
 
 ## Environment: where and how to run SOP commands
 

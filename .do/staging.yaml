@@ -90,6 +90,23 @@ services:
       - key: APP_VERSION
         scope: RUN_TIME
         value: "0.1.0-staging"
+      - key: SPACES_SECRET_ACCESS_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: EV[1:MB5rCGf1K2JYd93AUSm3SpXyWenpdho9:35Jg0Evq3Wk7Icn+cxFkGR6qO4r91xFBODCt1+AVZSztLLZeycC3O60gf1vtIwD/gspXP5ZJAxHhGjc=]
+      - key: SPACES_ACCESS_KEY_ID
+        scope: RUN_TIME
+        type: SECRET
+        value: EV[1:Thln1xm7iAudHuBiw0dcdPHKgDJVh1Yi:o6sJW0+wAbGZ2E6cHfZz8PMe+awegmpFxnZ0xz6WOrh9kPHs]
+      - key: SPACES_BUCKET
+        scope: RUN_TIME
+        value: pipeline-management-system-staging
+      - key: SPACES_REGION
+        scope: RUN_TIME
+        value: syd1
+      - key: SPACES_ROOT_PREFIX
+        scope: RUN_TIME
+        value: pitches
     github:
       branch: develop
       deploy_on_push: false

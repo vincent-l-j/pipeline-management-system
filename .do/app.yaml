@@ -94,6 +94,15 @@ services:
       - key: APP_VERSION
         scope: RUN_TIME
         value: "0.1.0"
+      - key: SPACES_BUCKET
+        scope: RUN_TIME
+        value: pipeline-management-system-prod
+      - key: SPACES_REGION
+        scope: RUN_TIME
+        value: syd1
+      - key: SPACES_ROOT_PREFIX
+        scope: RUN_TIME
+        value: pitches
     github:
       branch: main
       deploy_on_push: false

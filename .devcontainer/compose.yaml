@@ -7,6 +7,11 @@
 include:
   - path: ../docker-compose.yml
 
+# The root file's `objectstore` profile stays opt-in for `docker compose up`, but is
+# always on here — devcontainer.json's `runServices` names those services, which is
+# how a profile gets enabled when nothing can pass --profile. A real Space is
+# unreachable from this container, so MinIO is the only object store it has.
+
 # One anchor, because the dns service's static IP, `app`'s upstream and the
 # firewall's permitted UDP/53 destination must agree or resolution dies.
 x-dns-ip: &dns_ip 10.99.53.53

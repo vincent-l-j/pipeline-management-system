@@ -30,7 +30,7 @@ Install Rancher Desktop: https://rancherdesktop.io
 Two settings matter:
 
 - **Container engine: `dockerd (moby)`**, not containerd. The Dev Containers extension drives the `docker` CLI and Compose, which the containerd/nerdctl backend does not provide.
-- **Give the VM enough headroom.** This project runs five containers, and the image build installs the Python toolchain — the defaults are usually fine, but a build that dies without explanation is the first thing to check.
+- **Give the VM enough headroom.** This project runs seven containers, and the image build installs the Python toolchain — the defaults are usually fine, but a build that dies without explanation is the first thing to check.
 
 Rancher Desktop puts its CLI tools in `~/.rd/bin`. If VS Code reports that it cannot find Docker while `docker ps` works in your terminal, it is a PATH problem: VS Code launched from the Dock or Start menu does not inherit your shell's PATH. Either launch it with `code .` from a terminal, or point it at the binary directly in `settings.json` (`Ctrl+Shift+P` → "Open User Settings (JSON)"):
 
@@ -91,25 +91,51 @@ otherwise the first thing you learn is that `git commit` refuses.
 
 ## Running the app
 
-Opening the folder starts **five** services. `.devcontainer/compose.yaml` `include:`s
-the repo-root `docker-compose.yml` verbatim and adds two services of its own:
+Opening the folder starts **seven** services — six long-lived and one that runs once
+and exits. `.devcontainer/compose.yaml` `include:`s the repo-root
+`docker-compose.yml` verbatim and adds two services of its own:
 
-| Service    | What it is                 | Internet          |
-| ---------- | -------------------------- | ----------------- |
-| `app`      | you and Claude Code        | allowlist only    |
-| `backend`  | uvicorn, hot reload        | **none**          |
-| `frontend` | Vite dev server, HMR       | **none**          |
-| `db`       | Postgres 16                | **none**          |
-| `dns`      | CoreDNS, allowlisted zones | upstream DNS only |
+| Service        | What it is                  | Internet          |
+| -------------- | --------------------------- | ----------------- |
+| `app`          | you and Claude Code         | allowlist only    |
+| `backend`      | uvicorn, hot reload         | **none**          |
+| `frontend`     | Vite dev server, HMR        | **none**          |
+| `db`           | Postgres 16                 | **none**          |
+| `minio`        | S3-compatible object store  | **none**          |
+| `minio-bucket` | one-shot bucket initialiser | **none**          |
+| `dns`          | CoreDNS, allowlisted zones  | upstream DNS only |
 
-`db`, `backend` and `frontend` have exactly one definition, in the root
+`db`, `backend`, `frontend`, `minio` and `minio-bucket` have exactly one definition, in the root
 `docker-compose.yml`. There is no second copy here to drift out of sync. `app` and
 `dns` exist only in the devcontainer and have no production counterpart.
 
+`minio` and its one-shot bucket initialiser sit behind the root file's `objectstore`
+profile, so `docker compose up` from the host is unaffected — but the devcontainer
+always brings them up, because a real Space is unreachable from here and MinIO is the
+only way to exercise attachments. That is what `runServices` in `devcontainer.json`
+is for: the CLI cannot pass `--profile`, and naming a profiled service enables its
+profile. **Add any new compose service to that list**, or it won't start on attach.
+
+`minio-bucket` showing as **exited is success**, not a crash — it is a one-shot that
+creates the bucket and stops, since MinIO won't create one itself. It re-runs and
+re-exits on every `up`, harmlessly. A real failure repeats `waiting for minio...` or
+exits non-zero; check with `docker compose logs minio-bucket` from the host.
+
 You don't start the app — it is already running. Both dev servers hot-reload from the
 bind mounts, so editing `backend/` or `frontend/` takes effect with no restart. Open
-http://localhost:5173; VS Code forwards `frontend:5173` and `backend:8000` by service
-name. Vite proxies `/api` to `backend:8000` over the compose network.
+http://localhost:5173; VS Code forwards `frontend:5173`, `backend:8000` and MinIO's
+console on `minio:9001` by service name. Vite proxies `/api` to `backend:8000` over
+the compose network.
+
+Attachments need the `SPACES_*` keys filled in in the repo-root `.env` — the values
+for MinIO are listed in `.env.example` above them. `SPACES_ENDPOINT` is
+`http://minio:9000`, a service name, so it resolves from `backend` and `app` but not
+from your host browser; browse the bucket through the console instead. Check the
+store is up from `app` with:
+
+```bash
+curl -sf http://minio:9000/minio/health/live
+```
 
 The backend reads its secrets from the repo-root `.env`. That file is gitignored, so
 on a fresh clone copy `.env.example` to `.env` and fill it in **before** reopening —
@@ -140,7 +166,7 @@ a red postCreate. See **Adding a dependency** below.
 
 ### Restarting the stack without closing VS Code
 
-Yes. `app` and the three app services are separate containers in one project, so you
+Yes. `app` and the app services are separate containers in one project, so you
 can recycle the others and keep your editor session and Claude Code alive. From the
 **host**:
 
@@ -149,13 +175,20 @@ P=$(docker compose ls --format json | grep -o '"Name":"[^"]*devcontainer[^"]*"' 
 
 docker compose -p "$P" restart backend frontend db     # bounce them
 docker compose -p "$P" up -d --build backend frontend  # rebuild after a dep change
+docker compose -p "$P" up -d minio minio-bucket        # the object store, if you
+                                                       # dropped it
 ```
 
-Two things to know:
+Three things to know:
 
 - **There is no Docker CLI inside `app`,** so this is host-side only. Claude cannot
   restart or rebuild the stack. That is deliberate — a Docker socket in `app` would
   be a container-escape primitive — and hot reload covers ordinary edits anyway.
+- **Name `minio` explicitly.** It and `minio-bucket` are profiled, so a `restart` or
+  `up -d` that doesn't name them skips them silently; naming them is what enables the
+  profile. Run these from `.devcontainer/` too, not the repo root — `-p` selects the
+  project, not the file, and the root `docker-compose.yml` would recreate `appnet`
+  without `internal: true`.
 - **Prefer `restart` / `up -d` over `down`.** `down` destroys the compose networks, so
   the stack can come back on a different subnet, and `app`'s firewall pins the allowed
   subnets at container start. The symptom is `db` going unreachable from `app` for no
@@ -232,13 +265,13 @@ and the container exits 1 before the healthcheck ever runs.
 A firewall runs automatically on every container start and restricts `app`'s outbound
 traffic to a fixed allowlist:
 
-| Destination                                                | Purpose                     | Required? |
-| ---------------------------------------------------------- | --------------------------- | --------- |
-| `api.anthropic.com`, `platform.claude.com`                 | Claude Code                 | yes       |
-| GitHub IP ranges                                           | Git operations              | yes       |
-| `pypi.org`, `files.pythonhosted.org`, `registry.npmjs.org` | pip / npm                   | no        |
-| the compose subnet                                         | `db`, `backend`, `frontend` | n/a       |
-| the `dns` container, port 53 only                          | name resolution             | n/a       |
+| Destination                                                | Purpose                              | Required? |
+| ---------------------------------------------------------- | ------------------------------------ | --------- |
+| `api.anthropic.com`, `platform.claude.com`                 | Claude Code                          | yes       |
+| GitHub IP ranges                                           | Git operations                       | yes       |
+| `pypi.org`, `files.pythonhosted.org`, `registry.npmjs.org` | pip / npm                            | no        |
+| the compose subnet                                         | `db`, `backend`, `frontend`, `minio` | n/a       |
+| the `dns` container, port 53 only                          | name resolution                      | n/a       |
 
 All other outbound access is rejected immediately (ICMP admin-prohibited).
 

@@ -5,29 +5,32 @@ with Microsoft Azure AD for auth and the Anthropic Claude API powering the AI No
 The **same application code** runs in both environments — only the way it's built, served,
 and wired together differs.
 
-| Concern        | Development                                           | Production                                                                                           |
-| -------------- | ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Orchestration  | `docker-compose.yml` (local)                          | DigitalOcean App Platform (`.do/app.yaml`)                                                           |
-| Frontend       | Vite dev server (hot reload)                          | Static site (buildpack: `npm run build` → `dist/`, served from the edge)                             |
-| Backend        | uvicorn `--reload`, `backend/Dockerfile` target `dev` | uvicorn (no reload), `backend/Dockerfile` final stage `prod`                                         |
-| Database       | `postgres:16` container + `pgdata` volume             | Managed PostgreSQL 16 (`DATABASE_URL` injected)                                                      |
-| `/api` routing | Vite proxy → `backend:8000`                           | Same-origin route (`/api` → backend service)                                                         |
-| TLS            | none (plain HTTP)                                     | Terminated by App Platform                                                                           |
-| Dev login      | enabled (`ENABLE_DEV_LOGIN=true`)                     | disabled; `dev.py` route stripped from the `prod` image                                              |
-| Logging        | JSON to stdout, `docker compose logs`                 | JSON to stdout, collected by App Platform's runtime logs                                             |
-| Config source  | `.env` file                                           | `.do/app.yaml` + DO control panel (secrets)                                                          |
-| Deploy         | `docker compose up --build`                           | CI GitOps: push to `main` → `deploy-production.yml` applies `.do/app.yaml` (`deploy_on_push: false`) |
+| Concern        | Development                                                                       | Production                                                                                           |
+| -------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Orchestration  | `docker-compose.yml` (local)                                                      | DigitalOcean App Platform (`.do/app.yaml`)                                                           |
+| Frontend       | Vite dev server (hot reload)                                                      | Static site (buildpack: `npm run build` → `dist/`, served from the edge)                             |
+| Backend        | uvicorn `--reload`, `backend/Dockerfile` target `dev`                             | uvicorn (no reload), `backend/Dockerfile` final stage `prod`                                         |
+| Database       | `postgres:16` container + `pgdata` volume                                         | Managed PostgreSQL 16 (`DATABASE_URL` injected)                                                      |
+| Document store | MinIO sibling container (`objectstore` profile); unit tests use an in-memory fake | DigitalOcean Spaces (`syd1`), key pair from the DO control panel                                     |
+| `/api` routing | Vite proxy → `backend:8000`                                                       | Same-origin route (`/api` → backend service)                                                         |
+| TLS            | none (plain HTTP)                                                                 | Terminated by App Platform                                                                           |
+| Dev login      | enabled (`ENABLE_DEV_LOGIN=true`)                                                 | disabled; `dev.py` route stripped from the `prod` image                                              |
+| Logging        | JSON to stdout, `docker compose logs`                                             | JSON to stdout, collected by App Platform's runtime logs                                             |
+| Config source  | `.env` file                                                                       | `.do/app.yaml` + DO control panel (secrets)                                                          |
+| Deploy         | `docker compose up --build`                                                       | CI GitOps: push to `main` → `deploy-production.yml` applies `.do/app.yaml` (`deploy_on_push: false`) |
 
 ---
 
 ## Development
 
-Three containers defined in `docker-compose.yml`, all source-mounted for hot reload,
-all on the `appnet` compose network.
+Five containers defined in `docker-compose.yml`, all on the `appnet` compose network:
+`db`, `backend` and `frontend` — source-mounted for hot reload — plus `minio` and its
+one-shot `minio-bucket` initialiser, which sit behind the `objectstore` profile so
+`docker compose up` is unchanged for anyone not working on attachments.
 
 That file is the single definition of the stack. `.devcontainer/compose.yaml`
-`include:`s it rather than restating it, adds the `app` dev container as a fourth
-service, and redeclares `appnet` as `internal: true` — which removes the stack's
+`include:`s it rather than restating it, adds the `app` dev container and the
+allowlisting `dns` resolver, and redeclares `appnet` as `internal: true` — which removes the stack's
 internet access when Claude Code is present, since a firewall inside `app` cannot
 restrain a sibling container that shares its bind mounts. See
 `.devcontainer/README.md`.
@@ -44,12 +47,13 @@ restrain a sibling container that shares its bind mounts. See
                     ┌──────────────────────────┐
                     │ backend (uvicorn --reload)│  :8000
                     │  FastAPI app              │
-                    └──────────┬───────────────┘
-                               ▼
-                    ┌──────────────────────────┐
-                    │ db (postgres:16)     :5432│
-                    │  volume: pgdata           │
-                    └──────────────────────────┘
+                    └──────┬────────────┬──────┘
+                           ▼            ▼
+      ┌────────────────────────┐  ┌──────────────────────────────┐
+      │ db (postgres:16)  :5432│  │ minio (S3 API)          :9000│
+      │  volume: pgdata        │  │  console :9001, vol miniodata│
+      └────────────────────────┘  │  profile: objectstore        │
+                                  └──────────────────────────────┘
 
   External (optional): Azure AD · Anthropic Claude API
 ```
@@ -63,6 +67,12 @@ restrain a sibling container that shares its bind mounts. See
   to the dev DB by hand — `docker compose run --rm backend alembic upgrade head` — on first
   bring-up and after any `docker compose down -v`.
 - **Database** — stock `postgres:16` with a named `pgdata` volume. Credentials come from `.env`.
+- **Document store** — MinIO on `9000` (object browser on `9001`), behind the `objectstore`
+  profile, its bucket created by the one-shot `minio-bucket`. It speaks the same S3 API and
+  _checks the signature_, which the unit suite's stub does not, so a wrongly signed request is
+  refused here rather than first discovered against a real Space. Point the app at it with
+  `SPACES_ENDPOINT=http://minio:9000` — see `.env.example` and `sop/instances/rozetta-pms.md`.
+  Leave the `SPACES_*` keys empty and attachments are simply refused; nothing else changes.
 - **Auth** — the **Dev Login (Admin)** button is enabled (`ENABLE_DEV_LOGIN=true` /
   `VITE_ENABLE_DEV_LOGIN=true`) so you can sign in without Azure AD configured.
 - **Config** — everything is read from `.env` (copy from `.env.example`).
@@ -70,6 +80,7 @@ restrain a sibling container that shares its bind mounts. See
 Start it with `docker compose up --build`, then apply the schema once with
 `docker compose run --rm backend alembic upgrade head` (see **Backend** above — nothing
 creates tables automatically). Frontend on `:5173`, API on `:8000/api`, Swagger on `:8000/docs`.
+Add `--profile objectstore` to that first command when you need attachments.
 
 ---
 
@@ -100,7 +111,7 @@ this from `.do/staging.yaml`. Platform primitives:
                                         │ DATABASE_URL injected   │
                                         └────────────────────────┘
 
-  External: Azure AD (login) · Anthropic Claude API (AI Notetaker)
+  External: Azure AD (login) · Anthropic Claude API (AI Notetaker) · DigitalOcean Spaces (attachments)
 ```
 
 - **Frontend (static site)** — App Platform's Node buildpack runs `npm run build` and serves
@@ -172,6 +183,22 @@ the deploy fires on the push the merge produces.
 - **AI Notetaker** — `backend/app/services/ai_notetaker.py` calls the Anthropic Claude API to
   turn raw meeting notes into structured records, with a basic text-parser fallback when
   `ANTHROPIC_API_KEY` is unset.
+- **Document store** — pitch attachments are files, and files do not belong in Postgres. The
+  bytes live in a DigitalOcean Space; the `pitch_attachments` row holds only a pointer
+  (`store_item_id`), plus the name, type, size and uploader. `backend/app/services/document_store.py`
+  is the interface every caller holds, `backend/app/core/documents.py` is the one module that
+  names an implementation, and `backend/app/services/spaces.py` is the adapter — which is what
+  lets the whole attachment surface, failure paths included, run against an in-memory fake with
+  no bucket and no network. Moving the bytes elsewhere is a second implementation of that
+  interface and a one-line change in `documents.py` — no migration and no schema change, because
+  `store_item_id` is opaque to everything above it.
+  **Downloads are proxied, never redirected** — handing the browser a presigned URL
+  would move the decision about who may read a file from this application to the bucket's own
+  permissions, and the backend is the only security boundary this system has. That is also why
+  nothing here presigns at all. Operationally the one thing that bites is multipart uploads: a
+  failure abandons the upload, but a process killed mid-request cannot, and orphaned parts are
+  billed until something aborts them — hence the lifecycle rule recorded in
+  `sop/instances/rozetta-pms.md`.
 - **Observability** — `backend/app/core/logging.py` configures the process at import time so
   every record, including uvicorn's own startup/shutdown lines, is emitted to stdout as a single
   line of JSON (timestamp, level, logger, service, environment, message, plus any `extra=`

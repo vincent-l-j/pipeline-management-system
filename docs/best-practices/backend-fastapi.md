@@ -106,8 +106,8 @@ for field, value in data.model_dump(exclude_unset=True).items():
 - Declare relationships with explicit `back_populates`. Choose delete behaviour
   deliberately: `cascade="all, delete-orphan"` for owned children (e.g. a pitch's
   stage history), and **handle FK-nulling or link-row deletion in the route/service**
-  for cross-aggregate references — do not rely on DB `ondelete`, because unit
-  tests run on SQLite with FK enforcement off (see the integration doc).
+  for cross-aggregate references — do not rely on DB `ondelete`, because a cascade
+  fires below the boundary the API tests assert at (see the integration doc).
 
 ## Errors
 
@@ -329,8 +329,19 @@ query string, status, duration, and the acting user when authenticated).
 
 - Location: `backend/tests/`, one module per resource. Test-only deps go in
   `requirements-dev.txt`.
-- Tests run against **in-memory SQLite** — `conftest.py` sets `DATABASE_URL=sqlite://`
-  _before_ importing the app, and overrides `get_db`. No Postgres needed.
+- Tests run against a **disposable PostgreSQL database** — `conftest.py` sets
+  `DATABASE_URL` from `APP_TEST_DATABASE_URL` _before_ importing the app, creates
+  the database if absent, and builds the schema with `alembic upgrade head` rather
+  than `create_all`, so what the tests meet is the schema a deploy applies. The
+  `db` service has to be up.
+- **Isolation is per test, by `TRUNCATE`.** Wrapping each test in a rolled-back
+  transaction would be faster, but it makes the whole test one transaction — so
+  `server_default=func.now()` stamps every row with the same instant and
+  application `commit()` calls stop being commits. Don't trade the fidelity back.
+- **The three acting users are seeded rows**, not just objects handed to the auth
+  override. `users.id` is a real foreign-key target, so a `current_user` with no
+  row behind it fails every route that stamps an actor (`assessor_id`,
+  `uploaded_by_id`, `changed_by_id`).
 - Use the ready-made fixtures instead of building auth: `client` (unauthenticated),
   `admin_client`, `assessor_client`, `viewer_client`. They override
   `get_current_user`, so you test authorization logic without minting JWTs.

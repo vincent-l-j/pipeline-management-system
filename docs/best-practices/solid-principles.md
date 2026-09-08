@@ -52,12 +52,21 @@ when a lookup map keyed by the enum value would let you just add a key.
 
 _Subtypes must be usable wherever the base type is expected — without surprises._
 
-- The clearest example here is the **database session**: routes depend on a
-  SQLAlchemy `Session` from `get_db`, and the test suite substitutes a SQLite
-  session for the Postgres one with no code change. That only works because both
-  honour the same `Session` contract. (The corollary — SQLite _not_ enforcing FKs
-  — is exactly where substitution leaks, which is why integrity lives in app code;
-  see the integration doc.)
+- The clearest example here is the **document store**: routes depend on the
+  `DocumentStore` interface via `Depends(get_document_store)`, and the tests
+  substitute `FakeDocumentStore` for `SpacesDocumentStore` with no code change, so
+  the whole attachment surface — failure paths included — runs with no bucket and
+  no network. `store_item_id` is opaque above the interface, which is what makes
+  the two genuinely interchangeable.
+- **Where substitution leaked, and what it cost.** The test suite used to
+  substitute a SQLite `Session` for the Postgres one on the same reasoning. Both
+  honour the `Session` contract, but the _databases_ behind them do not: SQLite has
+  no native enum types, ignores `VARCHAR` lengths, drops the timezone off a
+  `TIMESTAMP WITH TIME ZONE`, does not enforce foreign keys, and makes `LIKE`
+  case-insensitive. Every one of those is a way the substitute accepted what the
+  original would refuse — the exact "surprise" this principle is about — and the
+  suite now runs on Postgres because of it. A shared interface is not a shared
+  contract when the implementation is a whole other system.
 - The three auth fixtures (`admin_client`, `assessor_client`, `viewer_client`) are
   substitutable `TestClient`s differing only in role, so the same test shape works
   across roles.

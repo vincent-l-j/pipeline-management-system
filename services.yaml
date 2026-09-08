@@ -91,5 +91,10 @@ services:
 #   `curl -sf http://minio:9000/minio/health/live`.
 # - Swagger/OpenAPI for black-box API probing: http://localhost:8000/docs
 # - Local dev forces ENABLE_DEV_LOGIN=true (a Dev Login admin button); this is
-#   off in production. Backend unit tests run against in-memory SQLite and need
-#   no running db.
+#   off in production.
+# - `test-backend` needs the `db` service up. The suite runs against a disposable
+#   Postgres database (`APP_TEST_DATABASE_URL`, default `pms_app_test` on `db`),
+#   whose schema it rebuilds from the migrations on every run. It used to run on
+#   in-memory SQLite and need nothing; that could not fail the way Postgres does.
+#   `pytest tests/migrations` uses a second, separate database — see
+#   backend/tests/migrations/conftest.py.

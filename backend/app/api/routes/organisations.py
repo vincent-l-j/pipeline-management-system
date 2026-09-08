@@ -77,9 +77,10 @@ def delete_organisation(
         raise HTTPException(status_code=404, detail="Organisation not found")
 
     # Orphan references before deleting: contacts and pitches survive with their
-    # link to this organisation cleared (enforced in app code, not via DB cascade —
-    # SQLite tests don't enforce FKs). A contact affiliated with other
-    # organisations keeps those; only this one's join row goes.
+    # link to this organisation cleared (in app code, not via DB cascade: the
+    # schema defines no `ondelete`, and this is the layer the API tests can see the
+    # side effect at). A contact affiliated with other organisations keeps those;
+    # only this one's join row goes.
     db.query(ContactOrganisation).filter(ContactOrganisation.organisation_id == org_id).delete(
         synchronize_session=False
     )

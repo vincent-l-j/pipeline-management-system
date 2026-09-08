@@ -36,13 +36,15 @@ The frontend never talks to the database, and never constructs URLs beyond the
 - One `Session` per request via `get_db`; commit explicitly, then `db.refresh(obj)`
   before returning so the response reflects DB-generated values.
 - **Enforce cross-aggregate integrity in application code, not via DB cascades.**
-  Unit tests run on SQLite with foreign-key enforcement _off_, so `ondelete=` cascades
-  never fire there regardless of how the schema is built (and while an app is still on
-  the `create_all` scaffolding phase, no DB-level `ON DELETE` is defined at all). So
-  behaviours like "nulling `organisation_id` on child rows when an org is deleted" or
-  "deleting a contact's join rows" must be done in the route/service and covered
-  by tests that assert the side effect. Relying on `ondelete=` would pass in
-  Postgres but silently no-op under the test DB.
+  The schema defines no `ON DELETE` anywhere, and the reason is testability at the
+  boundary that matters: behaviours like "nulling `organisation_id` on child rows
+  when an org is deleted" or "deleting a contact's join rows" are part of what the
+  API promises, so they belong in the route/service where a test can assert the
+  side effect through the API. A DB cascade happens underneath that boundary — the
+  rows change and no test of the contract can see how.
+  (This used to be justified by SQLite not enforcing foreign keys in tests. It now
+  does — the suite runs on Postgres — so a cascade would at least be _exercised_;
+  the reason above is why the rule stands anyway.)
 - Keep multi-step writes in a single transaction (mutate, `db.add(...)`, one
   `db.commit()`) so a failure can't leave a half-applied change.
 
@@ -87,8 +89,11 @@ The frontend never talks to the database, and never constructs URLs beyond the
 
 ## Testing the integration
 
-- **Backend**: `TestClient` against SQLite exercises the full route → ORM path
-  quickly (no live DB). This is where API-shape and integrity assertions live.
+- **Backend**: `TestClient` against a disposable Postgres exercises the full
+  route → ORM → real-schema path. This is where API-shape and integrity assertions
+  live. It needs the `db` service up (`APP_TEST_DATABASE_URL`, default
+  `pms_app_test`); the schema is rebuilt from the migrations per run and every
+  table truncated between tests.
 - **Frontend**: mock `services/api` so components are tested against the _contract_
   (the shapes above), not a live backend. Keep mock payloads faithful to the real
   `*Out` schema — a drifted mock hides integration breaks.
@@ -103,6 +108,6 @@ The frontend never talks to the database, and never constructs URLs beyond the
 - Locking down an endpoint (e.g. `GET /api/users` → admin-only) without noticing
   other consumers depend on it — check every caller before narrowing access, and
   add a purpose-built endpoint if a low-privilege caller still needs a subset.
-- Cascade/orphan logic that passes on Postgres but not SQLite (or vice-versa)
-  because it was left to the DB instead of the application layer.
+- Cascade/orphan logic left to the DB instead of the application layer, where no
+  test of the API contract can observe it.
 - Mock payloads in frontend tests that no longer match the real schema.

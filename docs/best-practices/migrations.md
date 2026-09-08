@@ -40,10 +40,11 @@ run this"** — this doc doesn't repeat them.
   incomplete or empty downgrade. A rollback is only as good as the `downgrade()` you
   hand-verify. If a downgrade is genuinely lossy (e.g. dropping a populated column),
   say so in the migration docstring rather than pretending it reverses.
-- **Test migrations against real Postgres, never SQLite.** The test suite runs on
-  in-memory SQLite (`backend/tests/conftest.py`), which accepts DDL Postgres rejects
-  and can't model Postgres `ALTER`/rollback semantics. Migration tests need a real
-  Postgres instance (throwaway container).
+- **Test migrations against real Postgres**, in a disposable database of their own.
+  Both suites need one now (`backend/tests/conftest.py` builds its schema by running
+  these migrations), but they must not share a database: the migration tests
+  `DROP SCHEMA public CASCADE` between tests, which would pull the application
+  suite's schema out from under it.
 - **Prefer expand/contract.** Additive migration → deploy code tolerant of both old
   and new shapes → later contract (drop the old). Each step is independently
   reversible, and a forward deploy never needs a lockstep rollback.
@@ -104,8 +105,9 @@ Decide per migration which applies, and note it in the migration docstring.
 
 The migration tests live in `backend/tests/migrations/` and drive the Alembic CLI
 against a **disposable** Postgres (never a real DB — they `DROP SCHEMA`). They `skip`
-unless `TEST_DATABASE_URL` is set and reachable, so the normal SQLite unit run is
-unaffected. `test_migrations_match_models` (an `alembic check`) is the gate that a
+unless `TEST_DATABASE_URL` is set and reachable, and that database must be a
+different one from the application suite's `APP_TEST_DATABASE_URL`.
+`test_migrations_match_models` (an `alembic check`) is the gate that a
 migration actually matches `app/models/`; the suite implements Levels 1–2 above.
 
 **Running them is procedure, not covered here.** There is no host
@@ -127,5 +129,6 @@ reversible, and it means the production migration is never run by hand (after in
 
 - [`database-integration.md`](database-integration.md) — how schema changes ripple
   through the `*Out` schemas and the frontend.
-- `AGENTS.md` — "enforce data integrity in app code, not DB cascades" (SQLite tests
-  don't enforce FKs); migrations should still declare constraints for Postgres.
+- `AGENTS.md` — "enforce data integrity in app code, not DB cascades" (a cascade
+  fires below the boundary the API tests assert at); migrations should still declare
+  the constraints themselves.

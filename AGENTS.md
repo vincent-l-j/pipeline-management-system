@@ -18,8 +18,12 @@ Do not bind other ports or assume services on them.
 **Database:**
 
 - USE the `db` service from `docker-compose.yml` (Postgres 16) for local runtime.
-- Backend **unit tests run against in-memory SQLite** (forced in `tests/conftest.py`)
-  and must not require a running Postgres.
+- Backend tests **run against a disposable PostgreSQL database** built by the
+  migrations (`APP_TEST_DATABASE_URL` in `tests/conftest.py`, defaulting to the
+  `db` service). They need Postgres up; that is deliberate — SQLite could not fail
+  the way the real database does. The schema is rebuilt per run and every table is
+  truncated between tests, so never point it at a database that matters, and never
+  at the migration suite's `TEST_DATABASE_URL`.
 - Do not point the app at, or mutate, any database outside this project.
 
 **Off-limits:**

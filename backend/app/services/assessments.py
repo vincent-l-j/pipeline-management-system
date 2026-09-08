@@ -4,8 +4,11 @@ Assessments are immutable-with-versions: amending one appends a row at
 version + 1 rather than mutating the old one. So "the assessment for this pitch"
 always means "the highest-versioned one", and more than one caller needs it.
 
-Kept deliberately free of window functions: the unit suite runs on SQLite and the
-app on Postgres, and `GROUP BY` with a self-join behaves identically on both.
+Written with `GROUP BY` and a self-join rather than a window function. The reason
+was that the suite ran on SQLite and the app on Postgres, and this form behaved
+identically on both; the suite is on Postgres now, so that constraint is gone and
+a window function here is a fair change to make. It has not been made — this
+works, and rewriting it would be churn.
 """
 
 from uuid import UUID

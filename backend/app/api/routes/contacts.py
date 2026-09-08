@@ -128,7 +128,8 @@ def delete_contact(
         raise HTTPException(status_code=404, detail="Contact not found")
 
     # Remove join rows in the same transaction so no dangling references remain
-    # (enforced in app code, not via DB cascade — SQLite tests don't enforce FKs).
+    # (in app code, not via DB cascade: the schema defines no `ondelete`, and this
+    # is the layer the API tests can see the side effect at).
     db.query(ContactOrganisation).filter(ContactOrganisation.contact_id == contact_id).delete(
         synchronize_session=False
     )

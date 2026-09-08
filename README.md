@@ -282,8 +282,14 @@ Kept simple for the pilot; do these before real users depend on the system:
 
 ## Testing
 
-The backend has a `pytest` suite (in `backend/tests/`) that runs against an in-memory SQLite
-database — no Postgres needed. The frontend has a [Vitest](https://vitest.dev/) +
+The backend has a `pytest` suite (in `backend/tests/`) that runs against a **disposable
+PostgreSQL database**, built by the same Alembic migrations a deploy applies. It used to run
+on in-memory SQLite and need nothing running; that was faster, but SQLite has no native enum
+types, ignores `VARCHAR` lengths, drops the timezone off a `TIMESTAMP WITH TIME ZONE`, does
+not enforce foreign keys, and makes `LIKE` case-insensitive — so a green run asserted nothing
+about any of those. Point it somewhere with `APP_TEST_DATABASE_URL`; it defaults to the
+compose `db` service and creates the database if it is absent.
+The frontend has a [Vitest](https://vitest.dev/) +
 React Testing Library suite (co-located in `__tests__/` folders under `frontend/src/`).
 **GitHub Actions runs jobs on every pull request, and again as the gate in front of every
 deploy** — backend tests, frontend build, frontend tests and db migration tests
@@ -292,16 +298,25 @@ red check skips the deploy rather than being reported alongside it.
 
 ### Running the backend tests
 
+The `db` service has to be up — `docker compose up -d db` if it isn't.
+
 ```bash
 # In a container (parity with prod — recommended):
 docker compose run --rm backend pytest
 
-# Or build the dedicated test stage (this is exactly what CI runs):
-docker build --target test ./backend
-
-# Or on the host, in a virtualenv:
-cd backend && pip install -r requirements-dev.txt && pytest
+# Or on the host, in a virtualenv, against a Postgres you point it at:
+cd backend && pip install -r requirements-dev.txt
+APP_TEST_DATABASE_URL=postgresql://rozetta:<password>@localhost:5432/pms_app_test pytest
 ```
+
+There is no `--target test` stage to build any more. The suite needs a database, and a
+Docker build stage has no route to one — CI runs `pytest` in a job with a Postgres service
+instead, and builds `--target dev` separately to prove the image still builds.
+
+The database named by `APP_TEST_DATABASE_URL` is **disposable**: its schema is dropped and
+rebuilt at the start of every run, and every table is truncated between tests. Never point it
+at a database you care about. It must also be a different database from the migration suite's
+`TEST_DATABASE_URL`, which wipes its own schema between tests.
 
 Test-only dependencies live in `backend/requirements-dev.txt` (kept out of the production image,
 which installs `requirements.txt` only).
@@ -337,7 +352,7 @@ npm run preview      # serve the built app to spot-check it
 
 ### Adding tests
 
-- **Backend** — add more [`pytest`](https://docs.pytest.org/) modules under `backend/tests/` (using FastAPI's `TestClient`); the fixtures in `tests/conftest.py` give you a clean SQLite DB and an authenticated admin client. New test-only deps go in `requirements-dev.txt`.
+- **Backend** — add more [`pytest`](https://docs.pytest.org/) modules under `backend/tests/` (using FastAPI's `TestClient`); the fixtures in `tests/conftest.py` give you an empty Postgres schema and an authenticated admin client, with the three acting users already seeded so a route that stamps one has a real row to point at. New test-only deps go in `requirements-dev.txt`.
 - **Frontend** — add more [Vitest](https://vitest.dev/) + React Testing Library specs in `__tests__/` folders next to the code they cover (the existing suites under `frontend/src/` are good templates). The `test` script and test deps are already wired up in `frontend/package.json`.
 
 ## License

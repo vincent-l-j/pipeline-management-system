@@ -149,25 +149,29 @@ this from `.do/staging.yaml`. Platform primitives:
   path. Push to `main` → `deploy-production.yml` applies `.do/app.yaml` to the `production` app; push to
   `develop` → `deploy-staging.yml` applies `.do/staging.yaml` to the persistent `staging` (UAT)
   app. `app_action/deploy@v2` applies spec **and** code together, so the committed spec must
-  mirror the live app. (App Platform builds `prod` directly and does **not** run the `test`
-  stage — tests gate at the CI / merge layer; see below.)
+  mirror the live app. (App Platform builds `prod` directly and runs no tests — they gate at
+  the CI / merge layer; see below.)
 
 ---
 
 ## Build stages & where tests run
 
-Both Dockerfiles are multi-stage. The `test` stages are **not** in the prod image's lineage —
-they're a separate target that CI builds explicitly.
+Both Dockerfiles are multi-stage. The frontend's `test` stage is **not** in the prod image's
+lineage — it's a separate target CI builds explicitly. The backend has no `test` stage: its
+suite needs a Postgres, and `RUN pytest` in a build stage cannot reach one.
 
-- **`backend/Dockerfile`** — `base → dev → test` (sibling) and `base → prod`. `prod` builds
-  from `base` (the Python runtime is what it serves), staying lean with no dev/test tooling.
+- **`backend/Dockerfile`** — `base → dev` and `base → prod`. `prod` builds from `base` (the
+  Python runtime is what it serves), staying lean with no dev/test tooling; `dev` carries
+  `requirements-dev.txt` and is the image the tests run in.
 - **`frontend/Dockerfile`** — `base → {dev, test, build}`; `build → prod`. `prod` is
   `nginx:alpine` and copies only `dist/` from `build`, because the frontend's runtime is static
   files, not Node — no need to ship `node_modules` or source.
 
-CI (`.github/workflows/ci.yml`) runs `docker build --target test` (backend + frontend) and
-`--target build` (frontend) on every pull request, so a red test fails the build there. It also
-runs the database migration tests. Production builds don't re-run tests; instead both deploy
+CI (`.github/workflows/ci.yml`) runs `docker build --target test` and `--target build` for the
+frontend, and `--target dev` for the backend, on every pull request. The backend suite runs in
+a job of its own with a `postgres:16` service rather than inside a build stage — it needs a
+real database, which a build stage cannot reach — and the migration tests run in a second such
+job against a database of their own. Production builds don't re-run tests; instead both deploy
 workflows call `ci.yml` as a reusable workflow and their deploy job `needs:` it, so the checks
 run against the exact commit being released and a failure skips the deploy. That covers the
 direct push to a deploy branch, which branch protection cannot — protection blocks a merge, but

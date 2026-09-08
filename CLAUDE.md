@@ -14,19 +14,19 @@ on DigitalOcean App Platform. See `README.md` for the product overview and
 
 Canonical commands live in `services.yaml`. In short:
 
-| Task                 | Command                                           |
-| -------------------- | ------------------------------------------------- |
-| Run the whole stack  | `docker compose up --build`                       |
-| Backend tests        | `cd backend && pytest`                            |
-| Frontend tests       | `cd frontend && npm test`                         |
-| Frontend build       | `cd frontend && npm run build`                    |
-| Backend health       | `curl -sf http://localhost:8000/api/health`       |
-| Backend readiness    | `curl -sf http://localhost:8000/api/health/ready` |
-| API docs (Swagger)   | http://localhost:8000/docs                        |
-| Lint (both sides)    | `npm run lint`                                    |
-| Lint, autofix        | `npm run lint:fix`                                |
-| Typecheck (frontend) | `npm run typecheck`                               |
-| Format               | `npm run format` / `npm run format:check`         |
+| Task                 | Command                                            |
+| -------------------- | -------------------------------------------------- |
+| Run the whole stack  | `docker compose up --build`                        |
+| Backend tests        | `cd backend && pytest` (needs the `db` service up) |
+| Frontend tests       | `cd frontend && npm test`                          |
+| Frontend build       | `cd frontend && npm run build`                     |
+| Backend health       | `curl -sf http://localhost:8000/api/health`        |
+| Backend readiness    | `curl -sf http://localhost:8000/api/health/ready`  |
+| API docs (Swagger)   | http://localhost:8000/docs                         |
+| Lint (both sides)    | `npm run lint`                                     |
+| Lint, autofix        | `npm run lint:fix`                                 |
+| Typecheck (frontend) | `npm run typecheck`                                |
+| Format               | `npm run format` / `npm run format:check`          |
 
 All of these run from the **repo root**, but only prettier lives there — the root
 `package.json` is a thin delegator. eslint + typescript are `frontend/`
@@ -105,8 +105,10 @@ in the same change that alters the pattern it describes).
 5. **No trailing slashes on routes** (`redirect_slashes=False`, regression-tested).
 6. **Pydantic schemas are allowlists.** Don't widen one to pass a field through;
    keep non-client-settable fields (e.g. `current_stage` on `PitchUpdate`) out.
-7. **Enforce data integrity in app code, not DB cascades** — SQLite tests don't
-   enforce foreign keys. See the integration doc.
+7. **Enforce data integrity in app code, not DB cascades** — a cascade fires below
+   the boundary the API tests assert at, so the behaviour would be untestable as
+   part of the contract. (The old reason, "SQLite tests don't enforce foreign
+   keys", no longer holds: the suite runs on Postgres.) See the integration doc.
 8. **API fields are `snake_case`** on both sides of the wire; don't rename on the
    frontend.
 9. **Secrets come from the environment**, never committed. Keep `ENABLE_DEV_LOGIN`

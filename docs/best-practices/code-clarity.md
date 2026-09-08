@@ -117,9 +117,9 @@ screened_pitch_ids = [...]
 ### Do: Use comments to explain architectural rationale
 
 ```python
-# Integrity checks live in app code, not in DB triggers or foreign keys.
-# SQLite tests don't enforce FK constraints, so violations wouldn't surface
-# until production. We catch them here instead.
+# Integrity checks live in app code, not in DB triggers or cascades.
+# A cascade fires below the boundary the API tests assert at, so the
+# behaviour would be untestable as part of the contract. We catch it here.
 if not db.query(Pitch).filter(Pitch.id == pitch.id).first():
     raise ValueError("Invalid pitch_id")
 ```

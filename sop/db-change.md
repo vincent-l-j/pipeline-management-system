@@ -87,9 +87,10 @@ curl "$LOCAL_HEALTH_URL"                       # app still healthy?
 Then exercise the change through the API and add/extend a test in `$TESTS_DIR` so the
 change is covered before it reaches `main`.
 
-Note: the automated suite runs on SQLite (or another test engine), which does not have
-native Postgres enum types. A migration that relies on Postgres-specific DDL must be
-exercised against Postgres, not only the test suite.
+Note: both suites run against Postgres, in **separate disposable databases** —
+`$TESTS_DIR` uses `APP_TEST_DATABASE_URL` and builds its schema by running these
+migrations, while `tests/migrations` uses `TEST_DATABASE_URL` and wipes its schema
+between tests. Pointing them at one database makes the second destroy the first.
 
 ---
 

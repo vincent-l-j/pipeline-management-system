@@ -1,11 +1,13 @@
 """Pitch CRUD routes with stage transitions and file links."""
 
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.database import get_db
+from app.core.documents import get_document_store
 from app.core.security import get_current_user, require_role
 from app.models.assessment import Assessment, DeclineReason
 from app.models.contact import Contact
@@ -22,6 +24,10 @@ from app.schemas.pitch import (
     StageHistoryOut,
 )
 from app.services.assessments import latest_assessment_by_pitch
+from app.services.attachments import purge_stored_files
+from app.services.document_store import DocumentStore, DocumentStoreError
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/pitches", tags=["pitches"])
 
@@ -253,11 +259,35 @@ def get_pitch_assessments(
 def delete_pitch(
     pitch_id: UUID,
     db: Session = Depends(get_db),
+    store: DocumentStore = Depends(get_document_store),
     current_user: User = Depends(require_role(UserRole.ADMIN)),
 ):
+    """Delete the pitch, and the files it owns in the document store.
+
+    The store goes first and the pitch only if it agreed, as in
+    `delete_attachment`. The cascade on `Pitch.attachments` only knows about
+    rows, and `store_item_id` is the one pointer to each file — dropping the
+    rows regardless would leave bytes nothing can name again.
+    """
     pitch = db.query(Pitch).filter(Pitch.id == pitch_id).first()
     if not pitch:
         raise HTTPException(status_code=404, detail="Pitch not found")
+
+    try:
+        purge_stored_files(store, [attachment.store_item_id for attachment in pitch.attachments])
+    except DocumentStoreError as exc:
+        # The store's message goes to the log alone: everything the failure knows
+        # comes from a credential or a signed URL, and neither belongs in a response.
+        logger.error(
+            "Purging a deleted pitch's files failed at the document store",
+            extra={"pitch_id": str(pitch.id), "store_error": str(exc)},
+        )
+        raise HTTPException(
+            status_code=502,
+            detail="The pitch's files could not be removed from the document store. "
+            "Please try again.",
+        ) from exc
+
     db.delete(pitch)
     db.commit()
     return {"detail": "Pitch deleted"}

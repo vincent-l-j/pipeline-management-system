@@ -45,6 +45,12 @@ The frontend never talks to the database, and never constructs URLs beyond the
   (This used to be justified by SQLite not enforcing foreign keys in tests. It now
   does — the suite runs on Postgres — so a cascade would at least be _exercised_;
   the reason above is why the rule stands anyway.)
+- **A cascade only knows about rows.** Where an aggregate owns state outside the
+  database, the route that deletes it purges that state _first_ and aborts if the
+  external store refuses — a row whose file is gone can be found and cleaned up,
+  while a file with no row is invisible to everyone. `delete_pitch` and
+  `delete_attachment` both hold to this: the `delete-orphan` cascade on
+  `Pitch.attachments` would otherwise drop the only pointer each file has.
 - Keep multi-step writes in a single transaction (mutate, `db.add(...)`, one
   `db.commit()`) so a failure can't leave a half-applied change.
 

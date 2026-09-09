@@ -597,6 +597,73 @@ def test_a_failed_store_deletion_leaves_the_record_in_place(admin_client, docume
     assert [row["id"] for row in listed] == [attachment_id]
 
 
+# --- Deleting a pitch takes its files with it -------------------------------
+
+
+def test_deleting_a_pitch_removes_its_stored_files(admin_client, document_store):
+    """The rows go through the ORM cascade, which knows nothing about the store.
+    Nothing else can name these files once the rows are gone."""
+    pitch_id = _new_pitch(admin_client, "Doomed Stored Files Pitch")
+    _upload(admin_client, pitch_id, name="deck.pdf")
+    _upload(admin_client, pitch_id, name="business-case.docx")
+
+    assert admin_client.delete(f"/api/pitches/{pitch_id}").status_code == 200
+
+    assert document_store.files == {}
+
+
+def test_deleting_a_pitch_leaves_another_pitchs_stored_files(admin_client, document_store):
+    doomed = _new_pitch(admin_client, "Deleted Stored Neighbour Pitch")
+    survivor = _new_pitch(admin_client, "Surviving Stored Neighbour Pitch")
+    _upload(admin_client, doomed, name="doomed.pdf")
+    _upload(admin_client, survivor, name="kept.pdf")
+
+    admin_client.delete(f"/api/pitches/{doomed}")
+
+    assert [stored.filename for stored in document_store.files.values()] == ["kept.pdf"]
+
+
+def test_deleting_a_pitch_without_attachments_never_reaches_the_store(admin_client, document_store):
+    pitch_id = _new_pitch(admin_client, "No Attachments Pitch")
+
+    assert admin_client.delete(f"/api/pitches/{pitch_id}").status_code == 200
+
+    assert document_store.calls == 0
+
+
+def test_a_failed_store_deletion_refuses_the_pitch_delete(admin_client, document_store):
+    pitch_id = _new_pitch(admin_client, "Failing Pitch Delete Pitch")
+    _upload(admin_client, pitch_id)
+    document_store.fail_delete = True
+
+    assert admin_client.delete(f"/api/pitches/{pitch_id}").status_code == 502
+
+
+def test_a_failed_store_deletion_leaves_the_pitch_and_its_records(admin_client, document_store):
+    """The store goes first and the pitch only if it agreed: deleting the pitch
+    anyway would orphan the very files this is here to remove."""
+    pitch_id = _new_pitch(admin_client, "Failing Pitch Delete Keeps Pitch")
+    attachment_id = _upload(admin_client, pitch_id).json()["id"]
+    document_store.fail_delete = True
+
+    admin_client.delete(f"/api/pitches/{pitch_id}")
+
+    assert admin_client.get(f"/api/pitches/{pitch_id}").status_code == 200
+    listed = admin_client.get(f"/api/pitches/{pitch_id}/attachments").json()
+    assert [row["id"] for row in listed] == [attachment_id]
+
+
+def test_a_failed_pitch_delete_tells_the_caller_nothing_of_the_store(admin_client, document_store):
+    pitch_id = _new_pitch(admin_client, "Failing Pitch Delete Message Pitch")
+    _upload(admin_client, pitch_id)
+    document_store.fail_delete = True
+
+    detail = admin_client.delete(f"/api/pitches/{pitch_id}").json()["detail"]
+
+    assert "could not delete" not in detail
+    assert "fake-item" not in detail
+
+
 # --- The server refuses a read-only user, whatever the interface shows -------
 
 _ATTACHMENT_OPERATIONS = {

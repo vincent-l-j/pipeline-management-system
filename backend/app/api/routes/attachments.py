@@ -1,9 +1,7 @@
-"""A pitch's attachments — the files it has in the document library.
+"""A pitch's attachments — the files it has in the document store.
 
-A router of its own rather than more of `pitches.py`, for the reason `timeline.py`
-is: the attachment surface has its own dependency (the document store) and its own
-reasons to change. The prefix keeps the URL a sub-resource of the pitch, which is
-also the authorization story — an attachment is reachable only through its pitch.
+The prefix keeps every URL a sub-resource of the pitch, which is also the
+authorization story: an attachment is reachable only through its pitch.
 """
 
 import logging
@@ -38,7 +36,7 @@ MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
 # The types a pitch actually arrives as, and the content type each is recorded
 # and served with. Keyed by extension rather than by the caller's declared type:
 # the declaration is a claim about a file we already hold, while the extension is
-# what the document library and the browser will both act on. Deriving the
+# what the store and the browser will both act on. Deriving the
 # content type here is also what stops a caller choosing it.
 ALLOWED_TYPES = {
     ".pdf": "application/pdf",
@@ -72,11 +70,8 @@ def _readable_pitch(pitch_id: UUID, db: Session) -> Pitch:
 def _attachment_of_pitch(pitch_id: UUID, attachment_id: UUID, db: Session) -> PitchAttachment:
     """The attachment, resolved *against the pitch in the path*, or a 404.
 
-    Both ids are filtered on, never just the attachment's. An identifier is not an
-    authorisation: naming a real attachment under a pitch it does not belong to
-    has to resolve to nothing, even for a caller who may edit the pitch they
-    named. Filtering on the attachment alone would make the pitch in the URL
-    decorative, and the check it carries would quietly stop being a check.
+    Both ids are filtered on: an identifier is not an authorisation, so naming a
+    real attachment under a pitch it does not belong to must resolve to nothing.
     """
     attachment = (
         db.query(PitchAttachment)
@@ -139,11 +134,8 @@ def upload_attachment(
 ):
     """Validate a file, send it to the document store, then record where it went.
 
-    In that order, and the order is the feature. Validation runs first so a
-    rejected file never leaves the process. The record is written only once the
-    store has confirmed, because a row pointing at a file that was never stored
-    reads as success until someone clicks it — which is worse than the failure it
-    would be hiding.
+    The order is load-bearing: a rejected file never leaves the process, and a row
+    is written only once the store has confirmed it holds the bytes.
     """
     pitch = _readable_pitch(pitch_id, db)
     filename, content_type = _accepted_name(file)
@@ -268,13 +260,10 @@ def download_attachment(
 ):
     """Stream the file's bytes through the backend.
 
-    Proxied rather than redirected, deliberately. Handing out a link to the
-    document library would move the decision about who may read a file from this
-    application to the library's own permissions, and the backend is the only
-    security boundary this system has. It also keeps signed URLs out of the
-    browser, where they become a credential in history and referrer headers.
-
-    Read access follows the pitch, so a viewer can download what they can list.
+    Proxied rather than redirected: a link would move the decision about who may
+    read a file to the store's own permissions, and would put a signed URL in
+    browser history. Read access follows the pitch, so a viewer downloads what
+    they can list.
     """
     _readable_pitch(pitch_id, db)
     attachment = _attachment_of_pitch(pitch_id, attachment_id, db)

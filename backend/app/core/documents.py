@@ -1,16 +1,7 @@
 """The edge where the concrete document store is chosen.
 
-The one module that names an implementation. Routes declare
-`Depends(get_document_store)` and receive a `DocumentStore`, exactly as they
-declare `Depends(get_db)` and receive a `Session` — and, for the same reason,
-tests replace it wholesale through `app.dependency_overrides` and run the whole
-attachment surface against an in-memory fake.
-
-Nothing here names a vendor beyond the adapter's own factory: the HTTP client and
-the signing live inside `app/services/spaces.py`. Attachments are objects in a
-DigitalOcean Space, and this is the single line that would change to put them
-somewhere else — `store_item_id` is opaque to everything above, so a second
-implementation of `DocumentStore` needs no migration and no schema change.
+The only module that names an implementation. `store_item_id` is opaque above
+this line, so swapping the store is a change here and no migration.
 """
 
 from functools import lru_cache
@@ -22,11 +13,9 @@ from app.services.spaces import spaces_document_store
 
 @lru_cache(maxsize=1)
 def _build_store() -> DocumentStore:
-    """Built once per process: the signing key cache and the connection pool are
-    both worth keeping across requests, and neither is per-caller state.
+    """Once per process, for the signing-key cache and the connection pool.
 
-    Lazy, so importing the app never reaches for a bucket — the tests override
-    this dependency and the real adapter is never constructed under pytest.
+    Lazy, so importing the app never reaches for a bucket.
     """
     return spaces_document_store(
         endpoint_url=settings.spaces_endpoint_url,

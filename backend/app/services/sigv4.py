@@ -1,20 +1,11 @@
 """AWS Signature Version 4, for reaching an S3-compatible object store.
 
-Signed here rather than by boto3, and the reason is the test suite rather than the
-dependency. `tests/test_document_store.py` runs its adapter over a *real*
-`httpx.Client` because the credential leak those assertions exist to catch came
-from the HTTP client's own log line; boto3's seams all sit above the transport, so
-that property would be lost. Signing is a closed algorithm with published vectors,
-which is the cheapest thing here to own outright.
+Owned rather than taken from boto3 so the adapter can be tested over a real
+`httpx.Client`; boto3's seams sit above the transport. `canonical_request` is
+public so it can be pinned against AWS's published vectors — the failure mode is a
+403 that does not say what differed.
 
-`canonical_request` and `sign_request` are separate and public so both can be
-pinned against AWS's own test suite — the algorithm's failure mode is a 403 that
-does not say what differed, so being able to compare an intermediate string
-against a third party's is the difference between a minute and an afternoon.
-
-Nothing in this module logs. The secret is a constructor argument and the derived
-key is held in memory; neither belongs in a message, and the only value that ever
-leaves is the HMAC.
+Nothing here logs: the only value that ever leaves is the HMAC.
 """
 
 import hashlib
@@ -35,11 +26,7 @@ EMPTY_PAYLOAD_SHA256 = hashlib.sha256(b"").hexdigest()
 
 @dataclass(frozen=True)
 class Credentials:
-    """Who is signing, and for which store.
-
-    Frozen so it can key the signing-key cache below, which is what lets the key
-    be derived once a day rather than four HMACs per request.
-    """
+    """Frozen so it can key `_signing_key`'s cache."""
 
     access_key_id: str
     secret_access_key: str
@@ -50,26 +37,17 @@ class Credentials:
 def _canonical_uri(url: httpx.URL) -> str:
     """The path exactly as it goes on the wire.
 
-    Taken from the raw path rather than rebuilt from the decoded one, because S3
-    is the single service that does *not* re-encode the canonical URI. Rebuilding
-    it would turn a `%20` in the request line into a `%2520` in the signature, and
-    the store's refusal does not say which of the two it disagreed with.
+    Raw, not rebuilt from the decoded path: S3 is the one service that does not
+    re-encode the canonical URI, so rebuilding turns `%20` into `%2520`.
     """
     path = url.raw_path.split(b"?", 1)[0].decode()
     return path or "/"
 
 
 def _canonical_query(url: httpx.URL) -> str:
-    """Every parameter encoded, then sorted by encoded name and value.
-
-    Decoded and re-encoded rather than sorted as-received, so the signed form is
-    canonical no matter how the caller spelled it. Every value this app sends is
-    already encoded the same way, so the round trip is a no-op in practice and a
-    guard in principle.
-    """
-    # `safe=""` is exactly RFC 3986's unreserved set here: `quote` never touches
-    # the alphanumerics or `-._~`, and leaving nothing else safe is what encodes a
-    # `/` inside a value the way AWS expects.
+    """Every parameter encoded, then sorted by encoded name and value."""
+    # `safe=""` leaves RFC 3986's unreserved set alone and encodes everything
+    # else — including a `/` inside a value, which is what AWS expects.
     pairs = sorted(
         (quote(name, safe=""), quote(value, safe=""))
         for name, value in parse_qsl(url.query.decode(), keep_blank_values=True)
@@ -107,12 +85,8 @@ def canonical_request(
 
 @lru_cache(maxsize=2)
 def _signing_key(credentials: Credentials, date_stamp: str) -> bytes:
-    """Four chained HMACs, derived once per day rather than once per request.
-
-    Two entries, so the day's key and the one either side of a rollover are both
-    held: a cache of one would re-derive on every request for the minutes either
-    side of midnight UTC.
-    """
+    """Four chained HMACs, derived once per day. Two entries so a midnight-UTC
+    rollover does not re-derive on every request."""
     key = f"AWS4{credentials.secret_access_key}".encode()
     for message in (date_stamp, credentials.region, credentials.service, TERMINATOR):
         key = hmac.new(key, message.encode(), hashlib.sha256).digest()
@@ -159,22 +133,19 @@ class SigV4Auth(httpx.Auth):
         self, credentials: Credentials, *, clock: Callable[[], datetime] | None = None
     ) -> None:
         self._credentials = credentials
-        # Injectable so a signature can be pinned against a fixed moment; nothing
-        # in the app passes it. More than 15 minutes of skew is a hard refusal, so
-        # this is deliberately the real clock in UTC rather than anything derived.
+        # Injectable so a signature can be pinned against a fixed moment. More
+        # than 15 minutes of skew is a hard refusal, so this is the real clock.
         self._clock = clock or (lambda: datetime.now(UTC))
 
     def auth_flow(self, request: httpx.Request) -> Iterator[httpx.Request]:
         moment = self._clock()
         request.headers["x-amz-date"] = moment.strftime("%Y%m%dT%H%M%SZ")
-        # Always the real hash, never UNSIGNED-PAYLOAD: every body this app sends
-        # is a bounded chunk it already holds, so hashing costs nothing and the
-        # store's acceptance of the unsigned form stops mattering.
+        # Always the real hash, never UNSIGNED-PAYLOAD: every body here is a
+        # bounded chunk already in memory, so hashing costs nothing.
         request.headers["x-amz-content-sha256"] = hashlib.sha256(request.content).hexdigest()
 
-        # Host and the store's own headers, and nothing else. Signing whatever
-        # httpx happened to add would make the signature depend on transport
-        # details — a Content-Length appearing or not is not a thing to debug.
+        # Host and the store's own headers only: signing whatever httpx added
+        # would make the signature depend on transport details.
         signable = {
             name.lower(): value
             for name, value in request.headers.items()

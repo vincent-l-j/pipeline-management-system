@@ -556,7 +556,7 @@ export default function PitchDetailPage(): React.JSX.Element {
             )}
           </div>
 
-          {/* Files uploaded to the document library */}
+          {/* Files uploaded to the document store */}
           <PitchAttachments pitchId={pitchId} />
 
           {/* File links */}

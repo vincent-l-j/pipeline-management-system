@@ -1,19 +1,11 @@
 """DigitalOcean Spaces adapter for the attachment document store.
 
-The only module in the app that names a bucket or an S3 operation. Nothing above
-it knows object storage exists: it is constructed in `app/core/documents.py` and
-injected as a `DocumentStore`.
+The only module in the app that names a bucket or an S3 operation.
 
-Two credentials pass through here, and neither leaves: the secret access key,
-which only ever reaches `SigV4Auth`, and the signature derived from it, which
-rides in a header. This adapter never presigns a URL — `download_attachment`
-proxies bytes through the backend deliberately, because the backend is the only
-security boundary this system has, and handing the browser a presigned link would
-move the decision about who may read a file to the bucket's own permissions. That
-is a decision needing its own review, not an optimisation to reach for later.
-
-Everything this module puts in an error goes through `_safe`, and the log stream
-is covered at the handler — see "Logging" in docs/best-practices/backend-fastapi.md.
+Nothing here presigns a URL, and that is a decision rather than an omission: a
+presigned link moves the decision about who may read a file to the bucket's
+permissions, and the backend is the only security boundary this system has.
+Everything this module puts in an error goes through `_safe`.
 """
 
 from collections.abc import Iterator
@@ -34,9 +26,8 @@ from app.services.document_store import (
 )
 from app.services.sigv4 import Credentials, SigV4Auth
 
-# This module deliberately has no logger, for the reason the Graph adapter has
-# none: it reports failures to its caller and lets the route decide what is safe
-# to record.
+# No logger here on purpose: failures go to the caller, and the route decides
+# what is safe to record.
 
 # S3 refuses a part below 5 MiB unless it is the last one, so the ceiling has to
 # sit above that. 8 MiB also bounds what one upload holds in memory, which is the
@@ -47,10 +38,8 @@ UPLOAD_PART_SIZE = 8 * 1024 * 1024
 
 DOWNLOAD_CHUNK_SIZE = 64 * 1024
 
-# `store_item_id` on the attachment record is a VARCHAR(255), and the key is what
-# goes in it. SQLite ignores the width and Postgres does not, so a key built past
-# this would pass every test and then fail in production *after* the object was
-# written — orphaning it. Bounded here rather than trusted to be short.
+# `store_item_id` is a VARCHAR(255) and the key is what goes in it. A longer key
+# fails on insert *after* the object is written, orphaning it.
 MAX_ITEM_ID_BYTES = 255
 
 # Uploading a deck over a domestic connection outlasts httpx's 5-second default.
@@ -92,21 +81,14 @@ def spaces_document_store(
 
 
 def _safe(text: str) -> str:
-    """The one funnel every message this module builds passes through.
-
-    A presigned URL carries its credential in the query string, so the query goes
-    first and what survives is then redacted — a message added here later inherits
-    the rule instead of quietly reopening the hole.
-    """
+    """Query dropped before redacting: a presigned URL's credential is in the query."""
     return redact_credentials(reduce_url_to_path(text))
 
 
 def _element(body: bytes, tag: str) -> str | None:
     """The text of the first element with this local name, namespace ignored.
 
-    Parsed with the standard library rather than a hardened parser because the
-    only XML reaching this is the store's own response over TLS, and just two
-    small elements are ever read out of it.
+    Stdlib parser: the only XML reaching this is the store's own response over TLS.
     """
     try:
         root = ElementTree.fromstring(body)
@@ -121,11 +103,8 @@ def _element(body: bytes, tag: str) -> str | None:
 def _folded(leaf: str) -> str:
     """The file name reduced to characters that survive a URL unchanged.
 
-    The name a user sees comes off the attachment record, not off the key, so
-    nothing is lost here but legibility in a bucket listing. What is bought is
-    that the key is encoded identically in the request line and in the signature —
-    a space or a non-ASCII character that the two disagree about is a
-    `SignatureDoesNotMatch` with nothing in it saying which end was wrong.
+    So the key encodes identically in the request line and in the signature; a
+    character the two disagree about is a `SignatureDoesNotMatch` naming neither.
     """
     return "".join(
         character if character.isascii() and (character.isalnum() or character in "._-") else "-"
@@ -168,11 +147,8 @@ class SpacesDocumentStore(DocumentStore):
     def _object_key(self, folder: str, filename: str) -> str:
         """Where a file goes, and the identifier it will be remembered by.
 
-        A fresh uuid per upload, which is the whole answer to keys being chosen by
-        the caller rather than assigned by the store. Two uploads of `deck.pdf` to
-        one pitch become two distinct objects, so deleting one cannot take the
-        other's bytes, and there is no replace-on-collision behaviour to emulate —
-        that only existed in the Graph adapter because Graph forced a choice.
+        A fresh uuid per upload, so two uploads of `deck.pdf` to one pitch are two
+        objects and deleting one cannot take the other's bytes.
         """
         head = "/".join(part for part in (self._root_prefix, folder, str(uuid4())) if part)
         budget = MAX_ITEM_ID_BYTES - len(head) - 1
@@ -183,13 +159,8 @@ class SpacesDocumentStore(DocumentStore):
     def _ready(self) -> None:
         """Refuse before building a request the client cannot even address.
 
-        The `SPACES_*` settings default to empty so a missing one degrades
-        attachments rather than stopping the app booting — which makes an
-        unconfigured store something a deployed environment actually reaches. It
-        has to arrive at the route as a store failure: an endpoint built from an
-        empty region has an empty DNS label, and encoding that host raises
-        something the route does not catch, so the caller would get a 500 with a
-        traceback instead of the 502 that says what to do about it.
+        An endpoint built from an empty region has an empty DNS label, and encoding
+        that host raises past the route's handler — a 500 where a 502 is meant.
         """
         host = self._http.base_url.host
         if not self._bucket or not host or "" in host.split("."):
@@ -262,8 +233,8 @@ class SpacesDocumentStore(DocumentStore):
                 )
             self._complete(url, upload_id, etags)
         except DocumentStoreError:
-            # Parts already accepted are stored and billed until the upload is
-            # abandoned, and unlike a Graph session nothing expires them.
+            # Parts already accepted are stored and billed until abandoned, and
+            # nothing expires them on its own.
             self._abandon(url, upload_id)
             raise
         return StoredItem(item_id=key, size_bytes=size_bytes)
@@ -348,14 +319,8 @@ class SpacesDocumentStore(DocumentStore):
     # --- delete -------------------------------------------------------------
 
     def delete(self, item_id: str) -> None:
-        """Remove the object.
-
-        The store answers 204 whether or not the key was there, and that is the
-        answer this wants: the caller's question is "is the file gone", and for a
-        key the store does not hold it is. Refusing a second delete would trap the
-        record of a file someone had already removed out of band, with no way to
-        clear it.
-        """
+        """The store answers 204 whether or not the key was there, which is wanted:
+        a second delete must not trap a record whose file is already gone."""
         self._ready()
         self._call("DELETE", self._object_url(self._checked_key(item_id)))
 

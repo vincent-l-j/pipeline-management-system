@@ -1,8 +1,8 @@
 /**
  * A pitch's attachments: drop a file on the pitch and see it attached.
  *
- * Distinct from `FileLinks` next to it, which records a path to a file kept
- * somewhere else. These files are really uploaded, to the document library.
+ * Distinct from `FileLinks` next to it, which only records a path. These files
+ * are really uploaded, to the document store.
  */
 
 import { useEffect, useState } from "react";
@@ -78,10 +78,8 @@ export default function PitchAttachments({
     setError(null);
     try {
       const blob = await downloadAttachment(pitchId, row.id);
-      // An object URL and a synthetic click, because the endpoint needs the
-      // bearer token — the browser cannot simply be pointed at the URL, and
-      // pointing it at the document library instead is the thing the download
-      // endpoint exists to prevent.
+      // An object URL and a synthetic click: the endpoint needs the bearer
+      // token, so the browser cannot simply be pointed at the URL.
       const href = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = href;

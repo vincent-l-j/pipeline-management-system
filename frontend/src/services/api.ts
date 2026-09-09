@@ -137,32 +137,14 @@ export async function reportClientError(
   }
 }
 
-/**
- * A pitch's attachments.
- *
- * On this module rather than in a component, so the bearer-token and 401
- * interceptors above apply to them like every other request. Two of them need
- * something the JSON default cannot give — an upload is multipart and a download
- * is binary — which is the reason to extend the shared client rather than reach
- * for `fetch` at the call site.
- *
- * Paths name the attachment under its pitch because the backend resolves it that
- * way: an attachment id on its own is not an authorisation.
- */
-
 export function listAttachments(pitchId: string): Promise<Attachment[]> {
   return api
     .get<Attachment[]>(`/pitches/${pitchId}/attachments`)
     .then(({ data }) => data);
 }
 
-/**
- * Send a file to a pitch.
- *
- * `onProgress` is called with a whole percentage as the bytes go up, so a large
- * file shows movement rather than a frozen row. It is skipped when the total is
- * unknown: a made-up percentage that never advances is worse than none.
- */
+/** `onProgress` is skipped when the total is unknown — a percentage that never
+ * advances is worse than none. */
 export function uploadAttachment(
   pitchId: string,
   file: File,

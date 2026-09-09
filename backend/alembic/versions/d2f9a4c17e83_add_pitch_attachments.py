@@ -4,21 +4,12 @@ Revision ID: d2f9a4c17e83
 Revises: b4c1e7a02f58
 Create Date: 2026-09-03 00:00:00.000000
 
-Plain additive change: a new table holding a pointer to each file a pitch has in
-the document library — the store's item id, a display name, a content type, a
-size and an uploader. No bytes, so the table stays small and the library remains
-the system of record for content.
+Additive: a pointer per file — the store's item id, a display name, a content
+type, a size and an uploader. No bytes.
 
-The `pitch_id` foreign key carries no `ondelete`. A pitch's attachment rows are
-removed by the ORM cascade on `Pitch.attachments`, which the SQLite unit suite
-exercises; a database cascade would be untested there and only observed in
-production. `uploaded_by_id` is nullable so a removed user doesn't take their
-uploads with them.
-
-The downgrade drops the table. That loses every pointer, and the files it named
-stay in the document library with nothing in the app referring to them — they
-are found by browsing the pitch's folder, which is why the folder is keyed by the
-pitch id. The documents themselves are never destroyed by this migration.
+The downgrade is lossy. It drops every pointer while the objects themselves stay
+in the store, orphaned; they are found again by browsing the pitch's folder,
+which is why that folder is keyed by the pitch id.
 """
 
 from collections.abc import Sequence

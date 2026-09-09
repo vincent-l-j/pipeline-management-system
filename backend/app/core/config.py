@@ -21,18 +21,14 @@ class Settings(BaseSettings):
     AZURE_AUTHORITY: str = ""
     AZURE_REDIRECT_URI: str = "http://localhost:8000/api/auth/callback"
 
-    # DigitalOcean Spaces, the object store pitch attachments live in. Region and
-    # bucket are public identifiers; the key pair is a real credential and both
-    # halves are set as secrets. Named SPACES_* rather than AWS_*, which is what an
-    # S3 client would silently pick up from the environment on its own.
-    # Empty means attachments are not configured — one feature degrades, and the
-    # app still boots, which is why these have defaults and SECRET_KEY does not.
+    # Named SPACES_* rather than AWS_*, which an S3 client would silently pick up
+    # from the environment on its own. Empty means attachments degrade rather than
+    # the app failing to boot, which is why these have defaults and SECRET_KEY does not.
     SPACES_REGION: str = ""
     SPACES_BUCKET: str = ""
     # An override for a compatible store; otherwise derived from the region.
     SPACES_ENDPOINT: str = ""
-    # Everything lands under this, and each pitch gets a subfolder named by its id,
-    # so retitling a pitch never moves or orphans its files.
+    # Each pitch gets a subfolder named by its id, so retitling never orphans a file.
     SPACES_ROOT_PREFIX: str = "pitches"
     SPACES_ACCESS_KEY_ID: str = ""
     SPACES_SECRET_ACCESS_KEY: str = ""

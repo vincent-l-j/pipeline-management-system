@@ -94,6 +94,14 @@ services:
       - key: APP_VERSION
         scope: RUN_TIME
         value: "0.1.0"
+      - key: SPACES_ACCESS_KEY_ID
+        scope: RUN_TIME
+        type: SECRET
+        value: EV[1:HZ9+oTzJ4k9foG2HM6VOBoTDMf3JI4a7:0bfqFOUbBL/JPgSSIAjQK2CIr1nsVs3qpuIooZl9dj+dB2OA]
+      - key: SPACES_SECRET_ACCESS_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: EV[1:ONz2Tzs727Ku9mIe+bvULC6xH6g7DVZV:jCAHVuw+kL20nK/+JXtXFkEwE+wpZVoZF9FIzzq/JJjoeRxh0EVmQFrW99FRZCMjHIn8VXbvXdsi6w8=]
       - key: SPACES_BUCKET
         scope: RUN_TIME
         value: pipeline-management-system-prod

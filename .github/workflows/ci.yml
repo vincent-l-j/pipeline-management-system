@@ -26,7 +26,7 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           # Mirrors the deploy workflows' paths-ignore; the two move together.
-          docs_paths='(^docs/|^mission/|^sop/|\.md$)'
+          skip_paths='(^\.devcontainer/|^docs/|^mission/|^sop/|\.md$)'
 
           decide() {
             echo "run_code_jobs=$1" >> "$GITHUB_OUTPUT"
@@ -42,11 +42,12 @@ jobs:
             || decide true "could not diff $BASE_SHA...$HEAD_SHA"
           [ -n "$changed" ] || decide true "empty diff"
 
-          non_docs=$(printf '%s\n' "$changed" | grep -vE "$docs_paths") || true
-          [ -z "$non_docs" ] || decide true "$(echo "$non_docs" | wc -l) non-docs files"
-          decide false "docs only"
+          code_files=$(printf '%s\n' "$changed" | grep -vE "$skip_paths") || true
+          [ -z "$code_files" ] || decide true "$(echo "$code_files" | wc -l) code files"
+          decide false "no code changes"
 
-  # Ungated: prettier formats markdown, so docs-only is what this job catches.
+  # Ungated: prettier formats the markdown/json/yaml in $skip_paths, so a diff the
+  # code jobs skip is exactly what this job catches.
   format:
     name: Format
     runs-on: ubuntu-latest

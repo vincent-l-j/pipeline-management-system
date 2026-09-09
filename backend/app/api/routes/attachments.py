@@ -169,7 +169,7 @@ def upload_attachment(
         )
         raise HTTPException(
             status_code=502,
-            detail="The file could not be saved to the document library. Please try again.",
+            detail="The file could not be saved to the document store. Please try again.",
         ) from exc
 
     attachment = PitchAttachment(
@@ -239,7 +239,7 @@ def delete_attachment(
         )
         raise HTTPException(
             status_code=502,
-            detail="The file could not be removed from the document library. Please try again.",
+            detail="The file could not be removed from the document store. Please try again.",
         ) from exc
 
     db.delete(attachment)
@@ -295,7 +295,7 @@ def download_attachment(
         )
         raise HTTPException(
             status_code=502,
-            detail="The file could not be read from the document library. Please try again.",
+            detail="The file could not be read from the document store. Please try again.",
         ) from exc
 
     def body() -> Iterator[bytes]:

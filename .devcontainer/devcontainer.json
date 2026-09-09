@@ -4,8 +4,13 @@
   "dockerComposeFile": ["compose.yaml"],
   "service": "app",
 
-  // No "runServices": all five services in compose.yaml are wanted on attach, so
-  // a list would be a no-op needing maintenance.
+  // Exhaustive, and it has to be: `minio` and `minio-bucket` sit behind the
+  // `objectstore` profile and the CLI has no way to pass --profile. Naming a
+  // profiled service here is what enables its profile, because Compose turns on
+  // the profiles of services listed explicitly on the command line. The cost is
+  // maintenance — a service added to compose.yaml and not added here will not
+  // start on attach.
+  "runServices": ["db", "dns", "backend", "frontend", "minio", "minio-bucket"],
 
   // Features still apply in Compose mode — the CLI builds a feature-augmented
   // image from the `app` service's `build:`. Without these there is no node or
@@ -40,7 +45,9 @@
 
   // "service:port", not a bare number: Vite and uvicorn are siblings, so
   // localhost:5173 inside `app` is nothing and a bare 5173 forwards a dead port.
-  "forwardPorts": ["frontend:5173", "backend:8000"],
+  // The same reason covers MinIO's console, and one further one: appnet is
+  // internal, where a published port may not reach the host at all.
+  "forwardPorts": ["frontend:5173", "backend:8000", "minio:9001"],
 
   "remoteUser": "vscode",
 

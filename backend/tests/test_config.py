@@ -33,3 +33,36 @@ def test_log_level_defaults_to_info(monkeypatch):
 def test_environment_defaults_to_development(monkeypatch):
     monkeypatch.delenv("ENVIRONMENT", raising=False)
     assert Settings(_env_file=None).ENVIRONMENT == "development"
+
+
+# The object store's endpoint follows its region, the way the Azure authority
+# follows the tenant — one value to set per environment instead of two that can
+# disagree with each other.
+def test_the_object_store_endpoint_is_derived_from_the_region():
+    settings = Settings(_env_file=None, SPACES_REGION="syd1", SPACES_ENDPOINT="")
+
+    assert settings.spaces_endpoint_url == "https://syd1.digitaloceanspaces.com"
+
+
+def test_an_explicit_object_store_endpoint_wins_over_the_region():
+    """The override exists so a compatible store can be pointed at directly."""
+    settings = Settings(
+        _env_file=None, SPACES_REGION="syd1", SPACES_ENDPOINT="https://store.internal:9000"
+    )
+
+    assert settings.spaces_endpoint_url == "https://store.internal:9000"
+
+
+def test_the_object_store_is_unconfigured_by_default(monkeypatch):
+    """Empty, not absent: an unconfigured document store degrades one feature and
+    must not stop the app booting the way a missing SECRET_KEY does."""
+    for name in ("SPACES_REGION", "SPACES_BUCKET", "SPACES_ACCESS_KEY_ID"):
+        monkeypatch.delenv(name, raising=False)
+
+    settings = Settings(_env_file=None)
+
+    assert (settings.SPACES_REGION, settings.SPACES_BUCKET, settings.SPACES_ACCESS_KEY_ID) == (
+        "",
+        "",
+        "",
+    )

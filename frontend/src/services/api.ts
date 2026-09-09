@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from "axios";
+import type { Attachment } from "../types";
 
 const api: AxiosInstance = axios.create({
   baseURL: "/api",
@@ -134,6 +135,55 @@ export async function reportClientError(
   } finally {
     reportInFlight = false;
   }
+}
+
+export function listAttachments(pitchId: string): Promise<Attachment[]> {
+  return api
+    .get<Attachment[]>(`/pitches/${pitchId}/attachments`)
+    .then(({ data }) => data);
+}
+
+/** `onProgress` is skipped when the total is unknown — a percentage that never
+ * advances is worse than none. */
+export function uploadAttachment(
+  pitchId: string,
+  file: File,
+  onProgress?: (percent: number) => void,
+): Promise<Attachment> {
+  const body = new FormData();
+  // "file" is the field name the endpoint reads; renaming it here would 422.
+  body.append("file", file);
+  return api
+    .post<Attachment>(`/pitches/${pitchId}/attachments`, body, {
+      // No Content-Type: the browser sets multipart/form-data *and* the boundary
+      // parameter. Writing the header out by hand omits the boundary, and the
+      // request then cannot be parsed at all.
+      onUploadProgress: ({ loaded, total }) => {
+        if (onProgress && total) onProgress(Math.round((loaded / total) * 100));
+      },
+    })
+    .then(({ data }) => data);
+}
+
+/** The file's bytes, proxied through the backend — never a link to the store. */
+export function downloadAttachment(
+  pitchId: string,
+  attachmentId: string,
+): Promise<Blob> {
+  return api
+    .get<Blob>(`/pitches/${pitchId}/attachments/${attachmentId}/download`, {
+      responseType: "blob",
+    })
+    .then(({ data }) => data);
+}
+
+export function deleteAttachment(
+  pitchId: string,
+  attachmentId: string,
+): Promise<void> {
+  return api
+    .delete(`/pitches/${pitchId}/attachments/${attachmentId}`)
+    .then(() => undefined);
 }
 
 export default api;

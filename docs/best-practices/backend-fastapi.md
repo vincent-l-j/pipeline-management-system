@@ -26,7 +26,11 @@ Keep HTTP concerns in `routes/`, persistence in `models/`, serialization in
   is a regression test (`tests/test_no_trailing_slash.py`). Declare collection
   routes as `@router.get("")`, not `@router.get("/")`.
 - Always set `response_model=` so the response shape is an explicit `*Out`
-  schema, never a raw ORM object.
+  schema, never a raw ORM object. The one kind of route that cannot is a file
+  download: it answers with a `StreamingResponse` over an iterator, so there is no
+  model to declare — and it must stay an iterator rather than a buffered
+  `Response`, because this instance has 512 MB and a deck read whole into memory
+  competes with everything else on it.
 - Type path params (`pitch_id: UUID`) so FastAPI validates and coerces them.
 - Return the object for `200`; raise `HTTPException` for errors.
 
@@ -121,6 +125,14 @@ for field, value in data.model_dump(exclude_unset=True).items():
   platform polls readiness continuously, so a traceback per poll is the same 8 KB
   SQLAlchemy stack every few seconds for the length of an outage, burying the one
   signal that matters. The 503 body already names the dependency that is down.
+- **`502` when a dependency we call fails, not `400`.** An upload the document
+  store refuses is not a request the caller can fix, and answering `400` tells them
+  to change something that was already right. The typed `DocumentStoreError` exists
+  to keep the two apart: validation runs first and raises `400`, so by the time the
+  store is called the request is known to be acceptable. The `detail` is fixed text
+  and quotes nothing the store said — everything that failure knows is derived from
+  a credential or a signed URL — so the store's own message goes to the log,
+  correlated by request id, in the same shape as the `500` path below.
 - **Anything unhandled becomes a generic 500 with a quotable id.** The handler in
   `app/core/request_context.py` (wired by `install_request_context`) answers with
   `500 {"detail": "Internal server error", "request_id": "..."}`, repeats the id in
@@ -164,6 +176,18 @@ below is deliberate:
 - **uvicorn's `uvicorn` and `uvicorn.error` loggers**, so raising the level
   quietens the server's startup chatter and lowering it reaches its debug records.
   They used to be pinned at `INFO`, which made the setting look broken from outside.
+
+**`httpx` is pinned to `WARNING` too, and for a stronger reason.** It logs the full
+URL of every request it makes at `INFO`. The document store signs in headers, so its
+URLs carry no credential today — but a presigned URL is one entirely, in the query
+string (`?X-Amz-Signature=…`), and the mute is what keeps the day someone reaches for
+one from also being the day a working credential starts being written. The formatter's
+redaction below is the backstop, not the plan. Don't raise it to debug an upload.
+
+A note on that backstop, because it bites: `redact_credentials` matches a credential
+name only at a word start, so every hyphenated or compound spelling needs listing in
+its own right. `signature` does not cover `X-Amz-Signature`, and `secret` does not
+cover `secret_access_key`. Adding a name is cheap; assuming one is covered is not.
 
 **`uvicorn.access` is the exception: it stays muted at `WARNING` at every level**,
 including `DEBUG`. It only ever logs at `INFO`, so `WARNING` silences its built-in
@@ -224,6 +248,17 @@ data. Add to `_NOISE_RECORD_ATTRS` if another dependency does the same thing.
 - Enforce both at the boundary that accepts the value, not at each call site that
   logs it — a rule living in one comment is a rule the next code path won't
   inherit, and "which fields?" is a question with no complete answer.
+- **`JsonFormatter` redacts the serialised line as the last thing it does.** It is
+  the only point that sees the message, every promoted `extra=` field and the
+  formatted traceback as one string, so one rule covers all three — including
+  records from dependencies, which is where the credentials the app never logs
+  itself actually turn up. It runs `redact_credentials` only, never
+  `reduce_url_to_path`: reducing would cut a whole message at its first `?` and
+  throw away every stack frame after it. Note the limit, and don't rely past it —
+  a credential in a _field named_ for it (`extra={"access_token": …}`) is not
+  credential-_shaped_ text and survives. Widening the rule to JSON's `"name":
+"value"` form would blank ordinary fields like `key`, so precision wins: don't
+  put a raw secret in an `extra=` field.
 
 ```python
 logger = logging.getLogger(__name__)

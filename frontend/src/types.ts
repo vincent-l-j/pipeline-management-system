@@ -105,3 +105,14 @@ export interface ApiError {
     status?: number;
   };
 }
+
+/** A file a pitch has in the document store. */
+export interface Attachment {
+  id: string;
+  pitch_id: string;
+  filename: string;
+  content_type: string;
+  size_bytes: number;
+  uploaded_by_name: string | null;
+  created_at: string;
+}

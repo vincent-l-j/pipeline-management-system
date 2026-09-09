@@ -24,6 +24,7 @@ For end-user documentation, see [`Rozetta_PMS_User_Guide.md`](./Rozetta_PMS_User
 | Database | PostgreSQL 16                                                                         |
 | Auth     | Microsoft Azure AD (MSAL) + JWT, with a dev-login fallback                            |
 | AI       | Anthropic Claude API (AI Notetaker)                                                   |
+| Files    | DigitalOcean Spaces for pitch attachments (S3-compatible; MinIO locally)              |
 | Frontend | React 18, Vite 6, React Router 6, Tailwind CSS, axios, @hello-pangea/dnd              |
 | Infra    | Docker Compose (local dev); DigitalOcean App Platform + Managed Postgres (production) |
 
@@ -43,6 +44,7 @@ rozetta-pms/
 ├── frontend/           React + Vite SPA
 │   └── src/            pages, components, contexts, services
 └── docker-compose.yml  db (5432) + backend (8000) + frontend (5173)
+                        + minio (9000 API / 9001 browser, `objectstore` profile)
 ```
 
 The frontend proxies `/api` requests to the backend (see `frontend/vite.config.js`). The database schema is managed by Alembic — run `alembic upgrade head` to create/update tables (see [Database migrations](#database-migrations)).
@@ -82,15 +84,16 @@ To stop: `docker compose down` (add `-v` to also drop the database volume).
 
 Copy `.env.example` to `.env` and fill in your values.
 
-| Variable                                              | Required | Description                                                                                                                            |
-| ----------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Yes      | Postgres credentials used by the `db` service                                                                                          |
-| `DATABASE_URL`                                        | Yes      | SQLAlchemy connection string (defaults to the `db` service)                                                                            |
-| `SECRET_KEY`                                          | Yes      | Secret used to sign JWTs. Generate a fresh one with `openssl rand -hex 32` (required — no default; the app refuses to boot without it) |
-| `BACKEND_CORS_ORIGINS`                                | Yes      | Comma-separated allowed origins (e.g. `http://localhost:5173`)                                                                         |
-| `AZURE_CLIENT_ID` / `AZURE_TENANT_ID`                 | Optional | Microsoft OAuth (omit to use Dev Login)                                                                                                |
-| `AZURE_CLIENT_SECRET`                                 | Yes      | Required for Microsoft OAuth (no default → app won't boot)                                                                             |
-| `ANTHROPIC_API_KEY`                                   | Optional | Enables AI note parsing; without it, a basic text parser is used                                                                       |
+| Variable                                                     | Required | Description                                                                                                                                                      |
+| ------------------------------------------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB`        | Yes      | Postgres credentials used by the `db` service                                                                                                                    |
+| `DATABASE_URL`                                               | Yes      | SQLAlchemy connection string (defaults to the `db` service)                                                                                                      |
+| `SECRET_KEY`                                                 | Yes      | Secret used to sign JWTs. Generate a fresh one with `openssl rand -hex 32` (required — no default; the app refuses to boot without it)                           |
+| `BACKEND_CORS_ORIGINS`                                       | Yes      | Comma-separated allowed origins (e.g. `http://localhost:5173`)                                                                                                   |
+| `AZURE_CLIENT_ID` / `AZURE_TENANT_ID`                        | Optional | Microsoft OAuth (omit to use Dev Login)                                                                                                                          |
+| `AZURE_CLIENT_SECRET`                                        | Yes      | Required for Microsoft OAuth (no default → app won't boot)                                                                                                       |
+| `ANTHROPIC_API_KEY`                                          | Optional | Enables AI note parsing; without it, a basic text parser is used                                                                                                 |
+| `SPACES_*` (region, bucket, root prefix, key pair, endpoint) | Optional | Object store for pitch attachments. Leave empty and uploads are refused; nothing else is affected. `sop/instances/rozetta-pms.md` carries the local MinIO values |
 
 ## Running locally without Docker
 
@@ -192,6 +195,11 @@ file. See the spec for the authoritative list and inline notes.
 - `ADMIN_EMAILS` — emails granted Admin on first sign-in
 - `ENABLE_DEV_LOGIN=false` (the test login stays off in production)
 - `ANTHROPIC_API_KEY` _(secret)_ — optional, enables the AI Notetaker
+- `SPACES_REGION=syd1`, `SPACES_BUCKET`, `SPACES_ROOT_PREFIX=pitches` — the Space attachments
+  live in. `SPACES_ENDPOINT` stays unset; it is derived from the region
+- `SPACES_ACCESS_KEY_ID` / `SPACES_SECRET_ACCESS_KEY` _(secrets)_ — a Spaces key pair, set in
+  the control panel and pulled back with `doctl apps spec get`. See
+  `sop/instances/rozetta-pms.md`; a placeholder committed here overwrites the real one
 - `VITE_API_BASE_URL=/api` — **build-time** on the static site (Vite inlines it into the bundle)
 
 ### Shipping updates

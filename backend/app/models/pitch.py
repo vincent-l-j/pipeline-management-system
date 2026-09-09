@@ -107,6 +107,10 @@ class Pitch(Base, TimestampMixin):
         "PitchContact", back_populates="pitch", cascade="all, delete-orphan"
     )
     file_links = relationship("PitchFileLink", back_populates="pitch", cascade="all, delete-orphan")
+    # The rows go with the pitch; the files themselves stay in the store.
+    attachments = relationship(
+        "PitchAttachment", back_populates="pitch", cascade="all, delete-orphan"
+    )
     meetings = relationship("Meeting", back_populates="pitch", cascade="all, delete-orphan")
     assessments = relationship("Assessment", back_populates="pitch", cascade="all, delete-orphan")
 

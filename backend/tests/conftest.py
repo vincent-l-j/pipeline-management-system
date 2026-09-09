@@ -35,11 +35,13 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.documents import get_document_store
 from app.core.logging import setup_logging
 from app.core.security import get_current_user
 from app.main import app
 from app.models import Base
 from app.models.user import User, UserRole
+from tests.fake_document_store import FakeDocumentStore
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
@@ -70,6 +72,10 @@ class CapturedLog:
 
     def __init__(self, stream: io.StringIO):
         self._stream = stream
+
+    def text(self) -> str:
+        """Every byte written, unparsed — what a `grep` for a secret would see."""
+        return self._stream.getvalue()
 
     def records(self) -> list[dict]:
         return [json.loads(line) for line in self._stream.getvalue().splitlines() if line]
@@ -107,6 +113,22 @@ def log_stream():
 
     sys.stdout, settings.LOG_LEVEL = saved_stdout, saved_level
     setup_logging()
+
+
+@pytest.fixture(autouse=True)
+def document_store():
+    """The in-memory document store, injected in place of the real adapter.
+
+    Autouse so no test can reach a real bucket: the real `get_document_store` builds
+    the Spaces adapter from configuration, and a test that forgot to override it
+    would sign and send a request to whatever `SPACES_*` names in the environment it
+    happens to run in. Tests that care about the store take this fixture by name to
+    arrange a forced failure or assert on the calls.
+    """
+    store = FakeDocumentStore()
+    app.dependency_overrides[get_document_store] = lambda: store
+    yield store
+    app.dependency_overrides.pop(get_document_store, None)
 
 
 @pytest.fixture

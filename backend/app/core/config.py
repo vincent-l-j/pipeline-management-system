@@ -21,6 +21,18 @@ class Settings(BaseSettings):
     AZURE_AUTHORITY: str = ""
     AZURE_REDIRECT_URI: str = "http://localhost:8000/api/auth/callback"
 
+    # Named SPACES_* rather than AWS_*, which an S3 client would silently pick up
+    # from the environment on its own. Empty means attachments degrade rather than
+    # the app failing to boot, which is why these have defaults and SECRET_KEY does not.
+    SPACES_REGION: str = ""
+    SPACES_BUCKET: str = ""
+    # An override for a compatible store; otherwise derived from the region.
+    SPACES_ENDPOINT: str = ""
+    # Each pitch gets a subfolder named by its id, so retitling never orphans a file.
+    SPACES_ROOT_PREFIX: str = "pitches"
+    SPACES_ACCESS_KEY_ID: str = ""
+    SPACES_SECRET_ACCESS_KEY: str = ""
+
     # Where to send the user after a successful login (the frontend origin)
     FRONTEND_URL: str = "http://localhost:5173"
 
@@ -47,6 +59,12 @@ class Settings(BaseSettings):
         if self.AZURE_AUTHORITY:
             return self.AZURE_AUTHORITY
         return f"https://login.microsoftonline.com/{self.AZURE_TENANT_ID}"
+
+    @property
+    def spaces_endpoint_url(self) -> str:
+        if self.SPACES_ENDPOINT:
+            return self.SPACES_ENDPOINT
+        return f"https://{self.SPACES_REGION}.digitaloceanspaces.com"
 
 
 settings = Settings()

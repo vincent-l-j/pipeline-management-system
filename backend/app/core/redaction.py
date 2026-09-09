@@ -32,8 +32,16 @@ _CREDENTIAL_PARAM_NAMES = (
     "auth",
     "credential",
     "signature",
-    # Azure hands out storage URLs whose `?sig=` *is* the credential.
+    # Every name below is spelled in full because matching is at a word boundary:
+    # `auth` cannot reach `tempauth`, and `signature` cannot reach a hyphenated
+    # `x-amz-signature`. Adding a spelling is cheap; assuming one is covered is not.
     "sig",
+    "tempauth",
+    "x-amz-signature",
+    "x-amz-credential",
+    "x-amz-security-token",
+    "secret_access_key",
+    "access_key_id",
     # The OAuth authorization code: one exchange away from a token.
     "code",
     "session",

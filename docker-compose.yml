@@ -3,8 +3,9 @@
 # `dns`. There is no second copy of these services — keep it that way.
 #
 # Nothing here needs the internet at runtime: dependencies are installed at image
-# build time and ENABLE_DEV_LOGIN short-circuits the Azure AD flow. That is what
-# lets the devcontainer run this stack with no egress at all.
+# build time, ENABLE_DEV_LOGIN short-circuits the Azure AD flow, and the object
+# store is a sibling container rather than a Space. That is what lets the
+# devcontainer run this stack with no egress at all.
 
 services:
   db:
@@ -75,6 +76,64 @@ services:
     networks:
       - appnet
 
+  # The object store, locally. MinIO checks the signature; the unit suite's stub
+  # does not, so a wrongly signed request is refused here rather than in production.
+  minio:
+    image: minio/minio
+    profiles: ["objectstore"]
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      # MinIO wants a password of at least 8 characters.
+      MINIO_ROOT_USER: ${SPACES_ACCESS_KEY_ID:-rozettalocal}
+      MINIO_ROOT_PASSWORD: ${SPACES_SECRET_ACCESS_KEY:-change_me_to_a_strong_password}
+      # A region the store disagrees with is a SignatureDoesNotMatch that does
+      # not mention the region.
+      MINIO_SITE_REGION: ${SPACES_REGION:-syd1}
+    # 9000 is the S3 API, 9001 the browser console.
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - appnet
+
+  # One-shot: MinIO creates no bucket on its own, and an upload to a missing one
+  # fails the way a misconfigured one does.
+  minio-bucket:
+    image: minio/mc
+    profiles: ["objectstore"]
+    restart: "no"
+    depends_on:
+      - minio
+    environment:
+      MINIO_ROOT_USER: ${SPACES_ACCESS_KEY_ID:-rozettalocal}
+      MINIO_ROOT_PASSWORD: ${SPACES_SECRET_ACCESS_KEY:-change_me_to_a_strong_password}
+      BUCKET: ${SPACES_BUCKET:-rozetta-pms-local}
+    # `$$` keeps Compose from expanding these before the shell sees them.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        until mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"; do
+          echo "waiting for minio..."
+          sleep 1
+        done
+        mc mb --ignore-existing "local/$$BUCKET"
+        # Already the default; explicit so the local bucket cannot quietly
+        # differ from the deployed one.
+        mc anonymous set none "local/$$BUCKET"
+        echo "bucket ready: $$BUCKET"
+    networks:
+      - appnet
+
   frontend:
     build:
       context: ./frontend
@@ -102,3 +161,4 @@ networks:
 
 volumes:
   pgdata:
+  miniodata:

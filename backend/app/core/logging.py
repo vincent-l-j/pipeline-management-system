@@ -9,6 +9,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from app.core.config import settings
+from app.core.redaction import redact_credentials
 
 # Set by the request-context middleware; empty outside a request, where there is no id.
 request_id_var: ContextVar[str] = ContextVar("request_id", default="")
@@ -84,7 +85,9 @@ class JsonFormatter(logging.Formatter):
             payload["exception"] = self.formatException(record.exc_info)
 
         # ensure_ascii stays on: plain ASCII bytes whatever locale the container runs under.
-        return json.dumps(payload, default=str)
+        # Redacted after serialising, not before — the only point that sees message,
+        # promoted extras and traceback as one string, so one rule covers all three.
+        return redact_credentials(json.dumps(payload, default=str))
 
 
 def setup_logging() -> None:
@@ -128,6 +131,9 @@ def setup_logging() -> None:
                     ("uvicorn", level),
                     ("uvicorn.error", level),
                     ("uvicorn.access", "WARNING"),
+                    # httpx logs every request URL at INFO, and a presigned URL is
+                    # a credential in its query string. Don't raise this to debug.
+                    ("httpx", "WARNING"),
                 )
             },
         }

@@ -92,6 +92,102 @@ DigitalOcean Database UI:
 The manual connection string will include your exact username and database name, so the app
 connects as intended.
 
+## Object storage: exercising attachments locally
+
+`docker compose --profile objectstore up` adds MinIO as a sibling container. The
+bucket is created for you by the one-shot `minio-bucket` service; MinIO does not
+create one on its own.
+
+Fill the object-store keys in `.env` with these. They are `docker-compose.yml`'s
+own defaults for the MinIO service, so changing one means changing both:
+
+| Key                        | Value                            |
+| -------------------------- | -------------------------------- |
+| `SPACES_REGION`            | `syd1`                           |
+| `SPACES_BUCKET`            | `rozetta-pms-local`              |
+| `SPACES_ROOT_PREFIX`       | `pitches`                        |
+| `SPACES_ACCESS_KEY_ID`     | `rozettalocal`                   |
+| `SPACES_SECRET_ACCESS_KEY` | `change_me_to_a_strong_password` |
+| `SPACES_ENDPOINT`          | `http://minio:9000`              |
+
+`SPACES_ENDPOINT` is the key point — it is what sends the app to MinIO instead of
+to a real Space. Against a real Space, leave it empty and the endpoint is built
+from the region, which is what the deployed specs rely on; the key pair then comes
+from the DO control panel under **API > Spaces Keys**, scoped to the one Space.
+That is not a DO API token and not an AWS key.
+
+**In the dev container there is no flag to pass and none is needed.** There is no
+Docker socket in there, so the stack is brought up on your behalf — but
+`devcontainer.json` names `minio` and `minio-bucket` in `runServices`, and naming a
+profiled service is itself what enables its profile. The store is already up when
+you attach.
+
+Browse what landed at **http://localhost:9001**, logging in with
+`SPACES_ACCESS_KEY_ID` / `SPACES_SECRET_ACCESS_KEY` — those double as MinIO's root
+credentials, so there is one pair to keep in step rather than two.
+
+**Why this exists rather than just running the unit tests.** `SpacesStub` in
+`backend/tests/test_spaces_document_store.py` does not verify signatures, so the
+whole suite would pass with a broken signer — the published AWS vector in
+`test_sigv4.py` is what guards that, and it is a static check. MinIO speaks the
+same S3 API and _does_ check the signature, so a request signed wrongly is refused
+here rather than first discovered against a real Space.
+
+**The devcontainer cannot reach a real Space at all** — `appnet` is `internal: true`
+there, which removes the route to the internet but not the route between these
+containers. That is the whole reason a local store is worth having.
+
+One thing it does not prove: DO's own behaviour at the edges. A real Space is
+still what closes VAL-ATTACH-002, by checksum. The lifecycle rule in the next
+section is a billing concern with no local equivalent either.
+
+## Object storage: the Space pitch attachments live in ⚠️
+
+Attachments are objects in a DigitalOcean Space, one per upload, under
+`pitches/<pitch-id>/<uuid>/<filename>`. The backend proxies every download, so the
+bucket is never reached by a browser.
+
+**Two Spaces, not one bucket with two prefixes** — `pipeline-management-system-prod`
+and `pipeline-management-system-staging`, both in `syd1` to match `region: syd`.
+Separate Spaces mean separate key pairs, so staging's credential is genuinely unable
+to touch production objects; the `SPACES_ROOT_PREFIX` is then belt and braces rather
+than the isolation. It is worth checking that separation is real: identical `EV[1:…]`
+blobs in the two specs mean one was pasted from the other, not that both are valid.
+
+**`SPACES_ENDPOINT` stays unset in both specs**, so `Settings.spaces_endpoint_url`
+derives `https://syd1.digitaloceanspaces.com` from the region. The adapter addresses
+objects path-style (`/{bucket}/{key}`), so a bucket-scoped endpoint would name the
+bucket a second time and file everything under a redundant top-level folder. Only a
+non-DO store — MinIO locally — needs the override.
+
+**Bucket settings that are not expressible in the app spec**, so they have to be set
+by hand and re-checked if a Space is ever recreated:
+
+| Setting        | Value                                          | Why                                                                                                                                                                          |
+| -------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| File listing   | Off                                            | Private; the app is the only reader.                                                                                                                                         |
+| CORS           | None                                           | The backend proxies. A browser never talks to the Space.                                                                                                                     |
+| Lifecycle rule | Abort incomplete multipart uploads after 1 day | Parts from a failed upload are stored and billed until aborted, and nothing expires them on its own. The adapter aborts on failure, but a process killed mid-request cannot. |
+
+**The key pair is `type: SECRET` and cannot be written by hand.** `EV[1:…]` values are
+app-scoped ciphertexts that only App Platform can produce, and
+`app_action/deploy@v2` applies the committed spec **wholesale** — so a placeholder
+committed for a secret _overwrites the real one_ on the next deploy. The order is
+therefore:
+
+1. DO control panel → **API → Spaces Keys** → generate a key pair, scoped to the one
+   Space. This is not a DO API token, and not an AWS key.
+2. Set `SPACES_ACCESS_KEY_ID` and `SPACES_SECRET_ACCESS_KEY` on the **backend**
+   component in the control panel, both as encrypted secrets.
+3. `doctl apps spec get <app-id>` and commit the returned spec, `EV[1:…]` blobs and
+   all. The committed spec must mirror the live app, or the next deploy reverts it.
+
+Both environments have been through that order and both specs carry their own
+pair. Check they stay distinct: identical `EV[1:…]` blobs across the two specs
+mean one was pasted from the other, and a ciphertext scoped to the staging app
+cannot be decrypted by the production one. An absent or undecryptable key is a 502
+on upload saying the file could not be saved, and nothing else.
+
 ## Environment: where and how to run SOP commands
 
 **This host has no local `python`, `alembic`, `psql`, or `pg_dump`.** The whole

@@ -6,9 +6,6 @@
 # build time, ENABLE_DEV_LOGIN short-circuits the Azure AD flow, and the object
 # store is a sibling container rather than a Space. That is what lets the
 # devcontainer run this stack with no egress at all.
-#
-# The `objectstore` profile is opt-in — `docker compose up` brings up the same
-# three services it always did.
 
 services:
   db:
@@ -79,36 +76,21 @@ services:
     networks:
       - appnet
 
-  # The object store, for exercising attachments locally. Behind a profile, so
-  # `docker compose up` is unchanged for anyone not working on them:
-  #
-  #   docker compose --profile objectstore up
-  #
-  # MinIO speaks the same S3 API as Spaces, which is the point — it checks the
-  # signature, so a request this app signs wrongly is refused here rather than
-  # first discovered against a real Space. The unit suite stubs the transport and
-  # cannot catch that: nothing in it verifies a signature.
-  #
-  # A sibling on appnet, so it needs no internet at runtime and the note at the
-  # top of this file still holds. `internal: true` in the devcontainer removes the
-  # route out, not the route between these containers.
+  # The object store, locally. MinIO checks the signature; the unit suite's stub
+  # does not, so a wrongly signed request is refused here rather than in production.
   minio:
     image: minio/minio
     profiles: ["objectstore"]
     restart: always
     command: server /data --console-address ":9001"
     environment:
-      # The app's own credentials are MinIO's root credentials, so there is one
-      # pair to set and they cannot drift apart. MinIO wants a password of at
-      # least 8 characters.
+      # MinIO wants a password of at least 8 characters.
       MINIO_ROOT_USER: ${SPACES_ACCESS_KEY_ID:-rozettalocal}
       MINIO_ROOT_PASSWORD: ${SPACES_SECRET_ACCESS_KEY:-change_me_to_a_strong_password}
-      # Matched to what the backend signs with. A region the store disagrees with
-      # is a SignatureDoesNotMatch that says nothing about the region.
+      # A region the store disagrees with is a SignatureDoesNotMatch that does
+      # not mention the region.
       MINIO_SITE_REGION: ${SPACES_REGION:-syd1}
-    # Loopback-only, as everything else here is. 9000 is the S3 API, 9001 the web
-    # console — which is the object browser, so no editor extension is needed to
-    # look at what landed.
+    # 9000 is the S3 API, 9001 the browser console.
     ports:
       - "127.0.0.1:9000:9000"
       - "127.0.0.1:9001:9001"
@@ -123,8 +105,8 @@ services:
     networks:
       - appnet
 
-  # One-shot: MinIO does not create a bucket on its own, and an upload to a
-  # missing bucket fails the same way a misconfigured one does.
+  # One-shot: MinIO creates no bucket on its own, and an upload to a missing one
+  # fails the way a misconfigured one does.
   minio-bucket:
     image: minio/mc
     profiles: ["objectstore"]
@@ -135,9 +117,7 @@ services:
       MINIO_ROOT_USER: ${SPACES_ACCESS_KEY_ID:-rozettalocal}
       MINIO_ROOT_PASSWORD: ${SPACES_SECRET_ACCESS_KEY:-change_me_to_a_strong_password}
       BUCKET: ${SPACES_BUCKET:-rozetta-pms-local}
-    # Polls rather than waiting on the healthcheck, so this still works if the
-    # image ever changes what it ships to probe itself with. `$$` keeps Compose
-    # from expanding these before the shell sees them.
+    # `$$` keeps Compose from expanding these before the shell sees them.
     entrypoint:
       - /bin/sh
       - -c
@@ -147,8 +127,8 @@ services:
           sleep 1
         done
         mc mb --ignore-existing "local/$$BUCKET"
-        # Private, matching the real Space. Already the default; set explicitly so
-        # the local bucket cannot quietly differ from the deployed one.
+        # Already the default; explicit so the local bucket cannot quietly
+        # differ from the deployed one.
         mc anonymous set none "local/$$BUCKET"
         echo "bucket ready: $$BUCKET"
     networks:

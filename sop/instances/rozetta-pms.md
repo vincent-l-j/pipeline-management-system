@@ -182,12 +182,11 @@ therefore:
 3. `doctl apps spec get <app-id>` and commit the returned spec, `EV[1:…]` blobs and
    all. The committed spec must mirror the live app, or the next deploy reverts it.
 
-Staging has been through that order and `.do/staging.yaml` carries its pair.
-**Production has not**: `.do/app.yaml` carries the region, bucket and prefix but
-**not** the key pair, so attachments there will fail with a 502 saying the file could
-not be saved until step 3 lands. Nothing else in the app is affected. Do not paste
-staging's blobs across to fill the gap — they are ciphertext scoped to the staging
-app and the production app cannot decrypt them.
+Both environments have been through that order and both specs carry their own
+pair. Check they stay distinct: identical `EV[1:…]` blobs across the two specs
+mean one was pasted from the other, and a ciphertext scoped to the staging app
+cannot be decrypted by the production one. An absent or undecryptable key is a 502
+on upload saying the file could not be saved, and nothing else.
 
 ## Environment: where and how to run SOP commands
 

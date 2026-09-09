@@ -94,11 +94,27 @@ connects as intended.
 
 ## Object storage: exercising attachments locally
 
-`docker compose --profile objectstore up` adds MinIO as a sibling container. Fill
-the object-store keys in `.env` (see `.env.example`) — the key point is
-`SPACES_ENDPOINT=http://minio:9000`, which is what sends the app there instead of
-to a real Space. The bucket is created for you by the one-shot `minio-bucket`
-service; MinIO does not create one on its own.
+`docker compose --profile objectstore up` adds MinIO as a sibling container. The
+bucket is created for you by the one-shot `minio-bucket` service; MinIO does not
+create one on its own.
+
+Fill the object-store keys in `.env` with these. They are `docker-compose.yml`'s
+own defaults for the MinIO service, so changing one means changing both:
+
+| Key                        | Value                            |
+| -------------------------- | -------------------------------- |
+| `SPACES_REGION`            | `syd1`                           |
+| `SPACES_BUCKET`            | `rozetta-pms-local`              |
+| `SPACES_ROOT_PREFIX`       | `pitches`                        |
+| `SPACES_ACCESS_KEY_ID`     | `rozettalocal`                   |
+| `SPACES_SECRET_ACCESS_KEY` | `change_me_to_a_strong_password` |
+| `SPACES_ENDPOINT`          | `http://minio:9000`              |
+
+`SPACES_ENDPOINT` is the key point — it is what sends the app to MinIO instead of
+to a real Space. Against a real Space, leave it empty and the endpoint is built
+from the region, which is what the deployed specs rely on; the key pair then comes
+from the DO control panel under **API > Spaces Keys**, scoped to the one Space.
+That is not a DO API token and not an AWS key.
 
 **In the dev container there is no flag to pass and none is needed.** There is no
 Docker socket in there, so the stack is brought up on your behalf — but

@@ -84,16 +84,16 @@ To stop: `docker compose down` (add `-v` to also drop the database volume).
 
 Copy `.env.example` to `.env` and fill in your values.
 
-| Variable                                                     | Required | Description                                                                                                                                      |
-| ------------------------------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB`        | Yes      | Postgres credentials used by the `db` service                                                                                                    |
-| `DATABASE_URL`                                               | Yes      | SQLAlchemy connection string (defaults to the `db` service)                                                                                      |
-| `SECRET_KEY`                                                 | Yes      | Secret used to sign JWTs. Generate a fresh one with `openssl rand -hex 32` (required — no default; the app refuses to boot without it)           |
-| `BACKEND_CORS_ORIGINS`                                       | Yes      | Comma-separated allowed origins (e.g. `http://localhost:5173`)                                                                                   |
-| `AZURE_CLIENT_ID` / `AZURE_TENANT_ID`                        | Optional | Microsoft OAuth (omit to use Dev Login)                                                                                                          |
-| `AZURE_CLIENT_SECRET`                                        | Yes      | Required for Microsoft OAuth (no default → app won't boot)                                                                                       |
-| `ANTHROPIC_API_KEY`                                          | Optional | Enables AI note parsing; without it, a basic text parser is used                                                                                 |
-| `SPACES_*` (region, bucket, root prefix, key pair, endpoint) | Optional | Object store for pitch attachments. Leave empty and uploads are refused; nothing else is affected. `.env.example` carries the local MinIO values |
+| Variable                                                     | Required | Description                                                                                                                                                      |
+| ------------------------------------------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB`        | Yes      | Postgres credentials used by the `db` service                                                                                                                    |
+| `DATABASE_URL`                                               | Yes      | SQLAlchemy connection string (defaults to the `db` service)                                                                                                      |
+| `SECRET_KEY`                                                 | Yes      | Secret used to sign JWTs. Generate a fresh one with `openssl rand -hex 32` (required — no default; the app refuses to boot without it)                           |
+| `BACKEND_CORS_ORIGINS`                                       | Yes      | Comma-separated allowed origins (e.g. `http://localhost:5173`)                                                                                                   |
+| `AZURE_CLIENT_ID` / `AZURE_TENANT_ID`                        | Optional | Microsoft OAuth (omit to use Dev Login)                                                                                                                          |
+| `AZURE_CLIENT_SECRET`                                        | Yes      | Required for Microsoft OAuth (no default → app won't boot)                                                                                                       |
+| `ANTHROPIC_API_KEY`                                          | Optional | Enables AI note parsing; without it, a basic text parser is used                                                                                                 |
+| `SPACES_*` (region, bucket, root prefix, key pair, endpoint) | Optional | Object store for pitch attachments. Leave empty and uploads are refused; nothing else is affected. `sop/instances/rozetta-pms.md` carries the local MinIO values |
 
 ## Running locally without Docker
 

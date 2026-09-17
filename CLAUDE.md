@@ -125,3 +125,21 @@ other containers/ports. Don't rewrite `methodology.md` or anything in
 touches is its own `mission/features/` entry, which its implementation commit
 deletes. Never reference a queue id from a tracked file outside `mission/` — ids
 name files that are deleted when the work drains. Full details in `AGENTS.md`.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live as GitHub issues in `vincent-l-j/pipeline-management-system`, driven by
+the `gh` CLI. Separate from the `mission/` queues, which remain the source of truth
+for the contract. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical roles, each label string equal to its name. See
+`docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` and `docs/adr/` at the repo root, created lazily.
+See `docs/agents/domain.md`.

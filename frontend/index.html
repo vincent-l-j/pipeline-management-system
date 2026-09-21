@@ -2,7 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover puts the page under the gesture bar and any notch,
+         which is what makes env(safe-area-inset-*) resolve to anything. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <!-- Colours the browser chrome before install; the manifest covers the
+         installed app. Keep the two in step. -->
+    <meta name="theme-color" content="#102a43" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

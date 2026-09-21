@@ -23,18 +23,23 @@ const adminItems: NavItem[] = [
   { to: "/admin/users", label: "Users", icon: "◐" },
 ];
 
-export default function Sidebar() {
+interface SidebarProps {
+  // The shell closes its drawer on navigation; the sidebar stays presentational.
+  onNavigate?: () => void;
+}
+
+export default function Sidebar({ onNavigate }: SidebarProps) {
   const { user, logout } = useAuth();
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+    `flex min-h-[44px] items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
       isActive
         ? "bg-navy-800 text-white"
         : "text-navy-200 hover:bg-navy-800/50 hover:text-white"
     }`;
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-navy-900 text-white flex flex-col">
+    <aside className="h-full w-full bg-navy-900 text-white flex flex-col">
       {/* Logo */}
       <div className="px-6 py-6 border-b border-navy-700">
         <h1 className="text-xl font-bold tracking-tight">Rozetta</h1>
@@ -49,6 +54,7 @@ export default function Sidebar() {
             to={item.to}
             end={item.to === "/"}
             className={linkClass}
+            onClick={onNavigate}
           >
             <span className="text-base">{item.icon}</span>
             {item.label}
@@ -63,7 +69,12 @@ export default function Sidebar() {
               </p>
             </div>
             {adminItems.map((item) => (
-              <NavLink key={item.to} to={item.to} className={linkClass}>
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={linkClass}
+                onClick={onNavigate}
+              >
                 <span className="text-base">{item.icon}</span>
                 {item.label}
               </NavLink>
@@ -81,7 +92,7 @@ export default function Sidebar() {
           </div>
           <button
             onClick={logout}
-            className="text-xs text-navy-400 hover:text-white transition-colors"
+            className="flex min-h-[44px] items-center px-2 -mr-2 text-xs text-navy-400 hover:text-white transition-colors"
           >
             Sign out
           </button>

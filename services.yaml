@@ -39,6 +39,10 @@ commands:
   format: npm run format
   format-check: npm run format:check
 
+  # Redraws the committed PWA icons in frontend/public/icons. They are static
+  # files, not build output, so this is only run when the mark itself changes.
+  generate-icons: node scripts/generate-icons.mjs
+
 services:
   db:
     start: docker compose up -d db

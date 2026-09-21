@@ -32,7 +32,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
   const { user, logout } = useAuth();
 
   const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex min-h-[44px] items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+    `flex min-h-11 items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
       isActive
         ? "bg-navy-800 text-white"
         : "text-navy-200 hover:bg-navy-800/50 hover:text-white"
@@ -92,7 +92,7 @@ export default function Sidebar({ onNavigate }: SidebarProps) {
           </div>
           <button
             onClick={logout}
-            className="flex min-h-[44px] items-center px-2 -mr-2 text-xs text-navy-400 hover:text-white transition-colors"
+            className="flex min-h-11 items-center px-2 -mr-2 text-xs text-navy-400 hover:text-white transition-colors"
           >
             Sign out
           </button>

@@ -26,7 +26,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* print:hidden — index.css hides `aside`, which never covered this bar. */}
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-navy-700 bg-navy-900 px-4 text-white print:hidden md:hidden">
+      <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-navy-700 bg-navy-900 px-4 text-white print:hidden md:hidden">
         <button
           type="button"
           onClick={() => {
@@ -47,7 +47,7 @@ export default function Layout({ children }: LayoutProps) {
           type="button"
           onClick={closeDrawer}
           aria-label="Close navigation"
-          className="fixed inset-0 z-30 bg-navy-950/60 md:hidden"
+          className="fixed inset-0 z-20 bg-navy-950/60 md:hidden"
         />
       )}
 
@@ -55,7 +55,9 @@ export default function Layout({ children }: LayoutProps) {
         id="app-navigation"
         // `invisible` keeps the closed drawer out of the tab order and the
         // accessibility tree; the desktop sidebar is always visible.
-        className={`fixed inset-y-0 left-0 z-40 w-64 transition-transform print:hidden md:visible md:translate-x-0 ${
+        // The drawer opens below the app bar, so the toggle stays tappable and
+        // keeps matching its aria-expanded state; at md there is no app bar.
+        className={`fixed bottom-0 left-0 top-14 z-30 w-64 transition-transform print:hidden md:visible md:top-0 md:translate-x-0 ${
           drawerOpen ? "translate-x-0" : "invisible -translate-x-full"
         }`}
       >

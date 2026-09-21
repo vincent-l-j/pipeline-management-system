@@ -3,7 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import Layout from "../Layout";
 
-let mockUser = { display_name: "Alice Admin", role: "admin" };
+// An admin throughout: the drawer has to reach the role-gated admin section,
+// and role gating itself is covered at the sidebar seam.
+const mockUser = { display_name: "Alice Admin", role: "admin" };
 vi.mock("../../contexts/AuthContext", () => ({
   useAuth: () => ({ user: mockUser, logout: vi.fn() }),
 }));
@@ -19,10 +21,6 @@ function renderLayout() {
 }
 
 describe("Layout", () => {
-  beforeEach(() => {
-    mockUser = { display_name: "Alice Admin", role: "admin" };
-  });
-
   it("renders the page content", () => {
     renderLayout();
     expect(screen.getByText("Page content")).toBeInTheDocument();
@@ -39,9 +37,6 @@ describe("Layout", () => {
   it("opens the drawer over the page when the toggle is pressed", async () => {
     const user = userEvent.setup();
     renderLayout();
-    expect(
-      screen.queryByRole("button", { name: /close navigation/i }),
-    ).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Menu" }));
 

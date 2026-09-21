@@ -25,7 +25,8 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-navy-700 bg-navy-900 px-4 text-white md:hidden">
+      {/* print:hidden — index.css hides `aside`, which never covered this bar. */}
+      <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-navy-700 bg-navy-900 px-4 text-white print:hidden md:hidden">
         <button
           type="button"
           onClick={() => {
@@ -54,7 +55,7 @@ export default function Layout({ children }: LayoutProps) {
         id="app-navigation"
         // `invisible` keeps the closed drawer out of the tab order and the
         // accessibility tree; the desktop sidebar is always visible.
-        className={`fixed inset-y-0 left-0 z-40 w-64 transition-transform md:visible md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 w-64 transition-transform print:hidden md:visible md:translate-x-0 ${
           drawerOpen ? "translate-x-0" : "invisible -translate-x-full"
         }`}
       >

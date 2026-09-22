@@ -17,7 +17,13 @@ Tailwind 3, Vitest). Match the existing components.
   keeps it reusable across areas.
 - Keep data-fetching in the page/container; pass plain props to presentational
   children (e.g. `KanbanColumn` → `PitchCard`).
-- Wrap page content in the shared `Layout` + `PageHeader`.
+- Wrap page content in the shared `Layout` + `PageHeader`. `Layout` is the app
+  shell: it owns the navigation drawer's open/closed state, the mobile app bar
+  and the backdrop, and positions the sidebar. `Sidebar` is presentational — it
+  renders the nav items and user block, and takes an `onNavigate` callback the
+  shell uses to close the drawer on a destination choice. Navigation behaviour
+  is tested at the shell seam (`components/__tests__/Layout.test.tsx`); page
+  tests replace `Layout` with a plain wrapper, so they never see the drawer.
 
 ## Routing
 

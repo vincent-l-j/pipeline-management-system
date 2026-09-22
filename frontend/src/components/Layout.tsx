@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useCallback, useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 
 interface LayoutProps {
@@ -6,10 +6,68 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  // Memoised so the Escape effect can depend on it without re-subscribing.
+  const closeDrawer = useCallback(() => {
+    setDrawerOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!drawerOpen) return;
+    // Listen on the document so Escape works wherever focus sits in the drawer.
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeDrawer();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [drawerOpen, closeDrawer]);
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <Sidebar />
-      <main className="ml-64 p-8">{children}</main>
+      {/* print:hidden — index.css hides `aside`, which never covered this bar. */}
+      <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-navy-700 bg-navy-900 px-4 text-white print:hidden md:hidden">
+        <button
+          type="button"
+          onClick={() => {
+            setDrawerOpen((open) => !open);
+          }}
+          aria-expanded={drawerOpen}
+          aria-controls="app-navigation"
+          aria-label="Menu"
+          className="-ml-2 flex h-11 w-11 items-center justify-center rounded-lg text-xl transition-colors hover:bg-navy-800"
+        >
+          ☰
+        </button>
+        <span className="text-lg font-bold tracking-tight">Rozetta</span>
+      </header>
+
+      {drawerOpen && (
+        <button
+          type="button"
+          onClick={closeDrawer}
+          aria-label="Close navigation"
+          className="fixed inset-0 z-20 bg-navy-950/60 md:hidden"
+        />
+      )}
+
+      <div
+        id="app-navigation"
+        // `invisible` keeps the closed drawer out of the tab order and the
+        // accessibility tree; the desktop sidebar is always visible.
+        // The drawer opens below the app bar, so the toggle stays tappable and
+        // keeps matching its aria-expanded state; at md there is no app bar.
+        // Transitioning visibility too holds it visible for the duration, so
+        // the slide-out plays before it leaves the tab order.
+        className={`fixed bottom-0 left-0 top-14 z-30 w-64 transition-[transform,visibility] print:hidden md:visible md:top-0 md:translate-x-0 ${
+          drawerOpen ? "translate-x-0" : "invisible -translate-x-full"
+        }`}
+      >
+        <Sidebar onNavigate={closeDrawer} />
+      </div>
+
+      <main className="p-4 md:ml-64 md:p-8">{children}</main>
     </div>
   );
 }

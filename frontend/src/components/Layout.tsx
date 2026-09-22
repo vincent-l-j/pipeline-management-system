@@ -58,7 +58,9 @@ export default function Layout({ children }: LayoutProps) {
         // accessibility tree; the desktop sidebar is always visible.
         // The drawer opens below the app bar, so the toggle stays tappable and
         // keeps matching its aria-expanded state; at md there is no app bar.
-        className={`fixed bottom-0 left-0 top-14 z-30 w-64 transition-transform print:hidden md:visible md:top-0 md:translate-x-0 ${
+        // Transitioning visibility too holds it visible for the duration, so
+        // the slide-out plays before it leaves the tab order.
+        className={`fixed bottom-0 left-0 top-14 z-30 w-64 transition-[transform,visibility] print:hidden md:visible md:top-0 md:translate-x-0 ${
           drawerOpen ? "translate-x-0" : "invisible -translate-x-full"
         }`}
       >

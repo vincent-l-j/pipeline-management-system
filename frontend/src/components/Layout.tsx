@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useCallback, useEffect, useState } from "react";
 import Sidebar from "./Sidebar";
 
 interface LayoutProps {
@@ -7,21 +7,22 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const closeDrawer = () => {
+  // Memoised so the Escape effect can depend on it without re-subscribing.
+  const closeDrawer = useCallback(() => {
     setDrawerOpen(false);
-  };
+  }, []);
 
   useEffect(() => {
     if (!drawerOpen) return;
     // Listen on the document so Escape works wherever focus sits in the drawer.
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setDrawerOpen(false);
+      if (event.key === "Escape") closeDrawer();
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [drawerOpen]);
+  }, [drawerOpen, closeDrawer]);
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -12,12 +12,18 @@ commands:
   # Production build of the SPA (also the frontend "does it compile" check).
   build: cd frontend && npm run build
 
-  # Full test suite: backend pytest + frontend vitest.
-  test: (cd backend && pytest) && (cd frontend && npm test)
+  # Full test suite: backend pytest + frontend vitest, jsdom and browser.
+  test: (cd backend && pytest) && (cd frontend && npm test && npm run test:browser)
 
   # Granular test entry points (used by per-feature verificationSteps).
   test-backend: cd backend && pytest
   test-frontend: cd frontend && npm test
+
+  # The layout facts jsdom cannot see, asserted in Chromium at the 360px design
+  # floor. Which assertions belong here rather than in `test-frontend` is in
+  # docs/best-practices/frontend-react.md. Needs a browser binary, which the dev
+  # container image bakes in and CI installs.
+  test-frontend-browser: cd frontend && npm run test:browser
 
   # Lint: eslint over frontend/ + ruff over backend/. The root scripts delegate,
   # so each linter's config sits with the code it lints —
@@ -96,6 +102,10 @@ services:
 # - Swagger/OpenAPI for black-box API probing: http://localhost:8000/docs
 # - Local dev forces ENABLE_DEV_LOGIN=true (a Dev Login admin button); this is
 #   off in production.
+# - `test-frontend-browser` needs a Chromium baked into the dev container image.
+#   `.devcontainer/verify-deps.sh` fails on rebuild if it is missing, so a
+#   failure here on a container that came up green is about the code, not the
+#   toolchain.
 # - `test-backend` needs the `db` service up. The suite runs against a disposable
 #   Postgres database (`APP_TEST_DATABASE_URL`, default `pms_app_test` on `db`),
 #   whose schema it rebuilds from the migrations on every run. It used to run on

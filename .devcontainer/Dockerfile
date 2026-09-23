@@ -105,4 +105,16 @@ RUN python3 -m venv /home/$USERNAME/.venv && \
   /home/$USERNAME/.venv/bin/pip install --no-cache-dir -r /tmp/requirements/requirements-dev.txt && \
   rm -rf /tmp/requirements
 
+# --- Chromium for the frontend's real-browser test suite -----------------
+# The Playwright version is read from frontend/package.json
+USER root
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+COPY frontend/package.json /tmp/frontend-package.json
+RUN npx --yes \
+  "playwright@$(jq -r .devDependencies.playwright /tmp/frontend-package.json)" \
+  install --with-deps chromium && \
+  rm -rf /tmp/frontend-package.json /root/.npm /var/lib/apt/lists/* && \
+  chmod -R a+rX /ms-playwright
+USER $USERNAME
+
 ENV EDITOR=vim

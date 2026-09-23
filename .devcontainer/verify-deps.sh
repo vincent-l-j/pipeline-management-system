@@ -64,6 +64,20 @@ for dir in /workspace/node_modules /workspace/frontend/node_modules; do
     fi
 done
 
+# Launch it rather than stat a path: headless runs a separate `headless shell`
+# binary, so a present chromium/ directory proves nothing, and the version the
+# image baked has to match the playwright that frontend/package.json pins.
+# cdn.playwright.dev is not allowlisted, so this cannot be fixed from in here.
+if (cd /workspace/frontend && timeout 60 node -e \
+    'require("playwright").chromium.launch().then((b) => b.close())' 2>/dev/null); then
+    pass "playwright can launch chromium (browser test suite)"
+else
+    bad "playwright cannot launch chromium"
+    echo "        The browser is baked into the image, not downloaded here."
+    echo "        Rebuild the dev container; if it still fails, the playwright"
+    echo "        version in frontend/package.json moved and the image is stale."
+fi
+
 # Identity is not a credential, but without it every commit fails at the point of
 # committing with nothing having warned you. A warning rather than a failure: a
 # container that cannot commit is still fine to read code in.

@@ -220,12 +220,19 @@ rebuild doesn't depend on a registry being up:
 | `app` Python tooling           | image build (`.devcontainer/Dockerfile`) | Rebuild the dev container   |
 | `app` Node itself              | image build (`.devcontainer/Dockerfile`) | Rebuild the dev container   |
 | `app` Node tooling             | `npm ci` in `postCreateCommand`          | Rebuild the dev container   |
+| `app` Chromium (browser tests) | image build (`.devcontainer/Dockerfile`) | Rebuild the dev container   |
 
 So the durable path is: edit `backend/requirements*.txt` or `frontend/package.json`,
 then rebuild. A `pip install` or `npm install` in an `app` terminal now works too — use
 it to try a dependency out, then move it into the requirements file or manifest and
 rebuild to make it stick. Anything installed only in a terminal is gone on the next
 rebuild.
+
+Chromium is the one entry with no terminal escape hatch: `cdn.playwright.dev` is not
+an allowlisted zone, so `playwright install` cannot reach it from in here at all. The
+image build downloads it host-side, reading the version from `frontend/package.json`
+so the two cannot drift. Bumping `playwright` there therefore needs a rebuild, and
+`verify-deps.sh` fails postCreate if the browser will not launch.
 
 `npm ci` rather than `npm install` in postCreate, deliberately: it installs exactly the
 lockfile and fails when the lockfile and `package.json` disagree, instead of quietly

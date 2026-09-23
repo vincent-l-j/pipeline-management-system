@@ -2,8 +2,9 @@
 # repo root. backend/ and frontend/ have their own contexts and ignore files.
 #
 # Without this the daemon receives the whole repo on every build. The image needs
-# .devcontainer/ and the requirements files; everything else arrives via the bind
-# mount at runtime.
+# .devcontainer/, the requirements files, and frontend/package.json (for the
+# playwright version it bakes a browser for); everything else arrives via the
+# bind mount at runtime.
 
 .git
 .github

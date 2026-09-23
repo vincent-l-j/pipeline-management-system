@@ -28,9 +28,9 @@ else
     echo "        a hand-patched venv is gone on the next rebuild."
 fi
 
-# Must resolve INTO the venv: the python feature's pipx shims are also on PATH,
-# and if that ordering breaks every command runs against the wrong interpreter
-# and still appears to work.
+# Must resolve INTO the venv: the base image's interpreter is also on PATH, and
+# if remoteEnv's ordering breaks, every command runs against the wrong one and
+# still appears to work.
 resolved=$(command -v pytest || true)
 if [ "$resolved" = "$VENV/bin/pytest" ]; then
     pass "pytest resolves to the venv"
@@ -39,9 +39,20 @@ else
     echo "        Check remoteEnv PATH in devcontainer.json."
 fi
 
-# Installed by `npm ci` in postCreate, not the image — npm arrives via a feature
-# applied after the Dockerfile. Reaching here with a tree missing is an anomaly:
-# postCreate's `&&` should have stopped first.
+# Three files pin this major independently; nothing else makes them agree.
+node_major=$(node --version 2>/dev/null | sed 's/^v\([0-9]*\).*/\1/')
+frontend_major=$(sed -n 's/^FROM node:\([0-9]*\).*/\1/p' /workspace/frontend/Dockerfile | head -n 1)
+if [ -n "$node_major" ] && [ "$node_major" = "$frontend_major" ]; then
+    pass "node $(node --version) matches frontend/Dockerfile (node:$frontend_major)"
+else
+    bad "node is '${node_major:-missing}', frontend/Dockerfile expects '${frontend_major:-?}'"
+    echo "        Node is baked into the image, not installed by a feature."
+    echo "        Update NODE_MAJOR in .devcontainer/Dockerfile (and node-version"
+    echo "        in .github/workflows/ci.yml), then rebuild the dev container."
+fi
+
+# In postCreate, not the image: /workspace is a bind mount and masks anything
+# baked under it. Reaching here missing means postCreate's `&&` failed to stop.
 for dir in /workspace/node_modules /workspace/frontend/node_modules; do
     if [ -d "$dir" ]; then
         pass "$dir present"

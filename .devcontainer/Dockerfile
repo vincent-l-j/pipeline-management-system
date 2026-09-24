@@ -65,8 +65,6 @@ RUN chmod +x /usr/local/bin/init-firewall.sh && \
   rm -f /etc/sudoers.d/$USERNAME
 
 # --- Node ----------------------------------------------------------------
-# Not the node feature: its default is not a pin, and features are layered on
-# after this Dockerfile, so no build step could use the node they provide.
 # NODE_MAJOR must match frontend/Dockerfile and ci.yml; verify-deps.sh checks.
 # `latest-vN.x`, not a fixed patch, which would 404 once superseded.
 ARG NODE_MAJOR=24

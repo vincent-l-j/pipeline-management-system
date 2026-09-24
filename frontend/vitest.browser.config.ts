@@ -25,10 +25,10 @@ export default defineConfig({
       // The failure message names the layout fact; a PNG adds nothing.
       screenshotFailures: false,
       // hasTouch is what makes page.tap() legal and makes a tap dispatch the real
-      // touch sequence, compat mouse events and all. isMobile is deliberately off:
-      // it switches Chromium to a 980px layout viewport for pages with no viewport
-      // meta, which is every test page here, and that would silently move the
-      // suite off its 360px floor.
+      // touch sequence, compat mouse events and all. It is also all that is
+      // needed: adding isMobile changes nothing measurable here, because the
+      // tester page already carries width=device-width and hasTouch alone already
+      // reports pointer: coarse and hover: none.
       provider: playwright({ contextOptions: { hasTouch: true } }),
       instances: [
         {

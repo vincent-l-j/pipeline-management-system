@@ -273,9 +273,14 @@ work off an event that arrives after the finger has lifted.
 - Both take coordinates **as the test frame measures them**; `touchDrag` adds the
   tester iframe's own offset back before handing them to CDP, because CDP
   addresses the top-level page.
-- `isMobile` is deliberately off: it switches Chromium to a 980px layout viewport
-  for pages with no viewport meta, which is every test page here, and that would
-  silently move the suite off its 360px floor.
+- `hasTouch` on its own is enough. It already reports `pointer: coarse`,
+  `hover: none` and `maxTouchPoints: 1`, and the tester page already carries
+  `width=device-width`, so adding `isMobile` changes nothing measurable — it does
+  not change the user agent either.
+- **Playwright cannot emulate Android.** Its device descriptors (`devices['Pixel
+5']`) are Chrome device emulation — a user agent, a viewport and these same two
+  flags — and its `_android` API is an adb client that drives a real phone or
+  emulator rather than providing one. Neither gives a soft keyboard.
 - Touch scrolling **inside** a sub-scroller is not reachable — neither raw touch
   drags nor CDP's synthesized scroll gestures reach the tester iframe, and a plain
   `overflow-auto` div fails there identically. Assert the geometry that makes

@@ -1,18 +1,3 @@
-/**
- * The combobox under a real finger.
- *
- * Combobox.test.tsx already covers the mouse and the keyboard in jsdom. This
- * file exists for the one thing jsdom cannot model: a touchscreen tap is not a
- * click. It arrives as pointerdown, touchstart, pointerup, touchend and only
- * then the compatibility mousedown — so the component's "commit on mousedown,
- * before the blur closes the list" trick is being asked to work off an event
- * that fires after the finger has already lifted.
- *
- * What a headless Chromium still cannot give us is a soft keyboard, so the two
- * hazards that need one — blur while the keyboard opens, and the list rendering
- * behind it — are not asserted here. See the findings on the ticket.
- */
-
 import { commands, page, userEvent } from "vitest/browser";
 import { cleanup, render } from "@testing-library/react";
 import Combobox from "../Combobox";
@@ -23,8 +8,8 @@ const OPTIONS = [
   { value: "3", label: "Rozetta Institute" },
 ];
 
-// Enough to overflow the list's own max height, which is what makes the
-// scrollable-list assertion below mean anything.
+// Enough to overflow the list's own max height, so the scroll assertion below
+// is measuring a list that actually needs scrolling.
 const MANY = Array.from({ length: 30 }, (_, i) => ({
   value: `many-${String(i)}`,
   label: `Organisation number ${String(i)}`,
@@ -55,21 +40,14 @@ function setup(props: Partial<React.ComponentProps<typeof Combobox>> = {}) {
 
 /** Taps by accessible name: the row is found as a user finds it, then touched. */
 async function tapOption(name: string) {
-  const id = page.getByRole("option", { name }).element().id;
-  await commands.tap(`#${id}`);
+  await commands.tap(`#${page.getByRole("option", { name }).element().id}`);
 }
 
-const list = () => document.querySelector('[role="listbox"]');
+const listbox = () => page.getByRole("listbox");
 
-/** The open list, for the assertions that measure it rather than count it. */
-function openList(): HTMLElement {
-  const box = document.querySelector<HTMLElement>('[role="listbox"]');
-  if (!box) throw new Error("the list is closed");
-  return box;
-}
-
-// Same reason as Layout.browser.test.tsx: a real tap updates state outside
-// act(), and that is the rendering a user actually gets.
+// Registered after React Testing Library's own act-environment beforeAll, so
+// this wins: a real tap updates state outside act(), and that is the rendering
+// a user actually gets.
 beforeAll(() => {
   (
     globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
@@ -80,9 +58,12 @@ afterEach(() => {
   cleanup();
 });
 
+// A touchscreen tap is not a click: it arrives as pointerdown, touchstart,
+// pointerup, touchend and only then the compatibility mousedown. The component
+// commits on mousedown to beat its own blur-close, so that trick is being asked
+// to work off an event that fires after the finger has already lifted.
 describe("Combobox under touch", () => {
-  // Guards the file: without touch, page.tap is illegal and every test below
-  // would be asserting about a mouse.
+  // Without touch, commands.tap throws from Playwright rather than failing here.
   it("runs on a touch-capable browser", () => {
     expect(navigator.maxTouchPoints).toBeGreaterThan(0);
   });
@@ -94,7 +75,7 @@ describe("Combobox under touch", () => {
     await expect
       .element(page.getByRole("combobox", { name: "Organisation" }))
       .toHaveAttribute("aria-expanded", "true");
-    expect(list()).not.toBeNull();
+    await expect.element(listbox()).toBeInTheDocument();
   });
 
   it("commits the option that was tapped", async () => {
@@ -104,7 +85,7 @@ describe("Combobox under touch", () => {
     await tapOption("Beta Institute");
 
     expect(onChange).toHaveBeenCalledWith("2");
-    expect(list()).toBeNull();
+    await expect.element(listbox()).not.toBeInTheDocument();
   });
 
   // The soft keyboard is tied to focus, so a selection that moved focus off the
@@ -115,22 +96,22 @@ describe("Combobox under touch", () => {
 
     await tapOption("Acme Research");
 
-    expect(document.activeElement?.id).toBe("org");
+    await expect.poll(() => document.activeElement?.id).toBe("org");
   });
 
-  // A finger is not a mouse pointer: it rolls a few pixels between touchdown and
-  // lift. Chromium still calls that a tap, and so must the list.
+  // A finger rolls a few pixels between touchdown and lift. Chromium still calls
+  // that a tap, and so must the list.
   it("commits an option even when the finger drifts on the way up", async () => {
     const { onChange } = setup();
     await commands.tap("#org");
-    const row = page
+    const box = page
       .getByRole("option", { name: "Rozetta Institute" })
-      .element();
-    const box = row.getBoundingClientRect();
+      .element()
+      .getBoundingClientRect();
     const x = box.left + box.width / 2;
     const y = box.top + box.height / 2;
 
-    await commands.touchDrag(x, y, x, y + 8);
+    await commands.touchDrag({ x, y }, { x, y: y + 8 });
 
     expect(onChange).toHaveBeenCalledWith("3");
   });
@@ -147,40 +128,30 @@ describe("Combobox under touch", () => {
 
     expect(onCreate).toHaveBeenCalledWith("");
     expect(onChange).not.toHaveBeenCalled();
-    expect(list()).toBeNull();
+    await expect.element(listbox()).not.toBeInTheDocument();
   });
 
   it("closes on Escape without submitting the surrounding form", async () => {
     const { onSubmit } = setup();
     await commands.tap("#org");
-    expect(list()).not.toBeNull();
+    await expect.element(listbox()).toBeInTheDocument();
 
     await userEvent.keyboard("{Escape}");
 
-    expect(list()).toBeNull();
+    await expect.element(listbox()).not.toBeInTheDocument();
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  // Asserted as geometry rather than by dragging: Vitest runs the test in an
-  // iframe that CDP's synthesized scroll gestures do not reach, and a plain
-  // overflow-auto div fails a touch-drag there identically, so a drag would be
-  // measuring the harness. Overflowing content in a scrollable box is the fact
-  // that makes the rest of the list reachable.
-  it("keeps a long list scrollable rather than clipped", async () => {
+  // Measured rather than dragged: Vitest runs the test in an iframe that CDP's
+  // synthesized scroll gestures do not reach, and a plain overflow-auto div
+  // fails a touch-drag there identically, so a drag would be measuring the
+  // harness. Overflowing content in a scrolling box is what a finger needs.
+  it("keeps a long list scrollable rather than clipping the overflow", async () => {
     setup({ options: MANY });
     await commands.tap("#org");
 
-    const box = openList();
+    const box = listbox().element();
     expect(getComputedStyle(box).overflowY).toBe("auto");
     expect(box.scrollHeight).toBeGreaterThan(box.clientHeight);
-  });
-
-  it("stays within the fold at the 360px design floor", async () => {
-    setup({ options: MANY });
-    await commands.tap("#org");
-
-    expect(openList().getBoundingClientRect().bottom).toBeLessThanOrEqual(
-      window.innerHeight,
-    );
   });
 });

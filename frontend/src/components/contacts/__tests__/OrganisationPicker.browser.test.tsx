@@ -1,11 +1,4 @@
-/**
- * The organisation picker under a real finger.
- *
- * The twin of ContactPicker.browser.test.tsx, and kept separate rather than
- * shared: the two pickers are deliberately the same shape, so the value of
- * testing both is catching the day one of them drifts.
- */
-
+import { useState } from "react";
 import { commands, page } from "vitest/browser";
 import { cleanup, render } from "@testing-library/react";
 import OrganisationPicker from "../OrganisationPicker";
@@ -31,25 +24,21 @@ const ORGANISATIONS = [
   org("o3", "Rozetta Institute"),
 ];
 
-function setup(
-  props: Partial<React.ComponentProps<typeof OrganisationPicker>> = {},
-) {
-  const onChange = vi.fn();
-  render(
+/** Stateful, because the behaviour under test is what the second tap sees. */
+function Harness() {
+  const [value, setValue] = useState<string[]>([]);
+  return (
     <OrganisationPicker
       id="orgs"
       organisations={ORGANISATIONS}
-      value={[]}
-      onChange={onChange}
-      {...props}
-    />,
+      value={value}
+      onChange={setValue}
+    />
   );
-  return { onChange };
 }
 
 async function tapOption(name: string) {
-  const id = page.getByRole("option", { name }).element().id;
-  await commands.tap(`#${id}`);
+  await commands.tap(`#${page.getByRole("option", { name }).element().id}`);
 }
 
 beforeAll(() => {
@@ -62,31 +51,38 @@ afterEach(() => {
   cleanup();
 });
 
+// The twin of ContactPicker.browser.test.tsx, kept separate rather than shared:
+// the two pickers are deliberately the same shape, so the value of covering both
+// is catching the day one of them drifts.
 describe("OrganisationPicker under touch", () => {
-  it("adds the organisation that was tapped", async () => {
-    const { onChange } = setup();
+  it("picks twice in a row without the first pick being re-offered", async () => {
+    render(<Harness />);
+
     await commands.tap("#orgs");
-
     await tapOption("Acme Research");
+    await expect
+      .element(page.getByTestId("organisation-chip"))
+      .toHaveTextContent("Acme Research");
 
-    expect(onChange).toHaveBeenCalledWith(["o2"]);
+    await commands.tap("#orgs");
+    await expect
+      .element(page.getByRole("option", { name: "Acme Research" }))
+      .not.toBeInTheDocument();
+    await tapOption("Zenith Labs");
+
+    const chips = page.getByTestId("organisation-chip").elements();
+    expect(chips.map((chip) => chip.textContent.replace("×", ""))).toEqual([
+      "Acme Research",
+      "Zenith Labs",
+    ]);
   });
 
-  it("appends to an existing selection rather than replacing it", async () => {
-    const { onChange } = setup({ value: ["o1"] });
+  it("leaves focus on the search box after a tapped pick", async () => {
+    render(<Harness />);
     await commands.tap("#orgs");
 
     await tapOption("Rozetta Institute");
 
-    expect(onChange).toHaveBeenCalledWith(["o1", "o3"]);
-  });
-
-  it("leaves focus on the search box so the keyboard survives a pick", async () => {
-    setup();
-    await commands.tap("#orgs");
-
-    await tapOption("Zenith Labs");
-
-    expect(document.activeElement?.id).toBe("orgs");
+    await expect.poll(() => document.activeElement?.id).toBe("orgs");
   });
 });

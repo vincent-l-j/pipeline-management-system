@@ -10,15 +10,15 @@ withoutMotion.textContent = `*, *::before, *::after {
 }`;
 document.head.append(withoutMotion);
 
+interface Point {
+  x: number;
+  y: number;
+}
+
 declare module "vitest/internal/browser" {
   interface BrowserCommands {
     emulateMedia: (media: "screen" | "print") => Promise<void>;
     tap: (selector: string) => Promise<void>;
-    touchDrag: (
-      x1: number,
-      y1: number,
-      x2: number,
-      y2: number,
-    ) => Promise<void>;
+    touchDrag: (from: Point, to: Point, steps?: number) => Promise<void>;
   }
 }

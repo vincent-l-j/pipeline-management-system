@@ -236,6 +236,7 @@ it depends on CSS — not by how important it is.
 | `print:` rules and anything else inside a media query               | browser                          |
 | Breakpoint gating: what a 360px viewport shows                      | browser                          |
 | Measured geometry — touch-target size, overflow, scroll width       | browser                          |
+| What a _touchscreen_ does, as opposed to a mouse                    | browser                          |
 
 - **jsdom has no layout engine and applies no stylesheet.** It cannot see any of
   the right-hand column, so an assertion put there does not fail — it passes
@@ -257,9 +258,52 @@ it depends on CSS — not by how important it is.
 - Don't duplicate the jsdom suite here. The browser suite asserts that navigation
   items are big enough to tap; _which_ destinations exist stays in jsdom.
 
+### Touch
+
+The context sets `hasTouch`, so a tap can be dispatched for real rather than
+approximated with a click. This matters wherever a handler is wired to a mouse
+event: a tap fires `pointerdown`, `touchstart`, `pointerup`, `touchend` and only
+_then_ the compatibility `mousedown`, so anything racing a blur is being asked to
+work off an event that arrives after the finger has lifted.
+
+- `commands.tap(selector)` is a real tap. `userEvent.click` is a mouse and will
+  pass where a finger fails.
+- `commands.touchDrag(from, to)` is a finger that rolls between touchdown and
+  lift — a tap Chromium still counts as a tap.
+- Both take coordinates **as the test frame measures them**; `touchDrag` adds the
+  tester iframe's own offset back before handing them to CDP, because CDP
+  addresses the top-level page.
+- `hasTouch` on its own is enough. It already reports `pointer: coarse`,
+  `hover: none` and `maxTouchPoints: 1`, and the tester page already carries
+  `width=device-width`, so adding `isMobile` changes nothing measurable — it does
+  not change the user agent either.
+- **Playwright cannot emulate Android.** Its device descriptors (`devices['Pixel
+5']`) are Chrome device emulation — a user agent, a viewport and these same two
+  flags — and its `_android` API is an adb client that drives a real phone or
+  emulator rather than providing one. Neither gives a soft keyboard.
+- Touch scrolling **inside** a sub-scroller is not reachable — neither raw touch
+  drags nor CDP's synthesized scroll gestures reach the tester iframe, and a plain
+  `overflow-auto` div fails there identically. Assert the geometry that makes
+  scrolling possible (`overflowY`, `scrollHeight > clientHeight`) instead of
+  driving it, and don't read such a failure as a component bug.
+- There is **no soft keyboard** in headless Chromium, and `page.setViewportSize`
+  does not reach the tester iframe either, so neither the keyboard's focus
+  behaviour nor the viewport it steals can be asserted. Route those to a manual
+  step.
+
 Where behaviour depends on CSS and no test can reach it, write the manual step
 down with its viewport and expected result. "Untestable" describes a toolchain,
 not a behaviour, and recording it as the latter is what stops the gap closing.
+
+### Manual steps
+
+Checks no suite here can reach. Run them on a real device or the Android
+emulator when touching the component named.
+
+| Component  | Step                                                                                             | Viewport / device       | Expected                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------------ | ----------------------- | ---------------------------------------------------------------------------- |
+| `Combobox` | Tap the field to raise the soft keyboard, then tap an option                                     | Android, any phone size | The keyboard opening does not close the list; the tapped option is committed |
+| `Combobox` | With the soft keyboard up, open a list longer than the space above it and scroll to the last row | Android, any phone size | The list is reachable and scrolls; it is not rendered behind the keyboard    |
 
 ## Checklist before handoff
 

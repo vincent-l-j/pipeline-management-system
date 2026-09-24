@@ -12,15 +12,6 @@
   // start on attach.
   "runServices": ["db", "dns", "backend", "frontend", "minio", "minio-bucket"],
 
-  // No `features` block: a feature's default is not a pin, and features are
-  // layered on after the Dockerfile, so no build step could use them.
-
-  // Python tooling is NOT installed here — it is baked into the image, because
-  // compose.yaml's `dns:` key makes the allowlisting resolver active before any
-  // lifecycle hook runs. node_modules cannot: /workspace is a bind mount and
-  // masks anything baked there, so it installs here instead — which works only
-  // because registry.npmjs.org is allowlisted.
-  //
   // `npm ci` for lockfile-exactness; it repopulates node_modules on every
   // rebuild, which is slow over a bind mount but not on the per-open path.
   "postCreateCommand": "npm ci && npm ci --prefix frontend && .devcontainer/verify-deps.sh",
@@ -50,10 +41,6 @@
     "CLAUDE_CONFIG_DIR": "/home/vscode/.claude",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "DISABLE_AUTOUPDATER": "1",
-
-    // This container commits; the host reviews and pushes, so it holds no push
-    // credentials. Only the enforceable half — the socket is still mounted until
-    // "dev.containers.forwardSshAgent": false is set host-side. See README.
     "SSH_AUTH_SOCK": ""
   },
 

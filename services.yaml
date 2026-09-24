@@ -12,12 +12,18 @@ commands:
   # Production build of the SPA (also the frontend "does it compile" check).
   build: cd frontend && npm run build
 
-  # Full test suite: backend pytest + frontend vitest.
-  test: (cd backend && pytest) && (cd frontend && npm test)
+  # Full test suite: backend pytest + frontend vitest, jsdom and browser.
+  test: (cd backend && pytest) && (cd frontend && npm test && npm run test:browser)
 
   # Granular test entry points (used by per-feature verificationSteps).
   test-backend: cd backend && pytest
   test-frontend: cd frontend && npm test
+
+  # The layout facts jsdom cannot see, asserted in Chromium at the 360px design
+  # floor. Which assertions belong here rather than in `test-frontend` is in
+  # docs/best-practices/frontend-react.md. Needs a browser binary, which CI
+  # installs; the dev container does not have one yet, so this is CI-only.
+  test-frontend-browser: cd frontend && npm run test:browser
 
   # Lint: eslint over frontend/ + ruff over backend/. The root scripts delegate,
   # so each linter's config sits with the code it lints —

@@ -22,8 +22,9 @@ Tailwind 3, Vitest). Match the existing components.
   and the backdrop, and positions the sidebar. `Sidebar` is presentational — it
   renders the nav items and user block, and takes an `onNavigate` callback the
   shell uses to close the drawer on a destination choice. Navigation behaviour
-  is tested at the shell seam (`components/__tests__/Layout.test.tsx`); page
-  tests replace `Layout` with a plain wrapper, so they never see the drawer.
+  is tested at the shell seam (`components/__tests__/Layout.test.tsx`, plus
+  `Layout.browser.test.tsx` for what only a browser can see); page tests replace
+  `Layout` with a plain wrapper, so they never see the drawer.
 
 ## Routing
 
@@ -221,6 +222,45 @@ Guidelines:
   request was made, assert the payload the code built — not the object the mock was
   primed with. The check to apply: if you deleted the behaviour, would this fail?
 
+## Real-browser tests (Vitest browser mode)
+
+There are two suites, and which one an assertion belongs in is decided by whether
+it depends on CSS — not by how important it is.
+
+| The assertion is about                                              | Seam                             |
+| ------------------------------------------------------------------- | -------------------------------- |
+| Rendered text, roles, accessible names, `aria-*` state              | jsdom (`npm test`)               |
+| What a handler did — navigation, a callback, a request payload      | jsdom                            |
+| Which items a list contains, and role-gated presence/absence        | jsdom                            |
+| Stacking order — whether a control is actually reachable by pointer | browser (`npm run test:browser`) |
+| `print:` rules and anything else inside a media query               | browser                          |
+| Breakpoint gating: what a 360px viewport shows                      | browser                          |
+| Measured geometry — touch-target size, overflow, scroll width       | browser                          |
+
+- **jsdom has no layout engine and applies no stylesheet.** It cannot see any of
+  the right-hand column, so an assertion put there does not fail — it passes
+  vacuously. Don't grow the jsdom suite towards layout; move the assertion.
+- Config `vitest.browser.config.ts`, Chromium via Playwright, viewport pinned to
+  the 360px design floor. Files are `*.browser.test.tsx` beside their jsdom
+  neighbours; `vitest.config.ts` excludes that glob so the two run side by side.
+- **`css: true` is load-bearing.** Vitest stubs CSS imports out by default, and a
+  browser suite without the stylesheet asserts nothing while still passing.
+- Drive interaction with `userEvent` from `vitest/browser`, not
+  `@testing-library/user-event`. Only the former issues a real click, and a real
+  click is what fails when something is painted over the control — the dispatched
+  kind flips the handler regardless and is why this class of bug shipped.
+- Query with `page.getByRole(...)`; use `expect.element(...)` so assertions retry.
+- **Assert what renders, never how long it takes.** The setup file zeroes
+  transition and animation durations; no test should wait one out.
+- A `scrollWidth` assertion only guards **in-flow** content. Fixed and absolute
+  boxes never contribute to it, so it cannot catch an over-wide drawer or modal.
+- Don't duplicate the jsdom suite here. The browser suite asserts that navigation
+  items are big enough to tap; _which_ destinations exist stays in jsdom.
+
+Where behaviour depends on CSS and no test can reach it, write the manual step
+down with its viewport and expected result. "Untestable" describes a toolchain,
+not a behaviour, and recording it as the latter is what stops the gap closing.
+
 ## Checklist before handoff
 
 - [ ] All network access via `services/api.js`; loading/empty/error states handled.
@@ -228,3 +268,5 @@ Guidelines:
 - [ ] Brand palette + neighbouring-component styling matched.
 - [ ] Tests co-located, `api` mocked, queried by role/text, and passing via
       `cd frontend && npm test`.
+- [ ] Anything CSS-dependent routed by the seam table above — to the browser
+      suite, or to a manual step written down with its viewport.

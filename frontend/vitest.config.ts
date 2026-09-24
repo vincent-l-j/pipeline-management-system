@@ -14,6 +14,8 @@ export default defineConfig({
   },
   test: {
     environment: "jsdom",
+    // The browser suite shares this suffix; jsdom cannot satisfy it.
+    exclude: ["**/node_modules/**", "**/dist/**", "src/**/*.browser.test.tsx"],
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
     clearMocks: true,

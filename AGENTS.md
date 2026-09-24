@@ -51,7 +51,10 @@ boundaries, or if a feature's `expectedBehavior` conflicts with an assertion in
   / `viewer_client` fixtures (`conftest.py`). Keep `follow_redirects=False`. Add
   test-only deps to `requirements-dev.txt`.
 - Frontend: Vitest + React Testing Library, co-located in `__tests__/` next to the
-  component; mock `src/services/api`.
+  component; mock `src/services/api`. Anything that depends on CSS — stacking
+  order, print rules, breakpoint gating, measured size — goes in the real-browser
+  suite (`*.browser.test.tsx`) instead, because jsdom passes it vacuously. See
+  `docs/best-practices/frontend-react.md` for which seam takes what.
 - **Do not reference `VAL-*` assertions in test docstrings or source code comments.**
   Assertions are declared under `mission/contract/`, claimed by a feature's
   `fulfills`, and verified independently; test names and docstrings should describe

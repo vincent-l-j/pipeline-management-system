@@ -16,6 +16,7 @@
     "eslint.config.mjs",
     "vite.config.ts",
     "vitest.config.ts",
+    "vitest.browser.config.ts",
     "postcss.config.ts",
     "tailwind.config.ts"
   ]

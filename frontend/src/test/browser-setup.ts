@@ -1,4 +1,3 @@
-// The real stylesheet, which is the whole point of running in a browser.
 import "../index.css";
 
 // Zeroed so tests assert what renders, never how long the drawer takes to slide.

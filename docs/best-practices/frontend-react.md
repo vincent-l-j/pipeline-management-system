@@ -245,7 +245,7 @@ it depends on CSS — not by how important it is.
   neighbours; `vitest.config.ts` excludes that glob so the two run side by side.
 - **`css: true` is load-bearing.** Vitest stubs CSS imports out by default, and a
   browser suite without the stylesheet asserts nothing while still passing.
-- Drive interaction with `userEvent` from `@vitest/browser/context`, not
+- Drive interaction with `userEvent` from `vitest/browser`, not
   `@testing-library/user-event`. Only the former issues a real click, and a real
   click is what fails when something is painted over the control — the dispatched
   kind flips the handler regardless and is why this class of bug shipped.
@@ -268,6 +268,5 @@ not a behaviour, and recording it as the latter is what stops the gap closing.
 - [ ] Brand palette + neighbouring-component styling matched.
 - [ ] Tests co-located, `api` mocked, queried by role/text, and passing via
       `cd frontend && npm test`.
-- [ ] Anything CSS-dependent — `z-index`, `position`, a breakpoint variant, a
-      `print:` variant, a transition, a touch target — routed to the browser suite
-      or written down as a manual step with its viewport.
+- [ ] Anything CSS-dependent routed by the seam table above — to the browser
+      suite, or to a manual step written down with its viewport.

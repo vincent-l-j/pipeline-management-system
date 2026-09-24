@@ -19,10 +19,7 @@ commands:
   test-backend: cd backend && pytest
   test-frontend: cd frontend && npm test
 
-  # The layout facts jsdom cannot see, asserted in Chromium at the 360px design
-  # floor. Which assertions belong here rather than in `test-frontend` is in
-  # docs/best-practices/frontend-react.md. Needs a browser binary, which CI
-  # installs; the dev container does not have one yet, so this is CI-only.
+  # Use docs/best-practices/frontend-react.md to see which assertions belong here.
   test-frontend-browser: cd frontend && npm run test:browser
 
   # Lint: eslint over frontend/ + ruff over backend/. The root scripts delegate,
@@ -102,6 +99,12 @@ services:
 # - Swagger/OpenAPI for black-box API probing: http://localhost:8000/docs
 # - Local dev forces ENABLE_DEV_LOGIN=true (a Dev Login admin button); this is
 #   off in production.
+# - The image bakes in a Chromium, so browser-driven tests run in here rather
+#   than CI-only: `cdn.playwright.dev` is not allowlisted and `playwright
+#   install` cannot reach it from inside the container. `.devcontainer/
+#   verify-deps.sh` launches the browser on rebuild, so one that came up green
+#   has a working browser and a failure there is about the code, not the
+#   toolchain. Bumping `playwright` in frontend/package.json needs a rebuild.
 # - `test-backend` needs the `db` service up. The suite runs against a disposable
 #   Postgres database (`APP_TEST_DATABASE_URL`, default `pms_app_test` on `db`),
 #   whose schema it rebuilds from the migrations on every run. It used to run on

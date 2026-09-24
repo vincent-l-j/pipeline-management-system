@@ -15,8 +15,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   iptables \
   dnsutils \
   aggregate \
-  # for the venv below; the python feature runs after this Dockerfile, and
-  # python3-venv is a separate package from python3 on Ubuntu
+  # for the venv below; the base image's python3 is the 3.12 the backend runs,
+  # and python3-venv is a separate package from python3 on Ubuntu
   python3-venv \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -64,6 +64,27 @@ RUN chmod +x /usr/local/bin/init-firewall.sh && \
   chmod 0440 /etc/sudoers.d/$USERNAME-firewall && \
   rm -f /etc/sudoers.d/$USERNAME
 
+# --- Node ----------------------------------------------------------------
+# NODE_MAJOR must match frontend/Dockerfile and ci.yml; verify-deps.sh checks.
+# `latest-vN.x`, not a fixed patch, which would 404 once superseded.
+ARG NODE_MAJOR=24
+RUN case "$(dpkg --print-architecture)" in \
+  amd64) NODE_ARCH=x64 ;; \
+  arm64) NODE_ARCH=arm64 ;; \
+  *) echo "unsupported architecture: $(dpkg --print-architecture)" >&2; exit 1 ;; \
+  esac && \
+  NODE_DIST="https://nodejs.org/dist/latest-v$NODE_MAJOR.x" && \
+  cd /tmp && \
+  curl -fsSL -O "$NODE_DIST/SHASUMS256.txt" && \
+  NODE_TARBALL="$(grep -o "node-v[0-9.]*-linux-$NODE_ARCH\.tar\.xz" SHASUMS256.txt \
+  | head -n 1)" && \
+  curl -fsSL -O "$NODE_DIST/$NODE_TARBALL" && \
+  grep " $NODE_TARBALL\$" SHASUMS256.txt | sha256sum -c - && \
+  tar -xJf "$NODE_TARBALL" -C /usr/local --strip-components=1 \
+  --exclude=CHANGELOG.md --exclude=LICENSE --exclude=README.md && \
+  rm -f "$NODE_TARBALL" SHASUMS256.txt && \
+  node --version && npm --version
+
 USER $USERNAME
 
 # --- Backend tooling venv (pytest, ruff, alembic, uvicorn) ---------------
@@ -81,5 +102,17 @@ COPY --chown=$USERNAME:$USERNAME backend/requirements.txt backend/requirements-d
 RUN python3 -m venv /home/$USERNAME/.venv && \
   /home/$USERNAME/.venv/bin/pip install --no-cache-dir -r /tmp/requirements/requirements-dev.txt && \
   rm -rf /tmp/requirements
+
+# --- Chromium for the frontend's real-browser test suite -----------------
+# The Playwright version is read from frontend/package.json
+USER root
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+COPY frontend/package.json /tmp/frontend-package.json
+RUN npx --yes \
+  "playwright@$(jq -r .devDependencies.playwright /tmp/frontend-package.json)" \
+  install --with-deps chromium && \
+  rm -rf /tmp/frontend-package.json /root/.npm /var/lib/apt/lists/* && \
+  chmod -R a+rX /ms-playwright
+USER $USERNAME
 
 ENV EDITOR=vim

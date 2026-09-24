@@ -153,10 +153,17 @@ own interpreter is PEP 668 "externally managed", so a `pip install` outside that
 is refused — if you see `error: externally-managed-environment`, your shell has lost
 the venv rather than needing `--break-system-packages`. Check with `which pip`.
 
-Node tooling (`eslint`, `tsc`, `prettier`, `vitest`) is **not** baked in, because npm
-arrives via a devcontainer feature applied after the image is built. `postCreateCommand`
-runs `npm ci` for the root and `frontend/` instead, which works because
-`registry.npmjs.org` is allowlisted. Nothing to do by hand.
+Node itself **is** baked in, pinned to the major `frontend/Dockerfile` and CI use. The
+node tooling on top of it (`eslint`, `tsc`, `prettier`, `vitest`) is not, and cannot
+be: it lives in `node_modules` under `/workspace`, which is a bind mount and masks
+anything the image puts there. `postCreateCommand` runs `npm ci` for the root and
+`frontend/` instead, which works because `registry.npmjs.org` is allowlisted. Nothing
+to do by hand.
+
+There is no `features` block in `devcontainer.json`. Two reasons: a feature's default
+version is not a pin, and features are layered on _after_ the Dockerfile, so no image
+build step can use the node they provide. Python needed no replacement when its
+feature went — the base image already ships the 3.12 the backend runs on.
 
 `node_modules` lives in the bind-mounted workspace, so it persists on your machine
 between rebuilds — but `npm ci` deletes and repopulates it on every rebuild by design,
@@ -211,13 +218,21 @@ rebuild doesn't depend on a registry being up:
 | ------------------------------ | ---------------------------------------- | --------------------------- |
 | `backend` / `frontend` runtime | image build (`Dockerfile`)               | `up -d --build` on the host |
 | `app` Python tooling           | image build (`.devcontainer/Dockerfile`) | Rebuild the dev container   |
+| `app` Node itself              | image build (`.devcontainer/Dockerfile`) | Rebuild the dev container   |
 | `app` Node tooling             | `npm ci` in `postCreateCommand`          | Rebuild the dev container   |
+| `app` Chromium (browser tests) | image build (`.devcontainer/Dockerfile`) | Rebuild the dev container   |
 
 So the durable path is: edit `backend/requirements*.txt` or `frontend/package.json`,
 then rebuild. A `pip install` or `npm install` in an `app` terminal now works too — use
 it to try a dependency out, then move it into the requirements file or manifest and
 rebuild to make it stick. Anything installed only in a terminal is gone on the next
 rebuild.
+
+Chromium is the one entry with no terminal escape hatch: `cdn.playwright.dev` is not
+an allowlisted zone, so `playwright install` cannot reach it from in here at all. The
+image build downloads it host-side, reading the version from `frontend/package.json`
+so the two cannot drift. Bumping `playwright` there therefore needs a rebuild, and
+`verify-deps.sh` fails postCreate if the browser will not launch.
 
 `npm ci` rather than `npm install` in postCreate, deliberately: it installs exactly the
 lockfile and fails when the lockfile and `package.json` disagree, instead of quietly

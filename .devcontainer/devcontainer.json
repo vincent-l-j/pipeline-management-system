@@ -12,20 +12,6 @@
   // start on attach.
   "runServices": ["db", "dns", "backend", "frontend", "minio", "minio-bucket"],
 
-  // Features still apply in Compose mode — the CLI builds a feature-augmented
-  // image from the `app` service's `build:`. Without these there is no node or
-  // python.
-  "features": {
-    "ghcr.io/devcontainers/features/node:1": {},
-    "ghcr.io/devcontainers/features/python:1": {}
-  },
-
-  // Python tooling is NOT installed here — it is baked into the image, because
-  // compose.yaml's `dns:` key makes the allowlisting resolver active before any
-  // lifecycle hook runs. node_modules cannot follow it into the image (npm
-  // arrives via a feature applied after the Dockerfile), so it installs here
-  // instead, which works only because registry.npmjs.org is allowlisted.
-  //
   // `npm ci` for lockfile-exactness; it repopulates node_modules on every
   // rebuild, which is slow over a bind mount but not on the per-open path.
   "postCreateCommand": "npm ci && npm ci --prefix frontend && .devcontainer/verify-deps.sh",
@@ -55,15 +41,11 @@
     "CLAUDE_CONFIG_DIR": "/home/vscode/.claude",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "DISABLE_AUTOUPDATER": "1",
-
-    // This container commits; the host reviews and pushes, so it holds no push
-    // credentials. Only the enforceable half — the socket is still mounted until
-    // "dev.containers.forwardSshAgent": false is set host-side. See README.
     "SSH_AUTH_SOCK": ""
   },
 
-  // remoteEnv, not containerEnv: ${containerEnv:PATH} expands after the features
-  // have added their own entries. The venv is in $HOME to stay off the mount.
+  // remoteEnv, not containerEnv: applied last, so the venv stays ahead of the
+  // base image's interpreter. The venv is in $HOME to stay off the mount.
   "remoteEnv": {
     "PATH": "/home/vscode/.venv/bin:${containerEnv:PATH}"
   },

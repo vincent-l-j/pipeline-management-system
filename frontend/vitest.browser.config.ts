@@ -86,6 +86,17 @@ export default defineConfig({
           });
           await cdp.detach();
         }),
+        // Sideways scrolling as a user asks for it, over the element itself. A
+        // wheel rather than a finger: synthesised touch events reach the page
+        // but never the compositor, so they pan nothing — and a wheel is
+        // refused by a clipped container exactly as a finger is, which is the
+        // difference these tests are about.
+        scrollX: defineBrowserCommand<[selector: string, by: number]>(
+          async ({ page, iframe }, selector, by) => {
+            await iframe.locator(selector).hover();
+            await page.mouse.wheel(by, 0);
+          },
+        ),
       },
     },
   },

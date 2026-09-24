@@ -281,11 +281,16 @@ work off an event that arrives after the finger has lifted.
 5']`) are Chrome device emulation — a user agent, a viewport and these same two
   flags — and its `_android` API is an adb client that drives a real phone or
   emulator rather than providing one. Neither gives a soft keyboard.
-- Touch scrolling **inside** a sub-scroller is not reachable — neither raw touch
-  drags nor CDP's synthesized scroll gestures reach the tester iframe, and a plain
-  `overflow-auto` div fails there identically. Assert the geometry that makes
-  scrolling possible (`overflowY`, `scrollHeight > clientHeight`) instead of
-  driving it, and don't read such a failure as a component bug.
+- **A finger cannot scroll an `overflow-auto` box inside the page.** Neither raw
+  touch drags nor CDP's synthesized scroll gestures reach the tester iframe, so
+  the box stays where it is however convincing the gesture looks. Don't read that
+  as a component bug.
+- **A wheel can.** `commands.scrollX(selector, by)` hovers the element and turns
+  a mouse wheel, which Playwright does route into the frame. A wheel is not a
+  finger, but a clipped box refuses it exactly as it refuses a finger, so it
+  still tells a table that scrolls apart from one that merely hides its last
+  columns. Assigning `scrollLeft` tells them apart from nothing: a clipped box
+  scrolls from script just as well as a scrolling one.
 - There is **no soft keyboard** in headless Chromium, and `page.setViewportSize`
   does not reach the tester iframe either, so neither the keyboard's focus
   behaviour nor the viewport it steals can be asserted. Route those to a manual

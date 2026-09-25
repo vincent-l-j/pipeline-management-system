@@ -27,8 +27,15 @@ export interface ComboboxOption {
 }
 
 interface ComboboxProps {
-  /** Also the id the caller's <label htmlFor> points at. */
+  /** Names the listbox and the highlighted row; also a caller's <label htmlFor>. */
   id: string;
+  /**
+   * Names the input where no visible label does. Preferred over a visually
+   * hidden <label>: that is `position: absolute`, which escapes any scroll
+   * container it is not positioned inside and widens the page to its own
+   * static position.
+   */
+  ariaLabel?: string;
   options: ComboboxOption[];
   /** The selected option's value, or "" for none. */
   value: string;
@@ -44,6 +51,7 @@ interface ComboboxProps {
 
 export default function Combobox({
   id,
+  ariaLabel,
   options,
   value,
   onChange,
@@ -155,6 +163,7 @@ export default function Combobox({
         id={id}
         type="text"
         role="combobox"
+        aria-label={ariaLabel}
         aria-expanded={open}
         aria-controls={listId}
         aria-autocomplete="list"

@@ -39,6 +39,17 @@ const CONTACT = {
   organisation_ids: ["o1"],
 };
 
+// A second row, because editing replaces the first row's text with inputs: on a
+// one-row table the columns collapse to fit them and the far side of the table
+// lands inside the viewport, which hides anything that escapes the container.
+const SECOND_CONTACT = {
+  ...CONTACT,
+  id: "c2",
+  first_name: "Persephone",
+  last_name: "Featherstonehaugh-Cholmondeley",
+  email: "persephone.featherstonehaugh@rangeland-carbon.example.com",
+};
+
 const ORGANISATION = {
   id: "o1",
   name: "Wintergreen Innovation Partners (Australia) Limited",
@@ -60,7 +71,7 @@ const OTHER_ORGANISATION = {
 
 const RESPONSES: Record<string, unknown> = {
   "/pitches": [PITCH],
-  "/contacts": [CONTACT],
+  "/contacts": [CONTACT, SECOND_CONTACT],
   "/organisations": [ORGANISATION, OTHER_ORGANISATION],
 };
 
@@ -134,7 +145,7 @@ describe("pages with a table, on a 360px screen", () => {
 describe("editing a contact", () => {
   async function editFirstContact() {
     await show(<ContactsPage />, CONTACT.email);
-    await userEvent.click(page.getByRole("button", { name: "Edit" }));
+    await userEvent.click(page.getByRole("button", { name: "Edit" }).first());
   }
 
   it("does not overflow the viewport", async () => {

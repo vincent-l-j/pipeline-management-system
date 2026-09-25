@@ -1,5 +1,6 @@
 /**
- * A pitch's attachments: drop a file on the pitch and see it attached.
+ * A pitch's attachments: drop a file on the pitch, or tap the zone to pick one,
+ * and see it attached.
  *
  * Distinct from `FileLinks` next to it, which only records a path. These files
  * are really uploaded, to the document store.
@@ -153,9 +154,21 @@ export default function PitchAttachments({
             className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
           />
           <p className="text-sm font-medium text-navy-600">
-            {dragging
-              ? "Drop to attach"
-              : "Drop a file here, or click to choose one"}
+            {dragging ? (
+              "Drop to attach"
+            ) : (
+              // Two wordings, picked by the browser: a pointer that cannot
+              // hover cannot drag either, so telling that reader to drop a file
+              // describes an interaction their device does not have.
+              <>
+                <span className="[@media(hover:none)]:hidden">
+                  Drop a file here, or click to choose one
+                </span>
+                <span className="hidden [@media(hover:none)]:inline">
+                  Tap to choose a file
+                </span>
+              </>
+            )}
           </p>
           <p className="text-xs text-navy-400 mt-1">
             Decks, documents, spreadsheets and images, up to 25 MB.

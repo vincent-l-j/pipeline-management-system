@@ -155,10 +155,10 @@ whoever inserts the next test.
   on a narrow screen instead of letting it push the page past the viewport, and
   stops clipping on paper so the print-out is unchanged. Tables are not
   restructured into card stacks — the print stylesheet has table-specific rules.
-  A scroll container clips on **both** axes, so a dropdown that opens out of a row
-  is clipped away and cannot be tapped. The clip is at the padding edge, so
-  `dropdownRoom` buys the dropdown room inside the container rather than giving
-  the scrolling up.
+  A scroll container clips on **both** axes, so anything that opens out of a row
+  must claim its own flow room inside the container — `TableScroll` knows nothing
+  about its content. `Combobox` does this: it renders a spacer the height of its
+  own list while that list is open.
 
 ## Unit tests (Vitest + React Testing Library)
 

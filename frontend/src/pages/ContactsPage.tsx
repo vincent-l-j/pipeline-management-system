@@ -291,10 +291,9 @@ export default function ContactsPage(): React.JSX.Element {
         </div>
       ) : (
         // Deliberately not overflow-hidden: the organisation picker's dropdown
-        // opens out of an editing row and would be clipped by it. The scroll
-        // container is asked for room instead, which is the same bargain.
+        // opens out of an editing row and would be clipped by it.
         <div className="bg-white rounded-xl border border-navy-100">
-          <TableScroll dropdownRoom={editingId !== null}>
+          <TableScroll>
             <table className="w-full text-sm">
               <thead className="bg-navy-50 border-b border-navy-100">
                 <tr>

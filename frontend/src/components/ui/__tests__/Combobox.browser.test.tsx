@@ -142,6 +142,33 @@ describe("Combobox under touch", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  // A scroll container clips on both axes, and a row clipped away is still laid
+  // out with a rectangle of its own — so this asks what is under the finger.
+  it("stays tappable where a scroll container would clip the list", async () => {
+    render(
+      <div className="overflow-x-auto">
+        <Combobox
+          id="org"
+          ariaLabel="Organisation"
+          options={OPTIONS}
+          value=""
+          onChange={vi.fn()}
+        />
+      </div>,
+    );
+    await commands.tap("#org");
+
+    const option = page.getByRole("option", { name: "Beta Institute" });
+    const { left, top, width, height } = option
+      .element()
+      .getBoundingClientRect();
+    const atOption = document.elementFromPoint(
+      left + width / 2,
+      top + height / 2,
+    );
+    expect(option.element().contains(atOption)).toBe(true);
+  });
+
   // Measured rather than dragged: Vitest runs the test in an iframe that CDP's
   // synthesized scroll gestures do not reach, and a plain overflow-auto div
   // fails a touch-drag there identically, so a drag would be measuring the

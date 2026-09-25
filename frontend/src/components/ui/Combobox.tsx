@@ -184,61 +184,67 @@ export default function Combobox({
       />
 
       {open && (
-        <ul
-          id={listId}
-          role="listbox"
-          className="absolute z-20 mt-1 w-full max-h-60 overflow-auto bg-white border border-navy-200 rounded-lg shadow-lg py-1 text-sm"
-        >
-          {matches.map((option, index) => (
-            <li
-              key={option.value}
-              id={optionId(index)}
-              role="option"
-              aria-selected={index === highlight}
-              onMouseDown={(e) => {
-                // Keep focus on the input so the blur-close never races us.
-                e.preventDefault();
-                commit(index);
-              }}
-              onMouseEnter={() => {
-                setHighlight(index);
-              }}
-              className={`px-3 py-2 cursor-pointer ${
-                index === highlight
-                  ? "bg-navy-50 text-navy-900"
-                  : "text-navy-700"
-              }`}
-            >
-              {option.label}
-            </li>
-          ))}
+        <>
+          <ul
+            id={listId}
+            role="listbox"
+            className="absolute z-20 mt-1 w-full max-h-60 overflow-auto bg-white border border-navy-200 rounded-lg shadow-lg py-1 text-sm"
+          >
+            {matches.map((option, index) => (
+              <li
+                key={option.value}
+                id={optionId(index)}
+                role="option"
+                aria-selected={index === highlight}
+                onMouseDown={(e) => {
+                  // Keep focus on the input so the blur-close never races us.
+                  e.preventDefault();
+                  commit(index);
+                }}
+                onMouseEnter={() => {
+                  setHighlight(index);
+                }}
+                className={`px-3 py-2 cursor-pointer ${
+                  index === highlight
+                    ? "bg-navy-50 text-navy-900"
+                    : "text-navy-700"
+                }`}
+              >
+                {option.label}
+              </li>
+            ))}
 
-          {!matches.length && !onCreate && (
-            <li className="px-3 py-2 text-navy-400">{emptyMessage}</li>
-          )}
+            {!matches.length && !onCreate && (
+              <li className="px-3 py-2 text-navy-400">{emptyMessage}</li>
+            )}
 
-          {onCreate && (
-            <li
-              id={optionId(createIndex)}
-              role="option"
-              aria-selected={createIndex === highlight}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                commit(createIndex);
-              }}
-              onMouseEnter={() => {
-                setHighlight(createIndex);
-              }}
-              className={`px-3 py-2 cursor-pointer font-medium border-t border-navy-100 ${
-                createIndex === highlight
-                  ? "bg-teal-50 text-teal-800"
-                  : "text-teal-700"
-              }`}
-            >
-              {createLabel((query ?? "").trim())}
-            </li>
-          )}
-        </ul>
+            {onCreate && (
+              <li
+                id={optionId(createIndex)}
+                role="option"
+                aria-selected={createIndex === highlight}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  commit(createIndex);
+                }}
+                onMouseEnter={() => {
+                  setHighlight(createIndex);
+                }}
+                className={`px-3 py-2 cursor-pointer font-medium border-t border-navy-100 ${
+                  createIndex === highlight
+                    ? "bg-teal-50 text-teal-800"
+                    : "text-teal-700"
+                }`}
+              >
+                {createLabel((query ?? "").trim())}
+              </li>
+            )}
+          </ul>
+
+          {/* The list is absolute and takes no flow room, so a scroll container
+              would clip its options away; this claims the room instead. */}
+          <div aria-hidden className="h-60" />
+        </>
       )}
     </div>
   );

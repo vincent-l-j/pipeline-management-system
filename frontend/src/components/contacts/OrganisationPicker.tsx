@@ -86,10 +86,8 @@ export default function OrganisationPicker({
       {!disabled && (
         <Combobox
           id={id}
-          // Named on the input rather than by a hidden <label>: this picker sits
-          // inside the contacts table's scroll container, and `sr-only` is
-          // `position: absolute`, so the label would resolve against the page
-          // and widen it to the table's full width.
+          // Not a hidden <label>: `sr-only` is `position: absolute`, and would
+          // widen the page past the scroll container this picker sits in.
           ariaLabel="Add organisation"
           options={available.map((organisation) => ({
             value: organisation.id,

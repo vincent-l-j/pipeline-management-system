@@ -10,11 +10,7 @@ import type { ReactNode } from "react";
 
 interface TableScrollProps {
   children: ReactNode;
-  /**
-   * Keeps a dropdown that opens out of a row inside the container. Clipping is
-   * on both axes, and an option clipped away cannot be tapped at all — but the
-   * clip is at the padding edge, so padding is room the dropdown can use.
-   */
+  /** Pads the foot, so a dropdown opening out of a row is not clipped away. */
   dropdownRoom?: boolean;
 }
 
@@ -30,8 +26,8 @@ export default function TableScroll({
       // at a selector.
       data-testid="table-scroll"
       className={`overflow-x-auto print:overflow-visible ${
-        // Matched to the dropdown's own max height, and dropped on paper, where
-        // nothing is open and the gap would only push the next page.
+        // Matches the dropdown's own max height; no gap on paper, where nothing
+        // is open.
         dropdownRoom ? "pb-60 print:pb-0" : ""
       }`}
     >

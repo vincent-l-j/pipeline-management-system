@@ -29,12 +29,7 @@ export interface ComboboxOption {
 interface ComboboxProps {
   /** Names the listbox and the highlighted row; also a caller's <label htmlFor>. */
   id: string;
-  /**
-   * Names the input where no visible label does. Preferred over a visually
-   * hidden <label>: that is `position: absolute`, which escapes any scroll
-   * container it is not positioned inside and widens the page to its own
-   * static position.
-   */
+  /** Names the input; an `sr-only` label escapes a scroll container instead. */
   ariaLabel?: string;
   options: ComboboxOption[];
   /** The selected option's value, or "" for none. */

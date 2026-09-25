@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import type { ReactElement } from "react";
 import AssessmentsPage from "../AssessmentsPage";
 import ContactsPage from "../ContactsPage";
+import MeetingsPage from "../MeetingsPage";
 import OrganisationsPage from "../OrganisationsPage";
 import PitchesPage from "../PitchesPage";
 import { createApiMocks } from "../../test/mocks/api";
@@ -89,12 +90,22 @@ const DIRECTORY = [
   { id: "u1", display_name: "Alexandra McConnell-Fitzwilliam" },
 ];
 
+const MEETING = {
+  id: "m1",
+  title: "Discovery meeting with Wintergreen Innovation Partners",
+  meeting_date: "2026-05-20",
+  platform: "teams",
+  follow_up_date: "2026-06-03",
+  ai_import_status: "completed",
+};
+
 const RESPONSES: Record<string, unknown> = {
   "/pitches": [PITCH],
   "/contacts": [CONTACT, SECOND_CONTACT],
   "/organisations": [ORGANISATION, OTHER_ORGANISATION],
   "/assessments": [ASSESSMENT],
   "/users/directory": DIRECTORY,
+  "/meetings": [MEETING],
 };
 
 beforeAll(() => {
@@ -135,6 +146,7 @@ const TABLE_PAGES: [name: string, element: ReactElement, settled: string][] = [
   ["Contacts", <ContactsPage />, CONTACT.email],
   ["Organisations", <OrganisationsPage />, ORGANISATION.name],
   ["Assessments", <AssessmentsPage />, PITCH.title],
+  ["Meetings", <MeetingsPage />, MEETING.title],
 ];
 
 describe("pages with a table, on a 360px screen", () => {

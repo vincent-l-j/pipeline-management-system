@@ -9,6 +9,7 @@
 import { useState, useEffect, Fragment } from "react";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
+import TableScroll from "../components/ui/TableScroll";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api";
 import {
@@ -360,267 +361,272 @@ export default function OrganisationsPage(): React.JSX.Element {
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-navy-100 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-navy-50 border-b border-navy-100">
-              <tr>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Name
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Type
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Sector
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  State
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  People
-                </th>
-                {(canEdit || canRemove) && (
-                  <th className="text-right px-4 py-3 font-semibold text-navy-700">
-                    Actions
+          <TableScroll>
+            <table className="w-full text-sm">
+              <thead className="bg-navy-50 border-b border-navy-100">
+                <tr>
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    Name
                   </th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-navy-50">
-              {orgs.map((org) =>
-                editingId === org.id ? (
-                  <tr key={org.id} className="bg-navy-50/50">
-                    <td colSpan={columnCount} className="px-4 py-3">
-                      <div className="space-y-2">
-                        <input
-                          type="text"
-                          value={editForm.name}
-                          onChange={(e) => {
-                            setEditForm((p) => ({
-                              ...p,
-                              name: e.target.value,
-                            }));
-                          }}
-                          placeholder="Organisation name (required)"
-                          aria-label="Organisation name"
-                          className={inputClass}
-                        />
-                        <select
-                          value={editForm.org_type}
-                          onChange={(e) => {
-                            setEditForm((p) => ({
-                              ...p,
-                              org_type: e.target.value,
-                            }));
-                          }}
-                          aria-label="Organisation type"
-                          className={inputClass}
-                        >
-                          <option value="">Type (optional)</option>
-                          {ORG_TYPES.map((type) => (
-                            <option key={type} value={type}>
-                              {orgTypeLabel(type)}
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          type="text"
-                          value={editForm.sector}
-                          onChange={(e) => {
-                            setEditForm((p) => ({
-                              ...p,
-                              sector: e.target.value,
-                            }));
-                          }}
-                          placeholder="Sector (optional)"
-                          aria-label="Organisation sector"
-                          className={inputClass}
-                        />
-                        <input
-                          type="text"
-                          value={editForm.state_territory}
-                          onChange={(e) => {
-                            setEditForm((p) => ({
-                              ...p,
-                              state_territory: e.target.value,
-                            }));
-                          }}
-                          placeholder="State/Territory (optional)"
-                          aria-label="Organisation state/territory"
-                          className={inputClass}
-                        />
-                        <input
-                          type="text"
-                          value={editForm.website}
-                          onChange={(e) => {
-                            setEditForm((p) => ({
-                              ...p,
-                              website: e.target.value,
-                            }));
-                          }}
-                          placeholder="Website (optional)"
-                          aria-label="Organisation website"
-                          className={inputClass}
-                        />
-                        <input
-                          type="text"
-                          value={editForm.abn}
-                          onChange={(e) => {
-                            setEditForm((p) => ({ ...p, abn: e.target.value }));
-                          }}
-                          placeholder="ABN (optional)"
-                          aria-label="Organisation ABN"
-                          className={inputClass}
-                        />
-                        <textarea
-                          value={editForm.notes}
-                          onChange={(e) => {
-                            setEditForm((p) => ({
-                              ...p,
-                              notes: e.target.value,
-                            }));
-                          }}
-                          placeholder="Notes (optional)"
-                          aria-label="Organisation notes"
-                          className={`${inputClass} resize-none`}
-                          rows={2}
-                        />
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              void saveEdit(org);
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    Type
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    Sector
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    State
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    People
+                  </th>
+                  {(canEdit || canRemove) && (
+                    <th className="text-right px-4 py-3 font-semibold text-navy-700">
+                      Actions
+                    </th>
+                  )}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-navy-50">
+                {orgs.map((org) =>
+                  editingId === org.id ? (
+                    <tr key={org.id} className="bg-navy-50/50">
+                      <td colSpan={columnCount} className="px-4 py-3">
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            value={editForm.name}
+                            onChange={(e) => {
+                              setEditForm((p) => ({
+                                ...p,
+                                name: e.target.value,
+                              }));
                             }}
-                            disabled={!editForm.name.trim()}
-                            className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
-                          >
-                            Save
-                          </button>
-                          <button
-                            onClick={cancelEdit}
-                            className="text-xs border border-navy-200 text-navy-600 px-3 py-1.5 rounded-lg"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  <Fragment key={org.id}>
-                    <tr className="hover:bg-navy-50/50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-navy-900">
-                        {org.name}
-                      </td>
-                      <td className="px-4 py-3 text-navy-500 capitalize">
-                        {org.org_type?.replace("_", " ") ?? "-"}
-                      </td>
-                      <td className="px-4 py-3 text-navy-500">
-                        {org.sector ?? "-"}
-                      </td>
-                      <td className="px-4 py-3 text-navy-500">
-                        {org.state_territory ?? "-"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <button
-                          aria-expanded={expandedId === org.id}
-                          aria-label={`${expandedId === org.id ? "Hide" : "Show"} people at ${org.name}`}
-                          onClick={() => {
-                            setExpandedId((prev) =>
-                              prev === org.id ? null : org.id,
-                            );
-                          }}
-                          className="inline-flex items-center gap-1 text-navy-600 hover:text-navy-900"
-                        >
-                          <span className="text-xs" aria-hidden="true">
-                            {expandedId === org.id ? "▾" : "▸"}
-                          </span>
-                          {peopleAt(contacts, org.id).length}
-                        </button>
-                      </td>
-                      {(canEdit || canRemove) && (
-                        <td className="px-4 py-3 text-right">
-                          {confirmingId === org.id ? (
-                            <span className="inline-flex gap-2">
-                              <button
-                                onClick={() => {
-                                  void removeOrg(org.id);
-                                }}
-                                className="text-xs text-red-600 hover:text-red-800 font-medium"
-                              >
-                                Confirm
-                              </button>
-                              <button
-                                onClick={() => {
-                                  setConfirmingId(null);
-                                }}
-                                className="text-xs text-navy-500 hover:text-navy-700"
-                              >
-                                Cancel
-                              </button>
-                            </span>
-                          ) : (
-                            <span className="inline-flex gap-3">
-                              {canEdit && (
-                                <button
-                                  onClick={() => {
-                                    startEdit(org);
-                                  }}
-                                  className="text-xs text-navy-600 hover:text-navy-900"
-                                >
-                                  Edit
-                                </button>
-                              )}
-                              {canRemove && (
-                                <button
-                                  onClick={() => {
-                                    setConfirmingId(org.id);
-                                    setError("");
-                                  }}
-                                  className="text-xs text-red-500 hover:text-red-700"
-                                >
-                                  Remove
-                                </button>
-                              )}
-                            </span>
-                          )}
-                        </td>
-                      )}
-                    </tr>
-                    {expandedId === org.id && (
-                      <tr className="bg-navy-50/30">
-                        <td colSpan={columnCount} className="px-4 py-3">
-                          <OrganisationPeople
-                            organisation={org}
-                            contacts={contacts}
-                            canEdit={canEdit}
-                            onChanged={(contact) => {
-                              setContacts((prev) =>
-                                prev.map((c) =>
-                                  c.id === contact.id ? contact : c,
-                                ),
-                              );
-                              setError("");
-                            }}
-                            onCreate={
-                              canEdit
-                                ? (query) => {
-                                    setCreatingContact({
-                                      organisationId: org.id,
-                                      query,
-                                    });
-                                    setError("");
-                                  }
-                                : undefined
-                            }
-                            onError={setError}
+                            placeholder="Organisation name (required)"
+                            aria-label="Organisation name"
+                            className={inputClass}
                           />
+                          <select
+                            value={editForm.org_type}
+                            onChange={(e) => {
+                              setEditForm((p) => ({
+                                ...p,
+                                org_type: e.target.value,
+                              }));
+                            }}
+                            aria-label="Organisation type"
+                            className={inputClass}
+                          >
+                            <option value="">Type (optional)</option>
+                            {ORG_TYPES.map((type) => (
+                              <option key={type} value={type}>
+                                {orgTypeLabel(type)}
+                              </option>
+                            ))}
+                          </select>
+                          <input
+                            type="text"
+                            value={editForm.sector}
+                            onChange={(e) => {
+                              setEditForm((p) => ({
+                                ...p,
+                                sector: e.target.value,
+                              }));
+                            }}
+                            placeholder="Sector (optional)"
+                            aria-label="Organisation sector"
+                            className={inputClass}
+                          />
+                          <input
+                            type="text"
+                            value={editForm.state_territory}
+                            onChange={(e) => {
+                              setEditForm((p) => ({
+                                ...p,
+                                state_territory: e.target.value,
+                              }));
+                            }}
+                            placeholder="State/Territory (optional)"
+                            aria-label="Organisation state/territory"
+                            className={inputClass}
+                          />
+                          <input
+                            type="text"
+                            value={editForm.website}
+                            onChange={(e) => {
+                              setEditForm((p) => ({
+                                ...p,
+                                website: e.target.value,
+                              }));
+                            }}
+                            placeholder="Website (optional)"
+                            aria-label="Organisation website"
+                            className={inputClass}
+                          />
+                          <input
+                            type="text"
+                            value={editForm.abn}
+                            onChange={(e) => {
+                              setEditForm((p) => ({
+                                ...p,
+                                abn: e.target.value,
+                              }));
+                            }}
+                            placeholder="ABN (optional)"
+                            aria-label="Organisation ABN"
+                            className={inputClass}
+                          />
+                          <textarea
+                            value={editForm.notes}
+                            onChange={(e) => {
+                              setEditForm((p) => ({
+                                ...p,
+                                notes: e.target.value,
+                              }));
+                            }}
+                            placeholder="Notes (optional)"
+                            aria-label="Organisation notes"
+                            className={`${inputClass} resize-none`}
+                            rows={2}
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => {
+                                void saveEdit(org);
+                              }}
+                              disabled={!editForm.name.trim()}
+                              className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
+                            >
+                              Save
+                            </button>
+                            <button
+                              onClick={cancelEdit}
+                              className="text-xs border border-navy-200 text-navy-600 px-3 py-1.5 rounded-lg"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    <Fragment key={org.id}>
+                      <tr className="hover:bg-navy-50/50 transition-colors">
+                        <td className="px-4 py-3 font-medium text-navy-900">
+                          {org.name}
                         </td>
+                        <td className="px-4 py-3 text-navy-500 capitalize">
+                          {org.org_type?.replace("_", " ") ?? "-"}
+                        </td>
+                        <td className="px-4 py-3 text-navy-500">
+                          {org.sector ?? "-"}
+                        </td>
+                        <td className="px-4 py-3 text-navy-500">
+                          {org.state_territory ?? "-"}
+                        </td>
+                        <td className="px-4 py-3">
+                          <button
+                            aria-expanded={expandedId === org.id}
+                            aria-label={`${expandedId === org.id ? "Hide" : "Show"} people at ${org.name}`}
+                            onClick={() => {
+                              setExpandedId((prev) =>
+                                prev === org.id ? null : org.id,
+                              );
+                            }}
+                            className="inline-flex items-center gap-1 text-navy-600 hover:text-navy-900"
+                          >
+                            <span className="text-xs" aria-hidden="true">
+                              {expandedId === org.id ? "▾" : "▸"}
+                            </span>
+                            {peopleAt(contacts, org.id).length}
+                          </button>
+                        </td>
+                        {(canEdit || canRemove) && (
+                          <td className="px-4 py-3 text-right">
+                            {confirmingId === org.id ? (
+                              <span className="inline-flex gap-2">
+                                <button
+                                  onClick={() => {
+                                    void removeOrg(org.id);
+                                  }}
+                                  className="text-xs text-red-600 hover:text-red-800 font-medium"
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setConfirmingId(null);
+                                  }}
+                                  className="text-xs text-navy-500 hover:text-navy-700"
+                                >
+                                  Cancel
+                                </button>
+                              </span>
+                            ) : (
+                              <span className="inline-flex gap-3">
+                                {canEdit && (
+                                  <button
+                                    onClick={() => {
+                                      startEdit(org);
+                                    }}
+                                    className="text-xs text-navy-600 hover:text-navy-900"
+                                  >
+                                    Edit
+                                  </button>
+                                )}
+                                {canRemove && (
+                                  <button
+                                    onClick={() => {
+                                      setConfirmingId(org.id);
+                                      setError("");
+                                    }}
+                                    className="text-xs text-red-500 hover:text-red-700"
+                                  >
+                                    Remove
+                                  </button>
+                                )}
+                              </span>
+                            )}
+                          </td>
+                        )}
                       </tr>
-                    )}
-                  </Fragment>
-                ),
-              )}
-            </tbody>
-          </table>
+                      {expandedId === org.id && (
+                        <tr className="bg-navy-50/30">
+                          <td colSpan={columnCount} className="px-4 py-3">
+                            <OrganisationPeople
+                              organisation={org}
+                              contacts={contacts}
+                              canEdit={canEdit}
+                              onChanged={(contact) => {
+                                setContacts((prev) =>
+                                  prev.map((c) =>
+                                    c.id === contact.id ? contact : c,
+                                  ),
+                                );
+                                setError("");
+                              }}
+                              onCreate={
+                                canEdit
+                                  ? (query) => {
+                                      setCreatingContact({
+                                        organisationId: org.id,
+                                        query,
+                                      });
+                                      setError("");
+                                    }
+                                  : undefined
+                              }
+                              onError={setError}
+                            />
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  ),
+                )}
+              </tbody>
+            </table>
+          </TableScroll>
         </div>
       )}
 

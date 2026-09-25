@@ -10,6 +10,7 @@
 import { useState, useEffect } from "react";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
+import TableScroll from "../components/ui/TableScroll";
 import api from "../services/api";
 
 interface PitchSummary {
@@ -255,7 +256,7 @@ export default function ReportsPage(): React.JSX.Element {
           </select>
         </div>
 
-        <div className="overflow-x-auto">
+        <TableScroll>
           <table className="w-full text-sm">
             <thead className="bg-navy-50 border-b border-navy-100">
               <tr>
@@ -333,7 +334,7 @@ export default function ReportsPage(): React.JSX.Element {
               )}
             </tbody>
           </table>
-        </div>
+        </TableScroll>
 
         <div className="px-6 py-3 border-t border-navy-100 text-xs text-navy-400 print:text-navy-600">
           Showing {filteredPitches.length} of {summary.total} pitches

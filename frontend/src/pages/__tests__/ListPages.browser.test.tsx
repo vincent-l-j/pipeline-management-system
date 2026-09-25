@@ -39,9 +39,8 @@ const CONTACT = {
   organisation_ids: ["o1"],
 };
 
-// A second row, because editing replaces the first row's text with inputs: on a
-// one-row table the columns collapse to fit them and the far side of the table
-// lands inside the viewport, which hides anything that escapes the container.
+// Holds the table at its real width while the first row is edited: alone, that
+// row's columns would collapse to fit the inputs and hide the overflow.
 const SECOND_CONTACT = {
   ...CONTACT,
   id: "c2",
@@ -139,9 +138,8 @@ describe("pages with a table, on a 360px screen", () => {
   );
 });
 
-// The organisation picker opens out of an editing row, so that row gets the
-// table's sideways scrolling taken away from it — a scroll container clips on
-// both axes. Both halves of that bargain are checked here.
+// The organisation picker opens out of an editing row, and a scroll container
+// clips on both axes: the page must stay narrow and the options stay tappable.
 describe("editing a contact", () => {
   async function editFirstContact() {
     await show(<ContactsPage />, CONTACT.email);
@@ -157,7 +155,9 @@ describe("editing a contact", () => {
   it("shows the organisation options in full", async () => {
     await editFirstContact();
 
-    await userEvent.click(page.getByRole("combobox"));
+    await userEvent.click(
+      page.getByRole("combobox", { name: "Add organisation" }),
+    );
 
     const option = page.getByRole("option", {
       name: OTHER_ORGANISATION.name,

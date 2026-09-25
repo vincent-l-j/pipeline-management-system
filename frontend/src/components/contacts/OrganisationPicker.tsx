@@ -17,7 +17,7 @@ import Combobox from "../ui/Combobox";
 import type { Organisation } from "../../types";
 
 interface OrganisationPickerProps {
-  /** Also the id the hidden label points at, so it must be unique on the page. */
+  /** Names the combobox's listbox rows, so it must be unique on the page. */
   id: string;
   /** Every organisation that can be picked. */
   organisations: Organisation[];
@@ -84,30 +84,28 @@ export default function OrganisationPicker({
       )}
 
       {!disabled && (
-        <>
-          <label className="sr-only" htmlFor={id}>
-            Add organisation
-          </label>
-          <Combobox
-            id={id}
-            options={available.map((organisation) => ({
-              value: organisation.id,
-              label: organisation.name,
-            }))}
-            // Held at "" so the box never displays a "current" organisation:
-            // there isn't one, only a set.
-            value=""
-            onChange={(organisationId) => {
-              onChange([...value, organisationId]);
-            }}
-            onCreate={onCreate}
-            createLabel={(query) =>
-              query ? `Add "${query}"` : "Add a new organisation"
-            }
-            placeholder="Search organisations..."
-            className="w-full border border-navy-200 rounded-lg px-3 py-1.5 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300"
-          />
-        </>
+        <Combobox
+          id={id}
+          // Not a hidden <label>: `sr-only` is `position: absolute`, and would
+          // widen the page past the scroll container this picker sits in.
+          ariaLabel="Add organisation"
+          options={available.map((organisation) => ({
+            value: organisation.id,
+            label: organisation.name,
+          }))}
+          // Held at "" so the box never displays a "current" organisation:
+          // there isn't one, only a set.
+          value=""
+          onChange={(organisationId) => {
+            onChange([...value, organisationId]);
+          }}
+          onCreate={onCreate}
+          createLabel={(query) =>
+            query ? `Add "${query}"` : "Add a new organisation"
+          }
+          placeholder="Search organisations..."
+          className="w-full border border-navy-200 rounded-lg px-3 py-1.5 text-sm text-navy-900 focus:outline-none focus:ring-2 focus:ring-navy-300"
+        />
       )}
     </div>
   );

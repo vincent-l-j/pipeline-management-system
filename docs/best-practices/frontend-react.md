@@ -15,6 +15,15 @@ Tailwind 3, Vitest). Match the existing components.
   primitives — the `Combobox`, `OptionSelect` and `formStyles` fields share, and
   the `TableScroll` every list table sits in — in `ui/`. A `ui/` primitive depends
   on nothing outside `ui/`; that's what keeps it reusable across areas.
+- **Name a control with `aria-label` on the control itself, not with a visually
+  hidden `<label>`.** `sr-only` is `position: absolute`, and `overflow` clips a
+  descendant only when the container is also an ancestor of that descendant's
+  containing block — so a hidden label with no positioned ancestor keeps its
+  static position and widens the page to reach it, escaping any scroll container
+  it sits in. The hidden label buys nothing in exchange: it cannot be clicked,
+  which was its one advantage over `aria-label`. Queries by accessible name see
+  no difference, so no test will tell you. Before wrapping existing markup in a
+  scroll container, grep the subtree for `sr-only`, `absolute` and `fixed`.
 - Keep data-fetching in the page/container; pass plain props to presentational
   children (e.g. `KanbanColumn` → `PitchCard`).
 - Wrap page content in the shared `Layout` + `PageHeader`. `Layout` is the app
@@ -155,6 +164,10 @@ whoever inserts the next test.
   on a narrow screen instead of letting it push the page past the viewport, and
   stops clipping on paper so the print-out is unchanged. Tables are not
   restructured into card stacks — the print stylesheet has table-specific rules.
+  A scroll container clips on **both** axes, so anything that opens out of a row
+  must claim its own flow room inside the container — `TableScroll` knows nothing
+  about its content. `Combobox` does this: it renders a spacer the height of its
+  own list while that list is open.
 
 ## Unit tests (Vitest + React Testing Library)
 
@@ -257,8 +270,16 @@ it depends on CSS — not by how important it is.
 - Query with `page.getByRole(...)`; use `expect.element(...)` so assertions retry.
 - **Assert what renders, never how long it takes.** The setup file zeroes
   transition and animation durations; no test should wait one out.
-- A `scrollWidth` assertion only guards **in-flow** content. Fixed and absolute
-  boxes never contribute to it, so it cannot catch an over-wide drawer or modal.
+- A `scrollWidth` assertion measures one box's scrollable overflow, so be sure it
+  is the box that can grow. `fixed` boxes contribute to nothing, which is why it
+  cannot catch an over-wide drawer or modal; an `absolute` box contributes to its
+  containing block's, which is the page when it has no positioned ancestor. Read
+  `documentElement.scrollWidth` as well as `body`'s — they disagree exactly when
+  something has escaped.
+- **Give a layout fixture more than one row.** Editing the only row of a table
+  replaces every cell's text with inputs, the columns collapse to fit them, and
+  the far side lands back inside the viewport — so an overflow assertion passes
+  with nothing to stick out past. One row tests the narrow case, not the real one.
 - Don't duplicate the jsdom suite here. The browser suite asserts that navigation
   items are big enough to tap; _which_ destinations exist stays in jsdom.
 

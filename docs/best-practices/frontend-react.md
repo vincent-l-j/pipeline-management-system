@@ -12,9 +12,9 @@ Tailwind 3, Vitest). Match the existing components.
   component — anything else belongs in a function component.
 - Pages live in `src/pages/`, reusable pieces in `src/components/` (grouped by
   area: `pipeline/`, `pitch/`, `meetings/`, `assessments/`), with the cross-area
-  field primitives — `Combobox`, `OptionSelect`, and the `formStyles` they share
-  — in `ui/`. A `ui/` primitive depends on nothing outside `ui/`; that's what
-  keeps it reusable across areas.
+  primitives — the `Combobox`, `OptionSelect` and `formStyles` fields share, and
+  the `TableScroll` every list table sits in — in `ui/`. A `ui/` primitive depends
+  on nothing outside `ui/`; that's what keeps it reusable across areas.
 - Keep data-fetching in the page/container; pass plain props to presentational
   children (e.g. `KanbanColumn` → `PitchCard`).
 - Wrap page content in the shared `Layout` + `PageHeader`. `Layout` is the app
@@ -151,6 +151,10 @@ whoever inserts the next test.
 - Match spacing/rounding/border conventions of neighbouring components
   (`rounded-xl border border-navy-100`, `text-sm`, etc.) for visual consistency.
 - Use `capitalize` / `line-clamp-*` utilities rather than transforming data.
+- A data table goes inside `components/ui/TableScroll`, which scrolls it sideways
+  on a narrow screen instead of letting it push the page past the viewport, and
+  stops clipping on paper so the print-out is unchanged. Tables are not
+  restructured into card stacks — the print stylesheet has table-specific rules.
 
 ## Unit tests (Vitest + React Testing Library)
 
@@ -305,10 +309,11 @@ not a behaviour, and recording it as the latter is what stops the gap closing.
 Checks no suite here can reach. Run them on a real device or the Android
 emulator when touching the component named.
 
-| Component  | Step                                                                                             | Viewport / device       | Expected                                                                     |
-| ---------- | ------------------------------------------------------------------------------------------------ | ----------------------- | ---------------------------------------------------------------------------- |
-| `Combobox` | Tap the field to raise the soft keyboard, then tap an option                                     | Android, any phone size | The keyboard opening does not close the list; the tapped option is committed |
-| `Combobox` | With the soft keyboard up, open a list longer than the space above it and scroll to the last row | Android, any phone size | The list is reachable and scrolls; it is not rendered behind the keyboard    |
+| Component     | Step                                                                                                         | Viewport / device       | Expected                                                                         |
+| ------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------- | -------------------------------------------------------------------------------- |
+| `Combobox`    | Tap the field to raise the soft keyboard, then tap an option                                                 | Android, any phone size | The keyboard opening does not close the list; the tapped option is committed     |
+| `Combobox`    | With the soft keyboard up, open a list longer than the space above it and scroll to the last row             | Android, any phone size | The list is reachable and scrolls; it is not rendered behind the keyboard        |
+| `TableScroll` | Print a list page (pitches, contacts, organisations, assessments, meetings, reports, admin, pipeline) to PDF | Desktop Chrome          | Every page prints exactly as it did before the table gained its scroll container |
 
 ## Checklist before handoff
 

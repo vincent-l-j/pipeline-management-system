@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
+import TableScroll from "../components/ui/TableScroll";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api";
 import type { Pitch } from "../types";
@@ -78,59 +79,62 @@ export default function PitchesPage(): React.JSX.Element {
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-navy-100 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-navy-50 border-b border-navy-100">
-              <tr>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Title
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Stage
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Source
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Submitted
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-navy-50">
-              {pitches.map((pitch) => (
-                <tr
-                  key={pitch.id}
-                  onClick={() => {
-                    void navigate(`/pitches/${pitch.id}`);
-                  }}
-                  className="hover:bg-navy-50/50 transition-colors cursor-pointer"
-                >
-                  <td className="px-4 py-3">
-                    <span className="font-medium text-navy-900">
-                      {pitch.title}
-                    </span>
-                    {pitch.is_confidential && (
-                      <span className="ml-2 text-xs bg-red-50 text-red-600 px-1.5 py-0.5 rounded">
-                        Confidential
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-block text-xs font-medium px-2 py-1 rounded-full ${stageBadgeColors[pitch.current_stage] || "bg-gray-100"}`}
-                    >
-                      {stageLabels[pitch.current_stage] || pitch.current_stage}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-navy-500 capitalize">
-                    {pitch.source?.replace("_", " ") ?? "-"}
-                  </td>
-                  <td className="px-4 py-3 text-navy-500">
-                    {pitch.submission_date ?? "-"}
-                  </td>
+          <TableScroll>
+            <table className="w-full text-sm">
+              <thead className="bg-navy-50 border-b border-navy-100">
+                <tr>
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    Title
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    Stage
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    Source
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    Submitted
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-navy-50">
+                {pitches.map((pitch) => (
+                  <tr
+                    key={pitch.id}
+                    onClick={() => {
+                      void navigate(`/pitches/${pitch.id}`);
+                    }}
+                    className="hover:bg-navy-50/50 transition-colors cursor-pointer"
+                  >
+                    <td className="px-4 py-3">
+                      <span className="font-medium text-navy-900">
+                        {pitch.title}
+                      </span>
+                      {pitch.is_confidential && (
+                        <span className="ml-2 text-xs bg-red-50 text-red-600 px-1.5 py-0.5 rounded">
+                          Confidential
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-block text-xs font-medium px-2 py-1 rounded-full ${stageBadgeColors[pitch.current_stage] || "bg-gray-100"}`}
+                      >
+                        {stageLabels[pitch.current_stage] ||
+                          pitch.current_stage}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-navy-500 capitalize">
+                      {pitch.source?.replace("_", " ") ?? "-"}
+                    </td>
+                    <td className="px-4 py-3 text-navy-500">
+                      {pitch.submission_date ?? "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableScroll>
         </div>
       )}
     </Layout>

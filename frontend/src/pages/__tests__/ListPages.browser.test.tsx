@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import type { ReactElement } from "react";
 import AssessmentsPage from "../AssessmentsPage";
 import ContactsPage from "../ContactsPage";
+import DashboardPage from "../DashboardPage";
 import MeetingsPage from "../MeetingsPage";
 import OrganisationsPage from "../OrganisationsPage";
 import PipelinePage from "../PipelinePage";
@@ -316,6 +317,12 @@ describe("editing a contact", () => {
 });
 
 describe("pages without a table, on a 360px screen", () => {
+  it("the dashboard does not overflow the viewport", async () => {
+    await show(<DashboardPage />, "Total in Pipeline");
+
+    expect(viewportOverflow()).toBeLessThanOrEqual(0);
+  });
+
   it("search results do not overflow the viewport", async () => {
     render(
       <MemoryRouter>

@@ -1,7 +1,8 @@
-import { commands, page } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { cleanup, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import type { ReactElement } from "react";
+import ContactsPage from "../ContactsPage";
 import PitchesPage from "../PitchesPage";
 import { createApiMocks } from "../../test/mocks/api";
 
@@ -30,8 +31,37 @@ const PITCH = {
   lead_id: "u1",
 };
 
+const CONTACT = {
+  id: "c1",
+  first_name: "Bartholomew",
+  last_name: "Wintergreen-Fitzwilliam",
+  email: "bartholomew.wintergreen@wintergreen-innovation.example.com",
+  organisation_ids: ["o1"],
+};
+
+const ORGANISATION = {
+  id: "o1",
+  name: "Wintergreen Innovation Partners (Australia) Limited",
+  org_type: "university",
+  sector: "Agriculture and environmental sciences",
+  state_territory: "NSW",
+  website: "https://wintergreen-innovation.example.com",
+  abn: "12 345 678 901",
+  notes: null,
+  created_at: "2026-01-01T00:00:00Z",
+};
+
+/** Unaffiliated with the contact, so the picker still offers it. */
+const OTHER_ORGANISATION = {
+  ...ORGANISATION,
+  id: "o2",
+  name: "Rangeland Carbon Cooperative Research Centre",
+};
+
 const RESPONSES: Record<string, unknown> = {
   "/pitches": [PITCH],
+  "/contacts": [CONTACT],
+  "/organisations": [ORGANISATION, OTHER_ORGANISATION],
 };
 
 beforeAll(() => {
@@ -69,6 +99,7 @@ function viewportOverflow(): number {
 
 const TABLE_PAGES: [name: string, element: ReactElement, settled: string][] = [
   ["Pitches", <PitchesPage />, PITCH.title],
+  ["Contacts", <ContactsPage />, CONTACT.email],
 ];
 
 describe("pages with a table, on a 360px screen", () => {
@@ -95,4 +126,41 @@ describe("pages with a table, on a 360px screen", () => {
       await expect.poll(() => container.scrollLeft).toBeGreaterThan(0);
     },
   );
+});
+
+// The organisation picker opens out of an editing row, so that row gets the
+// table's sideways scrolling taken away from it — a scroll container clips on
+// both axes. Both halves of that bargain are checked here.
+describe("editing a contact", () => {
+  async function editFirstContact() {
+    await show(<ContactsPage />, CONTACT.email);
+    await userEvent.click(page.getByRole("button", { name: "Edit" }));
+  }
+
+  it("does not overflow the viewport", async () => {
+    await editFirstContact();
+
+    expect(viewportOverflow()).toBeLessThanOrEqual(0);
+  });
+
+  it("shows the organisation options in full", async () => {
+    await editFirstContact();
+
+    await userEvent.click(page.getByRole("combobox"));
+
+    const option = page.getByRole("option", {
+      name: OTHER_ORGANISATION.name,
+    });
+    await expect.element(option).toBeVisible();
+    // What is under the finger, not merely what is in the document: a row the
+    // container has clipped away is still laid out, and still has a rectangle.
+    const { left, top, width, height } = option
+      .element()
+      .getBoundingClientRect();
+    const atOption = document.elementFromPoint(
+      left + width / 2,
+      top + height / 2,
+    );
+    expect(option.element().contains(atOption)).toBe(true);
+  });
 });

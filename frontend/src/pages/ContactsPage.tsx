@@ -11,6 +11,7 @@
 import { useState, useEffect, ChangeEvent } from "react";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
+import TableScroll from "../components/ui/TableScroll";
 import OrganisationPicker, {
   pickedOrganisations,
 } from "../components/contacts/OrganisationPicker";
@@ -290,183 +291,189 @@ export default function ContactsPage(): React.JSX.Element {
         </div>
       ) : (
         // Deliberately not overflow-hidden: the organisation picker's dropdown
-        // opens out of an editing row and would be clipped by it.
+        // opens out of an editing row and would be clipped by it. The scroll
+        // container is asked for room instead, which is the same bargain.
         <div className="bg-white rounded-xl border border-navy-100">
-          <table className="w-full text-sm">
-            <thead className="bg-navy-50 border-b border-navy-100">
-              <tr>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700 rounded-tl-xl">
-                  First Name
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Last Name
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Email
-                </th>
-                <th
-                  className={`text-left px-4 py-3 font-semibold text-navy-700 ${
-                    canEdit || canRemove ? "" : "rounded-tr-xl"
-                  }`}
-                >
-                  Organisations
-                </th>
-                {(canEdit || canRemove) && (
-                  <th className="text-right px-4 py-3 font-semibold text-navy-700 rounded-tr-xl">
-                    Actions
+          <TableScroll dropdownRoom={editingId !== null}>
+            <table className="w-full text-sm">
+              <thead className="bg-navy-50 border-b border-navy-100">
+                <tr>
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700 rounded-tl-xl">
+                    First Name
                   </th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-navy-50">
-              {contacts.map((c) =>
-                editingId === c.id ? (
-                  <tr key={c.id} className="bg-navy-50/50">
-                    <td className="px-4 py-3 align-top">
-                      <input
-                        type="text"
-                        value={editForm.first_name}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                          setEditForm((p) => ({
-                            ...p,
-                            first_name: e.target.value,
-                          }));
-                        }}
-                        aria-label="Contact first name"
-                        className={inputClass}
-                      />
-                    </td>
-                    <td className="px-4 py-3 align-top">
-                      <input
-                        type="text"
-                        value={editForm.last_name}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                          setEditForm((p) => ({
-                            ...p,
-                            last_name: e.target.value,
-                          }));
-                        }}
-                        aria-label="Contact last name"
-                        className={inputClass}
-                      />
-                    </td>
-                    <td className="px-4 py-3 align-top">
-                      <input
-                        type="email"
-                        value={editForm.email}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                          setEditForm((p) => ({ ...p, email: e.target.value }));
-                        }}
-                        aria-label="Contact email"
-                        className={inputClass}
-                      />
-                    </td>
-                    <td className="px-4 py-3 align-top">
-                      <OrganisationPicker
-                        id="edit-contact-organisations"
-                        organisations={organisations}
-                        value={editForm.organisation_ids}
-                        onChange={(organisation_ids) => {
-                          setEditForm((p) => ({ ...p, organisation_ids }));
-                        }}
-                        onCreate={(query) => {
-                          setCreating({ form: "edit", query });
-                        }}
-                      />
-                    </td>
-                    <td className="px-4 py-3 text-right align-top">
-                      <span className="inline-flex gap-2">
-                        <button
-                          onClick={() => {
-                            void saveEdit(c);
-                          }}
-                          disabled={!hasAnyDetail(editForm)}
-                          className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={cancelEdit}
-                          className="text-xs border border-navy-200 text-navy-600 px-3 py-1.5 rounded-lg"
-                        >
-                          Cancel
-                        </button>
-                      </span>
-                    </td>
-                  </tr>
-                ) : (
-                  <tr
-                    key={c.id}
-                    className="hover:bg-navy-50/50 transition-colors"
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    Last Name
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    Email
+                  </th>
+                  <th
+                    className={`text-left px-4 py-3 font-semibold text-navy-700 ${
+                      canEdit || canRemove ? "" : "rounded-tr-xl"
+                    }`}
                   >
-                    <td className="px-4 py-3 font-medium text-navy-900">
-                      {c.first_name ?? "-"}
-                    </td>
-                    <td className="px-4 py-3 font-medium text-navy-900">
-                      {c.last_name ?? "-"}
-                    </td>
-                    <td className="px-4 py-3 text-navy-500">
-                      {c.email ?? "-"}
-                    </td>
-                    <td
-                      className="px-4 py-3 text-navy-500 max-w-xs truncate"
-                      title={organisationNames(c)}
-                    >
-                      {organisationNames(c) || "-"}
-                    </td>
-                    {(canEdit || canRemove) && (
-                      <td className="px-4 py-3 text-right">
-                        {confirmingId === c.id ? (
-                          <span className="inline-flex gap-2">
-                            <button
-                              onClick={() => {
-                                void removeContact(c.id);
-                              }}
-                              className="text-xs text-red-600 hover:text-red-800 font-medium"
-                            >
-                              Confirm
-                            </button>
-                            <button
-                              onClick={() => {
-                                setConfirmingId(null);
-                              }}
-                              className="text-xs text-navy-500 hover:text-navy-700"
-                            >
-                              Cancel
-                            </button>
-                          </span>
-                        ) : (
-                          <span className="inline-flex gap-3">
-                            {canEdit && (
-                              <button
-                                onClick={() => {
-                                  startEdit(c);
-                                }}
-                                className="text-xs text-navy-600 hover:text-navy-900"
-                              >
-                                Edit
-                              </button>
-                            )}
-                            {canRemove && (
-                              <button
-                                onClick={() => {
-                                  setConfirmingId(c.id);
-                                  setError("");
-                                }}
-                                className="text-xs text-red-500 hover:text-red-700"
-                              >
-                                Remove
-                              </button>
-                            )}
-                          </span>
-                        )}
+                    Organisations
+                  </th>
+                  {(canEdit || canRemove) && (
+                    <th className="text-right px-4 py-3 font-semibold text-navy-700 rounded-tr-xl">
+                      Actions
+                    </th>
+                  )}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-navy-50">
+                {contacts.map((c) =>
+                  editingId === c.id ? (
+                    <tr key={c.id} className="bg-navy-50/50">
+                      <td className="px-4 py-3 align-top">
+                        <input
+                          type="text"
+                          value={editForm.first_name}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            setEditForm((p) => ({
+                              ...p,
+                              first_name: e.target.value,
+                            }));
+                          }}
+                          aria-label="Contact first name"
+                          className={inputClass}
+                        />
                       </td>
-                    )}
-                  </tr>
-                ),
-              )}
-            </tbody>
-          </table>
+                      <td className="px-4 py-3 align-top">
+                        <input
+                          type="text"
+                          value={editForm.last_name}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            setEditForm((p) => ({
+                              ...p,
+                              last_name: e.target.value,
+                            }));
+                          }}
+                          aria-label="Contact last name"
+                          className={inputClass}
+                        />
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <input
+                          type="email"
+                          value={editForm.email}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                            setEditForm((p) => ({
+                              ...p,
+                              email: e.target.value,
+                            }));
+                          }}
+                          aria-label="Contact email"
+                          className={inputClass}
+                        />
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <OrganisationPicker
+                          id="edit-contact-organisations"
+                          organisations={organisations}
+                          value={editForm.organisation_ids}
+                          onChange={(organisation_ids) => {
+                            setEditForm((p) => ({ ...p, organisation_ids }));
+                          }}
+                          onCreate={(query) => {
+                            setCreating({ form: "edit", query });
+                          }}
+                        />
+                      </td>
+                      <td className="px-4 py-3 text-right align-top">
+                        <span className="inline-flex gap-2">
+                          <button
+                            onClick={() => {
+                              void saveEdit(c);
+                            }}
+                            disabled={!hasAnyDetail(editForm)}
+                            className="text-xs bg-navy-900 text-white px-3 py-1.5 rounded-lg disabled:opacity-50"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={cancelEdit}
+                            className="text-xs border border-navy-200 text-navy-600 px-3 py-1.5 rounded-lg"
+                          >
+                            Cancel
+                          </button>
+                        </span>
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr
+                      key={c.id}
+                      className="hover:bg-navy-50/50 transition-colors"
+                    >
+                      <td className="px-4 py-3 font-medium text-navy-900">
+                        {c.first_name ?? "-"}
+                      </td>
+                      <td className="px-4 py-3 font-medium text-navy-900">
+                        {c.last_name ?? "-"}
+                      </td>
+                      <td className="px-4 py-3 text-navy-500">
+                        {c.email ?? "-"}
+                      </td>
+                      <td
+                        className="px-4 py-3 text-navy-500 max-w-xs truncate"
+                        title={organisationNames(c)}
+                      >
+                        {organisationNames(c) || "-"}
+                      </td>
+                      {(canEdit || canRemove) && (
+                        <td className="px-4 py-3 text-right">
+                          {confirmingId === c.id ? (
+                            <span className="inline-flex gap-2">
+                              <button
+                                onClick={() => {
+                                  void removeContact(c.id);
+                                }}
+                                className="text-xs text-red-600 hover:text-red-800 font-medium"
+                              >
+                                Confirm
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setConfirmingId(null);
+                                }}
+                                className="text-xs text-navy-500 hover:text-navy-700"
+                              >
+                                Cancel
+                              </button>
+                            </span>
+                          ) : (
+                            <span className="inline-flex gap-3">
+                              {canEdit && (
+                                <button
+                                  onClick={() => {
+                                    startEdit(c);
+                                  }}
+                                  className="text-xs text-navy-600 hover:text-navy-900"
+                                >
+                                  Edit
+                                </button>
+                              )}
+                              {canRemove && (
+                                <button
+                                  onClick={() => {
+                                    setConfirmingId(c.id);
+                                    setError("");
+                                  }}
+                                  className="text-xs text-red-500 hover:text-red-700"
+                                >
+                                  Remove
+                                </button>
+                              )}
+                            </span>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  ),
+                )}
+              </tbody>
+            </table>
+          </TableScroll>
         </div>
       )}
 

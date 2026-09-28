@@ -3,6 +3,7 @@ import { cleanup, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import type { ReactElement } from "react";
 import ContactsPage from "../ContactsPage";
+import OrganisationsPage from "../OrganisationsPage";
 import PitchesPage from "../PitchesPage";
 import { createApiMocks } from "../../test/mocks/api";
 
@@ -110,6 +111,7 @@ function viewportOverflow(): number {
 const TABLE_PAGES: [name: string, element: ReactElement, settled: string][] = [
   ["Pitches", <PitchesPage />, PITCH.title],
   ["Contacts", <ContactsPage />, CONTACT.email],
+  ["Organisations", <OrganisationsPage />, ORGANISATION.name],
 ];
 
 describe("pages with a table, on a 360px screen", () => {

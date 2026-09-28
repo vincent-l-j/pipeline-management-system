@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import type { AxiosResponse } from "axios";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
+import TableScroll from "../components/ui/TableScroll";
 import api from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -76,60 +77,64 @@ export default function MeetingsPage(): React.JSX.Element {
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-navy-100 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-navy-50 border-b border-navy-100">
-              <tr>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Title
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Date
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Platform
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Follow-up
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  AI Notes
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-navy-50">
-              {meetings.map((m) => (
-                <tr
-                  key={m.id}
-                  onClick={() => {
-                    void navigate(`/meetings/${m.id}`);
-                  }}
-                  className="hover:bg-navy-50/50 transition-colors cursor-pointer"
-                >
-                  <td className="px-4 py-3 font-medium text-navy-900">
-                    {m.title}
-                  </td>
-                  <td className="px-4 py-3 text-navy-500">{m.meeting_date}</td>
-                  <td className="px-4 py-3 text-navy-500">
-                    {m.platform
-                      ? (PLATFORM_LABELS[m.platform] ?? m.platform)
-                      : "-"}
-                  </td>
-                  <td className="px-4 py-3 text-navy-500">
-                    {m.follow_up_date ?? "-"}
-                  </td>
-                  <td className="px-4 py-3">
-                    {m.ai_import_status ? (
-                      <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded capitalize">
-                        {m.ai_import_status}
-                      </span>
-                    ) : (
-                      <span className="text-navy-300">-</span>
-                    )}
-                  </td>
+          <TableScroll>
+            <table className="w-full text-sm">
+              <thead className="bg-navy-50 border-b border-navy-100">
+                <tr>
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    Title
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    Date
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    Platform
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    Follow-up
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    AI Notes
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-navy-50">
+                {meetings.map((m) => (
+                  <tr
+                    key={m.id}
+                    onClick={() => {
+                      void navigate(`/meetings/${m.id}`);
+                    }}
+                    className="hover:bg-navy-50/50 transition-colors cursor-pointer"
+                  >
+                    <td className="px-4 py-3 font-medium text-navy-900">
+                      {m.title}
+                    </td>
+                    <td className="px-4 py-3 text-navy-500">
+                      {m.meeting_date}
+                    </td>
+                    <td className="px-4 py-3 text-navy-500">
+                      {m.platform
+                        ? (PLATFORM_LABELS[m.platform] ?? m.platform)
+                        : "-"}
+                    </td>
+                    <td className="px-4 py-3 text-navy-500">
+                      {m.follow_up_date ?? "-"}
+                    </td>
+                    <td className="px-4 py-3">
+                      {m.ai_import_status ? (
+                        <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded capitalize">
+                          {m.ai_import_status}
+                        </span>
+                      ) : (
+                        <span className="text-navy-300">-</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableScroll>
         </div>
       )}
     </Layout>

@@ -9,6 +9,7 @@ import OrganisationsPage from "../OrganisationsPage";
 import PipelinePage from "../PipelinePage";
 import PitchesPage from "../PitchesPage";
 import ReportsPage from "../ReportsPage";
+import SearchPage from "../SearchPage";
 import UsersPage from "../UsersPage";
 import { createApiMocks } from "../../test/mocks/api";
 
@@ -153,6 +154,23 @@ const USERS = [
   },
 ];
 
+const SEARCH_RESULTS = {
+  total: 1,
+  pitches: [
+    {
+      id: "p1",
+      type: "pitch",
+      title: PITCH.title,
+      subtitle: ORGANISATION.name,
+      badge: "Deep Assessment",
+    },
+  ],
+  organisations: [],
+  contacts: [],
+  meetings: [],
+  assessments: [],
+};
+
 const RESPONSES: Record<string, unknown> = {
   "/pitches": [PITCH],
   "/contacts": [CONTACT, SECOND_CONTACT],
@@ -163,6 +181,7 @@ const RESPONSES: Record<string, unknown> = {
   "/reports/velocity": VELOCITY,
   "/reports/pipeline-summary": PIPELINE_SUMMARY,
   "/users": USERS,
+  "/search": SEARCH_RESULTS,
 };
 
 beforeAll(() => {
@@ -293,5 +312,22 @@ describe("editing a contact", () => {
       top + height / 2,
     );
     expect(option.element().contains(atOption)).toBe(true);
+  });
+});
+
+describe("pages without a table, on a 360px screen", () => {
+  it("search results do not overflow the viewport", async () => {
+    render(
+      <MemoryRouter>
+        <SearchPage />
+      </MemoryRouter>,
+    );
+
+    await userEvent.fill(page.getByPlaceholder(/^Search pitches/), "rangeland");
+    await expect
+      .element(page.getByText(PITCH.title, { exact: false }))
+      .toBeVisible();
+
+    expect(viewportOverflow()).toBeLessThanOrEqual(0);
   });
 });

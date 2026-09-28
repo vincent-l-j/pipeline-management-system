@@ -7,6 +7,7 @@ import ContactsPage from "../ContactsPage";
 import MeetingsPage from "../MeetingsPage";
 import OrganisationsPage from "../OrganisationsPage";
 import PitchesPage from "../PitchesPage";
+import ReportsPage from "../ReportsPage";
 import { createApiMocks } from "../../test/mocks/api";
 
 vi.mock("../../services/api", () => ({
@@ -99,6 +100,47 @@ const MEETING = {
   ai_import_status: "completed",
 };
 
+const VELOCITY = {
+  stage_counts: { received: 4, deep_assessment: 2, completed: 1 },
+  pitches_per_month: [
+    { month: "2026-04", count: 3 },
+    { month: "2026-05", count: 5 },
+  ],
+  conversion: {
+    total_pitches: 7,
+    advanced_to_assessment: 4,
+    advancement_rate: 57.1,
+    completed: 1,
+    parked: 1,
+    declined: 2,
+    decline_rate: 28.6,
+  },
+  recent_30_days: {
+    pitches_added: 3,
+    meetings_logged: 5,
+    assessments_created: 2,
+    stage_changes: 6,
+  },
+};
+
+const PIPELINE_SUMMARY = {
+  total: 1,
+  pitches: [
+    {
+      id: 1,
+      title: PITCH.title,
+      current_stage: "deep_assessment",
+      stage_label: "Deep Assessment",
+      lead: "Alexandra McConnell-Fitzwilliam",
+      organisation: ORGANISATION.name,
+      source: "University",
+      funding_pathway: "CRC Project",
+      submission_date: "2026-03-14",
+      is_confidential: false,
+    },
+  ],
+};
+
 const RESPONSES: Record<string, unknown> = {
   "/pitches": [PITCH],
   "/contacts": [CONTACT, SECOND_CONTACT],
@@ -106,6 +148,8 @@ const RESPONSES: Record<string, unknown> = {
   "/assessments": [ASSESSMENT],
   "/users/directory": DIRECTORY,
   "/meetings": [MEETING],
+  "/reports/velocity": VELOCITY,
+  "/reports/pipeline-summary": PIPELINE_SUMMARY,
 };
 
 beforeAll(() => {
@@ -147,6 +191,7 @@ const TABLE_PAGES: [name: string, element: ReactElement, settled: string][] = [
   ["Organisations", <OrganisationsPage />, ORGANISATION.name],
   ["Assessments", <AssessmentsPage />, PITCH.title],
   ["Meetings", <MeetingsPage />, MEETING.title],
+  ["Reports", <ReportsPage />, PITCH.title],
 ];
 
 describe("pages with a table, on a 360px screen", () => {

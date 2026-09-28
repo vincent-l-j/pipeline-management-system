@@ -337,41 +337,6 @@ describe("pages without a table, on a 360px screen", () => {
     expect(viewportOverflow()).toBeLessThanOrEqual(0);
   });
 
-  // The viewport check above catches the page being pushed wide, but a card can
-  // be overrun without that happening, so the chart is measured against its own
-  // card: flex items default to `min-width: auto`, and a nowrap label sets a
-  // floor `flex-1` cannot shrink past, which the row takes out of the card.
-  it("keeps every month label inside the chart card", async () => {
-    await show(<DashboardPage />, "Total in Pipeline");
-    const card = page
-      .getByText("Pitches Received per Month")
-      .element()
-      .closest("div");
-    if (!card) throw new Error("the chart heading has no card around it");
-    const bounds = card.getBoundingClientRect();
-
-    const labels = [...card.querySelectorAll("[data-testid='month-label']")];
-
-    // Asserted before the geometry: a card with no labels in it would satisfy
-    // every bound below, and an unreadable month is not a fix.
-    expect(labels).toHaveLength(PITCH_MONTHS.length);
-    const boxes = labels.map((label) => {
-      expect(label.textContent.trim()).not.toBe("");
-      return label.getBoundingClientRect();
-    });
-    for (const box of boxes) {
-      expect(box.left).toBeGreaterThanOrEqual(bounds.left);
-      expect(box.right).toBeLessThanOrEqual(bounds.right);
-    }
-    // Fitting the card is not enough to be readable: labels too wide for their
-    // own column stay inside the card by running into each other instead.
-    for (let i = 1; i < boxes.length; i++) {
-      expect(boxes[i].left).toBeGreaterThanOrEqual(boxes[i - 1].right);
-    }
-    // The bars gave up their year to fit, so the card has to carry it.
-    await expect.element(page.getByText("Oct 2025 – Sep 2026")).toBeVisible();
-  });
-
   it("search results do not overflow the viewport", async () => {
     render(
       <MemoryRouter>

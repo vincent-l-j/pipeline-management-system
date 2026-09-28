@@ -73,6 +73,46 @@ async function barHeights(counts: number[]): Promise<number[]> {
   );
 }
 
+// Twelve, because that is what /api/reports/velocity returns; the count is what
+// squeezes the labels, and a short series fits any width and proves nothing.
+const TWELVE_MONTHS = [
+  "2025-10",
+  "2025-11",
+  "2025-12",
+  "2026-01",
+  "2026-02",
+  "2026-03",
+  "2026-04",
+  "2026-05",
+  "2026-06",
+  "2026-07",
+  "2026-08",
+  "2026-09",
+].map((month, i) => ({ month, count: (i % 5) + 1 }));
+
+/** Renders the dashboard over a full year and hands back the chart's card. */
+async function chartCard(): Promise<HTMLElement> {
+  apiMocks.get.mockImplementation((url: string) =>
+    url === "/reports/velocity"
+      ? Promise.resolve({
+          data: { ...VELOCITY, pitches_per_month: TWELVE_MONTHS },
+        })
+      : Promise.resolve({ data: [] }),
+  );
+  render(
+    <MemoryRouter>
+      <DashboardPage />
+    </MemoryRouter>,
+  );
+  await expect.element(page.getByText("Total in Pipeline")).toBeVisible();
+  const card = page
+    .getByText("Pitches Received per Month")
+    .element()
+    .closest("div");
+  if (!card) throw new Error("the chart heading has no card around it");
+  return card;
+}
+
 // Measured in pixels rather than read off the style attribute. The bars are
 // sized in per cent, and a per cent of a box with no definite height resolves
 // to nothing — so the markup read as though it had heights while every bar drew
@@ -100,5 +140,42 @@ describe("the pitches-per-month chart", () => {
     // not have — and since the window is generated, most of it can be zeros.
     expect(empty).toBe(0);
     expect(drawn).toBeGreaterThan(0);
+  });
+});
+
+// The page-level viewport check in ListPages.browser.test.tsx catches the page
+// being pushed wide, but a card can be overrun without that happening, so the
+// chart is measured against its own card: flex items default to
+// `min-width: auto`, and a nowrap label sets a floor `flex-1` cannot shrink
+// past, which the row then takes out of the card.
+describe("the chart's month labels", () => {
+  it("stay inside the card, and clear of each other", async () => {
+    const card = await chartCard();
+    const bounds = card.getBoundingClientRect();
+
+    const labels = [...card.querySelectorAll("[data-testid='month-label']")];
+
+    // Asserted before the geometry: a card with no labels in it would satisfy
+    // every bound below, and an unreadable month is not a fix.
+    expect(labels).toHaveLength(TWELVE_MONTHS.length);
+    const boxes = labels.map((label) => {
+      expect(label.textContent.trim()).not.toBe("");
+      return label.getBoundingClientRect();
+    });
+    for (const box of boxes) {
+      expect(box.left).toBeGreaterThanOrEqual(bounds.left);
+      expect(box.right).toBeLessThanOrEqual(bounds.right);
+    }
+    // Fitting the card is not enough to be readable: labels too wide for their
+    // own column stay inside the card by running into each other instead.
+    for (let i = 1; i < boxes.length; i++) {
+      expect(boxes[i].left).toBeGreaterThanOrEqual(boxes[i - 1].right);
+    }
+  });
+
+  it("give up their year to the card, which carries it instead", async () => {
+    await chartCard();
+
+    await expect.element(page.getByText("Oct 2025 – Sep 2026")).toBeVisible();
   });
 });

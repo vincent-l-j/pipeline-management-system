@@ -8,6 +8,7 @@ import MeetingsPage from "../MeetingsPage";
 import OrganisationsPage from "../OrganisationsPage";
 import PitchesPage from "../PitchesPage";
 import ReportsPage from "../ReportsPage";
+import UsersPage from "../UsersPage";
 import { createApiMocks } from "../../test/mocks/api";
 
 vi.mock("../../services/api", () => ({
@@ -141,6 +142,16 @@ const PIPELINE_SUMMARY = {
   ],
 };
 
+const USERS = [
+  {
+    id: "u1",
+    email: "alexandra.mcconnell@rozettainstitute.example.com",
+    display_name: "Alexandra McConnell-Fitzwilliam",
+    role: "admin",
+    is_active: true,
+  },
+];
+
 const RESPONSES: Record<string, unknown> = {
   "/pitches": [PITCH],
   "/contacts": [CONTACT, SECOND_CONTACT],
@@ -150,6 +161,7 @@ const RESPONSES: Record<string, unknown> = {
   "/meetings": [MEETING],
   "/reports/velocity": VELOCITY,
   "/reports/pipeline-summary": PIPELINE_SUMMARY,
+  "/users": USERS,
 };
 
 beforeAll(() => {
@@ -192,6 +204,7 @@ const TABLE_PAGES: [name: string, element: ReactElement, settled: string][] = [
   ["Assessments", <AssessmentsPage />, PITCH.title],
   ["Meetings", <MeetingsPage />, MEETING.title],
   ["Reports", <ReportsPage />, PITCH.title],
+  ["Users", <UsersPage />, USERS[0].email],
 ];
 
 describe("pages with a table, on a 360px screen", () => {

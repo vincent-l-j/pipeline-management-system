@@ -236,9 +236,15 @@ export default function DashboardPage(): React.JSX.Element {
               <p className="text-xs text-navy-400 -mt-3 mb-4">
                 {monthRange(pitches_per_month)}
               </p>
-              <div className="flex items-end gap-1 sm:gap-2 h-40">
+              <div className="flex gap-1 sm:gap-2">
                 {pitches_per_month.map((m: PitchMonth) => {
-                  const height = Math.max((m.count / maxMonthly) * 100, 4);
+                  // A floor for anything that happened, so one pitch is still a
+                  // mark; a month nobody pitched in draws nothing, because a
+                  // stub the eye can see is the chart claiming otherwise.
+                  const height =
+                    m.count === 0
+                      ? 0
+                      : Math.max((m.count / maxMonthly) * 100, 4);
                   return (
                     <div
                       key={m.month}
@@ -249,16 +255,24 @@ export default function DashboardPage(): React.JSX.Element {
                       // card. Short labels stay under that floor today; should
                       // one grow, the three spend it on an ellipsis instead of
                       // on overlapping neighbours or a wider page.
-                      className="flex-1 min-w-0 flex flex-col items-center justify-end"
+                      className="flex-1 min-w-0 flex flex-col items-center"
                       title={m.month}
                     >
                       <span className="text-xs font-semibold text-navy-900 mb-1">
                         {m.count}
                       </span>
-                      <div
-                        className="w-full bg-navy-800 rounded-t-md transition-all"
-                        style={{ height: `${String(height)}%` }}
-                      />
+                      {/* The plot area holds nothing but the bar, and is the
+                          height the bar's percentage is of. Sharing a box with
+                          the count and the label made the tallest bar shrink to
+                          fit around them, so two pitches drew 1.5x one rather
+                          than twice it — a bar chart that lies about its data. */}
+                      <div className="w-full h-40 flex items-end">
+                        <div
+                          data-testid="month-bar"
+                          className="w-full bg-navy-800 rounded-t-md transition-all"
+                          style={{ height: `${String(height)}%` }}
+                        />
+                      </div>
                       <span
                         // The bars row has no role, and the labels are what the
                         // card's width is measured against.

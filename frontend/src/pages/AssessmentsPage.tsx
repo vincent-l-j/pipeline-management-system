@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
+import TableScroll from "../components/ui/TableScroll";
 import { CRITERIA } from "../components/assessments/AssessmentConfig";
 import api from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
@@ -93,67 +94,69 @@ export default function AssessmentsPage(): React.JSX.Element {
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-navy-100 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-navy-50 border-b border-navy-100">
-              <tr>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Pitch
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Assessor
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Date
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Avg Score
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Recommendation
-                </th>
-                <th className="text-left px-4 py-3 font-semibold text-navy-700">
-                  Version
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-navy-50">
-              {assessments.map((assessment: Assessment) => (
-                <tr
-                  key={assessment.id}
-                  onClick={() => {
-                    void navigate(`/assessments/${assessment.id}`);
-                  }}
-                  className="hover:bg-navy-50/50 transition-colors cursor-pointer"
-                >
-                  <td className="px-4 py-3 font-medium text-navy-900">
-                    {getPitchTitle(assessment.pitch_id)}
-                  </td>
-                  <td className="px-4 py-3 text-navy-500">
-                    {getAssessorName(assessment.assessor_id)}
-                  </td>
-                  <td className="px-4 py-3 text-navy-500">
-                    {assessment.assessment_date}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="font-semibold text-navy-900">
-                      {getAvgScore(assessment)}
-                    </span>
-                    <span className="text-navy-400">/5</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-block text-xs font-medium px-2 py-1 rounded-full capitalize ${recommendationBadge[assessment.recommendation] || "bg-gray-100"}`}
-                    >
-                      {assessment.recommendation}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-navy-500">
-                    v{assessment.version}
-                  </td>
+          <TableScroll>
+            <table className="w-full text-sm">
+              <thead className="bg-navy-50 border-b border-navy-100">
+                <tr>
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    Pitch
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    Assessor
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    Date
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    Avg Score
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    Recommendation
+                  </th>
+                  <th className="text-left px-4 py-3 font-semibold text-navy-700">
+                    Version
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-navy-50">
+                {assessments.map((assessment: Assessment) => (
+                  <tr
+                    key={assessment.id}
+                    onClick={() => {
+                      void navigate(`/assessments/${assessment.id}`);
+                    }}
+                    className="hover:bg-navy-50/50 transition-colors cursor-pointer"
+                  >
+                    <td className="px-4 py-3 font-medium text-navy-900">
+                      {getPitchTitle(assessment.pitch_id)}
+                    </td>
+                    <td className="px-4 py-3 text-navy-500">
+                      {getAssessorName(assessment.assessor_id)}
+                    </td>
+                    <td className="px-4 py-3 text-navy-500">
+                      {assessment.assessment_date}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="font-semibold text-navy-900">
+                        {getAvgScore(assessment)}
+                      </span>
+                      <span className="text-navy-400">/5</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`inline-block text-xs font-medium px-2 py-1 rounded-full capitalize ${recommendationBadge[assessment.recommendation] || "bg-gray-100"}`}
+                      >
+                        {assessment.recommendation}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-navy-500">
+                      v{assessment.version}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableScroll>
         </div>
       )}
     </Layout>

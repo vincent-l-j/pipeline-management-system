@@ -2,6 +2,7 @@ import { commands, page, userEvent } from "vitest/browser";
 import { cleanup, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import type { ReactElement } from "react";
+import AssessmentsPage from "../AssessmentsPage";
 import ContactsPage from "../ContactsPage";
 import OrganisationsPage from "../OrganisationsPage";
 import PitchesPage from "../PitchesPage";
@@ -69,10 +70,31 @@ const OTHER_ORGANISATION = {
   name: "Rangeland Carbon Cooperative Research Centre",
 };
 
+const ASSESSMENT = {
+  id: "a1",
+  pitch_id: "p1",
+  assessor_id: "u1",
+  assessment_date: "2026-04-02",
+  version: 2,
+  recommendation: "proceed",
+  rationale: "Strong alignment with the rangeland carbon programme",
+  strategic_alignment: 4,
+  technical_feasibility: 3,
+  commercial_potential: 4,
+  team_capability: 5,
+  funding_viability: 3,
+};
+
+const DIRECTORY = [
+  { id: "u1", display_name: "Alexandra McConnell-Fitzwilliam" },
+];
+
 const RESPONSES: Record<string, unknown> = {
   "/pitches": [PITCH],
   "/contacts": [CONTACT, SECOND_CONTACT],
   "/organisations": [ORGANISATION, OTHER_ORGANISATION],
+  "/assessments": [ASSESSMENT],
+  "/users/directory": DIRECTORY,
 };
 
 beforeAll(() => {
@@ -112,6 +134,7 @@ const TABLE_PAGES: [name: string, element: ReactElement, settled: string][] = [
   ["Pitches", <PitchesPage />, PITCH.title],
   ["Contacts", <ContactsPage />, CONTACT.email],
   ["Organisations", <OrganisationsPage />, ORGANISATION.name],
+  ["Assessments", <AssessmentsPage />, PITCH.title],
 ];
 
 describe("pages with a table, on a 360px screen", () => {

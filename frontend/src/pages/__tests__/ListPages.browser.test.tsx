@@ -6,6 +6,7 @@ import AssessmentsPage from "../AssessmentsPage";
 import ContactsPage from "../ContactsPage";
 import MeetingsPage from "../MeetingsPage";
 import OrganisationsPage from "../OrganisationsPage";
+import PipelinePage from "../PipelinePage";
 import PitchesPage from "../PitchesPage";
 import ReportsPage from "../ReportsPage";
 import UsersPage from "../UsersPage";
@@ -231,6 +232,30 @@ describe("pages with a table, on a 360px screen", () => {
       await expect.poll(() => container.scrollLeft).toBeGreaterThan(0);
     },
   );
+});
+
+// The pipeline opens on the board, so its table sits behind the list toggle.
+// Only the table is this ticket's business: the board itself, and the stage
+// control the list needs on a touchscreen, belong to the pipeline's own slice.
+describe("the pipeline list, on a 360px screen", () => {
+  it("lets a reader scroll its table sideways", async () => {
+    await show(<PipelinePage />, PITCH.title);
+    await userEvent.click(page.getByRole("button", { name: "List" }));
+    const container = page.getByTestId("table-scroll").element();
+    container.id = "pipeline-table";
+
+    await commands.scrollX("#pipeline-table", 200);
+
+    await expect.poll(() => container.scrollLeft).toBeGreaterThan(0);
+  });
+
+  it("does not overflow the viewport", async () => {
+    await show(<PipelinePage />, PITCH.title);
+
+    await userEvent.click(page.getByRole("button", { name: "List" }));
+
+    expect(viewportOverflow()).toBeLessThanOrEqual(0);
+  });
 });
 
 // The organisation picker opens out of an editing row, and a scroll container

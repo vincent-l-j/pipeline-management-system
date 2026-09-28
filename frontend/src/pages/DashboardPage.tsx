@@ -242,11 +242,13 @@ export default function DashboardPage(): React.JSX.Element {
                   return (
                     <div
                       key={m.month}
-                      // min-w-0 is the guard, not the fix: a flex item defaults to
+                      // min-w-0, with the label's w-full and truncate, is the
+                      // guard rather than the fix: a flex item defaults to
                       // min-width: auto, so a label wider than its share sets a
                       // floor flex-1 cannot shrink past and the row leaves the
-                      // card. Short labels keep it under that floor today; this
-                      // keeps a longer one from reaching the page.
+                      // card. Short labels stay under that floor today; should
+                      // one grow, the three spend it on an ellipsis instead of
+                      // on overlapping neighbours or a wider page.
                       className="flex-1 min-w-0 flex flex-col items-center justify-end"
                       title={m.month}
                     >
@@ -261,7 +263,9 @@ export default function DashboardPage(): React.JSX.Element {
                         // The bars row has no role, and the labels are what the
                         // card's width is measured against.
                         data-testid="month-label"
-                        className="text-[9px] text-navy-400 mt-1.5"
+                        // w-full is what lets truncate bite: a flex item
+                        // shrink-wraps its text, leaving nothing to clip.
+                        className="text-[9px] text-navy-400 mt-1.5 w-full text-center truncate"
                       >
                         {monthName(m.month)}
                       </span>

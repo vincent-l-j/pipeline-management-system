@@ -47,6 +47,38 @@ interface VelocityReport {
   recent_30_days: Recent30Days;
 }
 
+const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];
+
+/** "2026-04" → "Apr", falling back to the raw value for anything unexpected. */
+function monthName(month: string): string {
+  return MONTH_NAMES[Number(month.slice(5, 7)) - 1] ?? month;
+}
+
+/** The span the bars cover, e.g. "Oct 2025 – Sep 2026". */
+function monthRange(months: PitchMonth[]): string {
+  // A length check rather than a truthiness check on the elements: the empty
+  // series reaches here (the heading renders before the bars do), and the
+  // compiler does not model index access as possibly-undefined.
+  if (months.length === 0) return "";
+  const ends = [months[0], months[months.length - 1]].map(
+    (m) => `${monthName(m.month)} ${m.month.slice(0, 4)}`,
+  );
+  return ends[0] === ends[1] ? ends[0] : ends.join(" – ");
+}
+
 const STAGE_CONFIG: StageConfig[] = [
   { key: "received", label: "Received", color: "bg-blue-500" },
   { key: "initial_screen", label: "Initial Screen", color: "bg-sky-500" },
@@ -197,28 +229,47 @@ export default function DashboardPage(): React.JSX.Element {
               No data yet — pitches will appear here as they are added.
             </p>
           ) : (
-            <div className="flex items-end gap-2 h-40">
-              {pitches_per_month.map((m: PitchMonth) => {
-                const height = Math.max((m.count / maxMonthly) * 100, 4);
-                return (
-                  <div
-                    key={m.month}
-                    className="flex-1 flex flex-col items-center justify-end"
-                  >
-                    <span className="text-xs font-semibold text-navy-900 mb-1">
-                      {m.count}
-                    </span>
+            <>
+              {/* The year rides here rather than on each bar: twelve dated
+                  labels cannot fit a 360px card, and the span reads once for
+                  all of them. */}
+              <p className="text-xs text-navy-400 -mt-3 mb-4">
+                {monthRange(pitches_per_month)}
+              </p>
+              <div className="flex items-end gap-1 sm:gap-2 h-40">
+                {pitches_per_month.map((m: PitchMonth) => {
+                  const height = Math.max((m.count / maxMonthly) * 100, 4);
+                  return (
                     <div
-                      className="w-full bg-navy-800 rounded-t-md transition-all"
-                      style={{ height: `${String(height)}%` }}
-                    />
-                    <span className="text-[9px] text-navy-400 mt-1.5 -rotate-45 origin-top-left whitespace-nowrap">
-                      {m.month}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+                      key={m.month}
+                      // min-w-0 is the guard, not the fix: a flex item defaults to
+                      // min-width: auto, so a label wider than its share sets a
+                      // floor flex-1 cannot shrink past and the row leaves the
+                      // card. Short labels keep it under that floor today; this
+                      // keeps a longer one from reaching the page.
+                      className="flex-1 min-w-0 flex flex-col items-center justify-end"
+                      title={m.month}
+                    >
+                      <span className="text-xs font-semibold text-navy-900 mb-1">
+                        {m.count}
+                      </span>
+                      <div
+                        className="w-full bg-navy-800 rounded-t-md transition-all"
+                        style={{ height: `${String(height)}%` }}
+                      />
+                      <span
+                        // The bars row has no role, and the labels are what the
+                        // card's width is measured against.
+                        data-testid="month-label"
+                        className="text-[9px] text-navy-400 mt-1.5"
+                      >
+                        {monthName(m.month)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
 

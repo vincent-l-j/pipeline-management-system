@@ -955,23 +955,6 @@ def test_filter_by_stage(admin_client):
     assert all(s == "declined" for s in stages)
 
 
-# --- File links ---
-
-
-def test_file_link_routes_are_gone(admin_client):
-    # Attachments replaced linked files; reviving these endpoints would revive a
-    # second, unasserted way to attach a file to a pitch.
-    create = admin_client.post("/api/pitches", json={"title": "No File Links"})
-    pitch_id = create.json()["id"]
-
-    assert admin_client.get(f"/api/pitches/{pitch_id}/files").status_code == 404
-    resp = admin_client.post(
-        f"/api/pitches/{pitch_id}/files",
-        json={"file_path": "/docs/proposal.pdf", "label": "Proposal"},
-    )
-    assert resp.status_code == 404
-
-
 # --- Timeline ---
 
 

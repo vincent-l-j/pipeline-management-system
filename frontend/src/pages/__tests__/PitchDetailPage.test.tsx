@@ -101,7 +101,6 @@ vi.mock("../../components/Layout", () => ({
 vi.mock("../../components/pitch/ActivityTimeline", () => ({
   default: () => <div />,
 }));
-vi.mock("../../components/pitch/FileLinks", () => ({ default: () => <div /> }));
 vi.mock("../../components/pitch/PitchAttachments", () => ({
   default: () => <div />,
 }));
@@ -141,6 +140,13 @@ function setupGet(pitch: Pitch = BASE_PITCH, contacts: Contact[] = CONTACTS) {
 describe("PitchDetailPage", () => {
   beforeEach(() => {
     mockUser = { role: "admin" };
+  });
+
+  it("offers no linked-files card — attachments are the only way to attach a file", async () => {
+    setupGet();
+    render(<PitchDetailPage />);
+    await waitFor(() => screen.getByText("Test Pitch"));
+    expect(screen.queryByText("Linked Files")).not.toBeInTheDocument();
   });
 
   it("shows an Edit link to the edit route for admin", async () => {

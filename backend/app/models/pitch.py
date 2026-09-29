@@ -106,7 +106,6 @@ class Pitch(Base, TimestampMixin):
     contact_links = relationship(
         "PitchContact", back_populates="pitch", cascade="all, delete-orphan"
     )
-    file_links = relationship("PitchFileLink", back_populates="pitch", cascade="all, delete-orphan")
     # The rows go with the pitch; the files themselves stay in the store.
     attachments = relationship(
         "PitchAttachment", back_populates="pitch", cascade="all, delete-orphan"
@@ -164,7 +163,8 @@ class PitchContact(Base):
 
 
 class PitchFileLink(Base, TimestampMixin):
-    """Local file path references attached to a pitch (no file storage in DB)."""
+    """Superseded by PitchAttachment; kept only so the models still describe the
+    table until the migration that drops it. Nothing reads or writes it."""
 
     __tablename__ = "pitch_file_links"
 
@@ -173,5 +173,3 @@ class PitchFileLink(Base, TimestampMixin):
     file_path: Mapped[str] = mapped_column(String(1000))
     label: Mapped[str | None] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text)
-
-    pitch = relationship("Pitch", back_populates="file_links")

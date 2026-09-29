@@ -1,4 +1,4 @@
-"""Pitch CRUD routes with stage transitions and file links."""
+"""Pitch CRUD routes with stage transitions."""
 
 from uuid import UUID
 
@@ -9,13 +9,11 @@ from app.core.database import get_db
 from app.core.security import get_current_user, require_role
 from app.models.assessment import Assessment, DeclineReason
 from app.models.contact import Contact
-from app.models.pitch import PipelineStage, Pitch, PitchContact, PitchFileLink, PitchStageHistory
+from app.models.pitch import PipelineStage, Pitch, PitchContact, PitchStageHistory
 from app.models.user import User, UserRole
 from app.schemas.assessment import AssessmentOut
 from app.schemas.pitch import (
     PitchCreate,
-    PitchFileLinkCreate,
-    PitchFileLinkOut,
     PitchOut,
     PitchStageUpdate,
     PitchUpdate,
@@ -261,32 +259,3 @@ def delete_pitch(
     db.delete(pitch)
     db.commit()
     return {"detail": "Pitch deleted"}
-
-
-# --- File links ---
-
-
-@router.post("/{pitch_id}/files", response_model=PitchFileLinkOut)
-def add_file_link(
-    pitch_id: UUID,
-    data: PitchFileLinkCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.ADMIN, UserRole.ASSESSOR)),
-):
-    pitch = db.query(Pitch).filter(Pitch.id == pitch_id).first()
-    if not pitch:
-        raise HTTPException(status_code=404, detail="Pitch not found")
-    link = PitchFileLink(pitch_id=pitch_id, **data.model_dump())
-    db.add(link)
-    db.commit()
-    db.refresh(link)
-    return link
-
-
-@router.get("/{pitch_id}/files", response_model=list[PitchFileLinkOut])
-def list_file_links(
-    pitch_id: UUID,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    return db.query(PitchFileLink).filter(PitchFileLink.pitch_id == pitch_id).all()

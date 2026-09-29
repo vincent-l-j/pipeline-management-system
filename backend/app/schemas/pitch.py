@@ -85,19 +85,3 @@ class PitchOut(BaseModel):
     decline_reason: DeclineReason | None = None
 
     model_config = {"from_attributes": True}
-
-
-class PitchFileLinkCreate(BaseModel):
-    file_path: str
-    label: str | None = None
-    description: str | None = None
-
-
-class PitchFileLinkOut(BaseModel):
-    id: UUID
-    pitch_id: UUID
-    file_path: str
-    label: str | None
-    description: str | None
-
-    model_config = {"from_attributes": True}

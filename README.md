@@ -7,7 +7,7 @@ It records pitches from submission to final decision, logs meetings (with option
 ## Features
 
 - **Pipeline board** — drag-and-drop Kanban across 10 stages (Received → … → Completed), plus a list view with filters
-- **Pitches** — full records with source, funding pathway, domains, lead, confidentiality, linked files, and an activity timeline
+- **Pitches** — full records with source, funding pathway, domains, lead, confidentiality, attachments, and an activity timeline
 - **Organisations & Contacts** — external parties linked to pitches and meetings
 - **Meetings** — summaries, key points, action items, attendees, and an **AI Notetaker** that turns raw notes into structured records (Claude, with a basic-parser fallback)
 - **Assessments** — versioned scoring against 6 criteria (1–5) with a Proceed / Park / Decline recommendation; prior versions are never overwritten

@@ -1,4 +1,4 @@
-"""Tests for /api/pitches CRUD, stage transitions, file links, and RBAC."""
+"""Tests for /api/pitches CRUD, stage transitions, and RBAC."""
 
 from uuid import UUID
 
@@ -138,11 +138,11 @@ def test_unauthenticated_delete_is_rejected(client):
 
 def test_delete_pitch_removes_dependent_rows(admin_client, db_session):
     """Deleting a pitch removes everything it owns in the same transaction:
-    stage history, contact links, file links, assessments, meetings, and the
-    attendee rows hanging off those meetings."""
+    stage history, contact links, assessments, meetings, and the attendee rows
+    hanging off those meetings."""
     from app.models.assessment import Assessment
     from app.models.meeting import Meeting, MeetingAttendee
-    from app.models.pitch import PitchContact, PitchFileLink, PitchStageHistory
+    from app.models.pitch import PitchContact, PitchStageHistory
 
     pitch_id = admin_client.post("/api/pitches", json={"title": "Fully Linked Pitch"}).json()["id"]
     contact_id = admin_client.post(
@@ -176,10 +176,6 @@ def test_delete_pitch_removes_dependent_rows(admin_client, db_session):
             "assessment_date": "2026-06-10",
         },
     )
-    admin_client.post(
-        f"/api/pitches/{pitch_id}/files",
-        json={"file_path": "/docs/deck.pdf", "label": "Deck"},
-    )
     admin_client.post(f"/api/pitches/{pitch_id}/stage", json={"new_stage": "initial_screen"})
 
     # PitchContact has no create endpoint — insert the join row directly.
@@ -194,7 +190,6 @@ def test_delete_pitch_removes_dependent_rows(admin_client, db_session):
     pid = UUID(pitch_id)
     assert db_session.query(PitchStageHistory).filter_by(pitch_id=pid).count() == 0
     assert db_session.query(PitchContact).filter_by(pitch_id=pid).count() == 0
-    assert db_session.query(PitchFileLink).filter_by(pitch_id=pid).count() == 0
     assert db_session.query(Assessment).filter_by(pitch_id=pid).count() == 0
     assert db_session.query(Meeting).filter_by(pitch_id=pid).count() == 0
     assert db_session.query(MeetingAttendee).filter_by(meeting_id=UUID(meeting_id)).count() == 0
@@ -963,36 +958,18 @@ def test_filter_by_stage(admin_client):
 # --- File links ---
 
 
-def test_add_file_link(admin_client):
-    create = admin_client.post("/api/pitches", json={"title": "File Link Pitch"})
+def test_file_link_routes_are_gone(admin_client):
+    # Attachments replaced linked files; reviving these endpoints would revive a
+    # second, unasserted way to attach a file to a pitch.
+    create = admin_client.post("/api/pitches", json={"title": "No File Links"})
     pitch_id = create.json()["id"]
 
+    assert admin_client.get(f"/api/pitches/{pitch_id}/files").status_code == 404
     resp = admin_client.post(
         f"/api/pitches/{pitch_id}/files",
         json={"file_path": "/docs/proposal.pdf", "label": "Proposal"},
     )
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["file_path"] == "/docs/proposal.pdf"
-    assert body["label"] == "Proposal"
-
-
-def test_list_file_links(admin_client):
-    create = admin_client.post("/api/pitches", json={"title": "File List Pitch"})
-    pitch_id = create.json()["id"]
-
-    admin_client.post(
-        f"/api/pitches/{pitch_id}/files",
-        json={"file_path": "/docs/a.pdf", "label": "Doc A"},
-    )
-    admin_client.post(
-        f"/api/pitches/{pitch_id}/files",
-        json={"file_path": "/docs/b.pdf", "label": "Doc B"},
-    )
-
-    resp = admin_client.get(f"/api/pitches/{pitch_id}/files")
-    assert resp.status_code == 200
-    assert len(resp.json()) == 2
+    assert resp.status_code == 404
 
 
 # --- Timeline ---

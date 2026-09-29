@@ -1,9 +1,6 @@
 /**
  * A pitch's attachments: drop a file on the pitch, or tap the zone to pick one,
- * and see it attached.
- *
- * Distinct from `FileLinks` next to it, which only records a path. These files
- * are really uploaded, to the document store.
+ * and see it attached. The files are really uploaded, to the document store.
  */
 
 import { useEffect, useState } from "react";

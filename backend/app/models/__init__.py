@@ -4,7 +4,7 @@ from app.models.base import Base
 from app.models.contact import Contact, ContactOrganisation
 from app.models.meeting import Meeting, MeetingAttendee
 from app.models.organisation import Organisation
-from app.models.pitch import Pitch, PitchContact, PitchFileLink, PitchStageHistory
+from app.models.pitch import Pitch, PitchContact, PitchStageHistory
 from app.models.user import User
 
 __all__ = [
@@ -18,7 +18,6 @@ __all__ = [
     "Pitch",
     "PitchAttachment",
     "PitchContact",
-    "PitchFileLink",
     "PitchStageHistory",
     "User",
 ]

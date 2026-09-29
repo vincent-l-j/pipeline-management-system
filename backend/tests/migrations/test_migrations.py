@@ -374,3 +374,34 @@ def test_contact_organisations_downgrade_keeps_one_affiliation(alembic, clean_db
         ("Linked", _ALPHA_ORG),
         ("Unlinked", None),
     ]
+
+
+# --- Level 2 (per-revision): the pitch_file_links drop ------------------------
+
+_PITCH_ATTACHMENTS = "d2f9a4c17e83"
+
+
+def _tables(url: str) -> set[str]:
+    from sqlalchemy import create_engine, inspect
+
+    engine = create_engine(url)
+    names = set(inspect(engine).get_table_names())
+    engine.dispose()
+    return names
+
+
+def test_dropping_pitch_file_links_is_reversible_as_an_empty_table(alembic, clean_db, pg_url):
+    """The drop takes the table out and the downgrade puts it back — empty.
+
+    Linked files were superseded by pitch attachments (docs/adr/0002). The
+    downgrade restores shape, not contents, which is what keeps `downgrade -1`
+    usable on the revisions stacked above this one.
+    """
+    alembic("upgrade", _PITCH_ATTACHMENTS)
+    assert "pitch_file_links" in _tables(pg_url)
+
+    alembic("upgrade", "head")
+    assert "pitch_file_links" not in _tables(pg_url)
+
+    alembic("downgrade", "-1")
+    assert "pitch_file_links" in _tables(pg_url)

@@ -15,11 +15,17 @@ is invisible at the moment anyone would look for it, and surfaces later as a fai
 in a test whose subject has nothing to do with the change that triggered it. The
 person who pays is whoever adds the next migration, and the red they get points at
 someone else's feature.
-Rule: name the revision on both ends — `alembic("upgrade", _THE_REVISION)` and
-`alembic("downgrade", _THE_ONE_BEFORE)` — so the test steps over exactly the revision
-it is about, wherever head ends up. `head` belongs only in tests whose subject really
-is the whole chain, such as the round-trip and `alembic check` cases. Relative steps
-are safe only when the walk itself is pinned, as in the single-column-drop test, which
-upgrades to each listed revision before stepping back through the same list.
-Check: a test under `tests/migrations/` that names a specific revision in one call and
-uses `"head"` or `"-1"` in another.
+Rule: every assertion must be evaluated at a **pinned position**. That is narrower
+than "never use `head`", and the difference matters, because two tests in the same
+file use floating positions correctly. `test_dropped_column_values_do_not_survive_a_downgrade`
+upgrades to `head` and returns to a named anchor: the journey lengthens as revisions
+land, the destination does not, and the claim it makes — that seeded values do not
+survive a trip up and back — legitimately grows stronger. `test_each_drop_is_a_separate_single_column_revision`
+steps back with `-1`, but from a pinned start through a pinned list, and `-1`
+granularity is the very property it asserts. The defect is only ever the combination
+where the assertion point itself floats: `head` up and `-1` back names no fixed place,
+so what the test steps over changes as the history grows.
+Check: a call to `alembic("downgrade", "-1")` or `alembic("upgrade", "head")` after
+which an assertion runs, where the landing revision is not fixed — neither named
+outright nor reached by a pinned walk. Ask "which revision is the database at on this
+line, and will that still be true after the next migration lands?"

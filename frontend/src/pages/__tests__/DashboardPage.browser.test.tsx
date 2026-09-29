@@ -127,14 +127,6 @@ describe("the pitches-per-month chart", () => {
   it("draws bars in proportion to their counts", async () => {
     const [one, two] = await barHeights([1, 2]);
 
-    // A bar's height is proportional to its count, which is the whole claim a
-    // bar chart makes. Give the bar a box it shares with the count and the
-    // label and flex shrinks the tallest one to fit around them, so the tallest
-    // bar understates itself by however much text sits beside it.
-    //
-    // Exact, not approximate: these counts are half and all of the plot box, so
-    // the browser has whole pixels to work with. Anything off by even one is a
-    // bar that is no longer telling the truth about its number.
     expect(two).toBe(one * 2);
   });
 

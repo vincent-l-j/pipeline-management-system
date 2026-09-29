@@ -379,6 +379,7 @@ def test_contact_organisations_downgrade_keeps_one_affiliation(alembic, clean_db
 # --- Level 2 (per-revision): the pitch_file_links drop ------------------------
 
 _PITCH_ATTACHMENTS = "d2f9a4c17e83"
+_DROP_PITCH_FILE_LINKS = "1ccc89086896"
 
 
 def _tables(url: str) -> set[str]:
@@ -396,12 +397,15 @@ def test_dropping_pitch_file_links_is_reversible_as_an_empty_table(alembic, clea
     Linked files were superseded by pitch attachments (docs/adr/0002). The
     downgrade restores shape, not contents, which is what keeps `downgrade -1`
     usable on the revisions stacked above this one.
+
+    Both ends are pinned to revisions rather than `head`/`-1`, so a later
+    migration cannot quietly move what this steps over.
     """
     alembic("upgrade", _PITCH_ATTACHMENTS)
     assert "pitch_file_links" in _tables(pg_url)
 
-    alembic("upgrade", "head")
+    alembic("upgrade", _DROP_PITCH_FILE_LINKS)
     assert "pitch_file_links" not in _tables(pg_url)
 
-    alembic("downgrade", "-1")
+    alembic("downgrade", _PITCH_ATTACHMENTS)
     assert "pitch_file_links" in _tables(pg_url)

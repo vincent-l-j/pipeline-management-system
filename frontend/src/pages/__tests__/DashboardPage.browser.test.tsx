@@ -127,10 +127,7 @@ describe("the pitches-per-month chart", () => {
   it("draws bars in proportion to their counts", async () => {
     const [one, two] = await barHeights([1, 2]);
 
-    // The point of a bar chart, and the part that survived the first fix: with
-    // the count and the label sharing the bar's box, the taller bar was shrunk
-    // to fit around them and drew 1.5x the shorter rather than twice it.
-    expect(two).toBeCloseTo(one * 2, 0);
+    expect(two).toBe(one * 2);
   });
 
   it("draws nothing for a month without pitches", async () => {

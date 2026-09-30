@@ -96,6 +96,14 @@ async function showForm() {
   await expect.element(page.getByText(LEAD.display_name)).toBeInTheDocument();
 }
 
+/** Scoped to the labelled group, so the save bar's buttons stay out of it. */
+function domainChips(): Element[] {
+  return page
+    .getByRole("group", { name: "Domains" })
+    .getByRole("button")
+    .elements();
+}
+
 const saveButton = () => page.getByRole("button", { name: "Add Pitch" });
 
 /** Taps by accessible name: the row is found as a user finds it, then touched. */
@@ -131,6 +139,32 @@ describe("creating a pitch on a 360px screen", () => {
     await showForm();
 
     expect(squeezedFields(PAIRED_FIELDS)).toEqual([]);
+  });
+
+  it("wraps the domain chips onto more than one line", async () => {
+    await showForm();
+
+    const lines = new Set(
+      domainChips().map((chip) => chip.getBoundingClientRect().top),
+    );
+
+    expect(lines.size).toBeGreaterThan(1);
+  });
+
+  it("gives every domain chip a 44px touch target", async () => {
+    await showForm();
+
+    const chips = domainChips();
+    expect(chips.length).toBeGreaterThan(0);
+    // Named rather than counted, so a failure says which chip is too small.
+    const small = chips
+      .filter((chip) => {
+        const { width, height } = chip.getBoundingClientRect();
+        return width < 44 || height < 44;
+      })
+      .map((chip) => chip.textContent);
+
+    expect(small).toEqual([]);
   });
 
   // The whole point of the pinned bar: the form is several screens long, and

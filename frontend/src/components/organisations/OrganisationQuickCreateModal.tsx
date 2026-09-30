@@ -139,7 +139,9 @@ export default function OrganisationQuickCreateModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          {/* One column below `sm`: inside the dialog's own padding, two leave
+              each field about 134px. */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <OptionSelect
               id="quick-org-type"
               label="Type"

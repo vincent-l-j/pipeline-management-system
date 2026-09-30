@@ -1,23 +1,4 @@
-/**
- * The row of form actions, pinned to the bottom of the viewport on a phone.
- *
- * These forms run several screens long on a 360px screen, so a save button that
- * sits after the last field is a button the user has to go looking for. Sticky
- * rather than fixed: it belongs to the form, so it stops at the form's end
- * instead of floating over whatever follows.
- *
- * It is a container and nothing else — the caller supplies its own buttons, so
- * a create page can say "Add Pitch" where an edit page says "Save Changes".
- *
- * Three details are easy to undo by accident:
- *   - `pb` adds `env(safe-area-inset-bottom)`, or the buttons sit under the
- *     gesture bar on a handset that has one. `index.html` opts the viewport in
- *     with `viewport-fit=cover`, which is what makes the inset resolve.
- *   - `print:hidden`, because the print stylesheet hides buttons but not their
- *     container, which would otherwise print as a rule and a grey band.
- *   - From `md` up it is a plain static row again, so the desktop form looks
- *     exactly as it did before the bar existed.
- */
+/** A form's actions, pinned to the bottom of the screen on a phone. */
 
 import { ReactNode } from "react";
 
@@ -28,7 +9,14 @@ interface SaveBarProps {
 export default function SaveBar({ children }: SaveBarProps): React.JSX.Element {
   return (
     <div
+      // No role of its own, and the print check has to aim at the container
+      // rather than the buttons the print stylesheet already hides.
       data-testid="save-bar"
+      // Sticky, not fixed, so it stops at the form's end rather than floating
+      // over whatever follows. `pb` clears the gesture bar (`index.html` carries
+      // the `viewport-fit=cover` that makes the inset resolve); `print:hidden`
+      // because the print stylesheet hides buttons but not their container; and
+      // from `md` it is the plain static row it was before.
       className="sticky bottom-0 flex gap-3 border-t border-navy-100 bg-gray-50 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] print:hidden md:static md:border-0 md:bg-transparent md:pt-2 md:pb-0"
     >
       {children}

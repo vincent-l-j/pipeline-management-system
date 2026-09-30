@@ -1,4 +1,4 @@
-import { commands, page } from "vitest/browser";
+import { commands, page, userEvent } from "vitest/browser";
 import { cleanup, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import PitchCreatePage from "../PitchCreatePage";
@@ -17,11 +17,16 @@ vi.mock("../../contexts/AuthContext", () => ({
 
 const LEAD = { id: "u1", display_name: "Alexandra McConnell-Fitzwilliam" };
 
+/** Long the way real records are long, so nothing fits a 360px column. */
+const ORGANISATION_NAME = "Wintergreen Innovation Partners (Australia) Limited";
+const CONTACT_LABEL =
+  "Bartholomew Wintergreen-Fitzwilliam (bartholomew.wintergreen@example.com)";
+
 const RESPONSES: Record<string, unknown> = {
   "/organisations": [
     {
       id: "o1",
-      name: "Wintergreen Innovation Partners (Australia) Limited",
+      name: ORGANISATION_NAME,
       org_type: "university",
       sector: null,
       state_territory: "NSW",
@@ -42,6 +47,10 @@ const RESPONSES: Record<string, unknown> = {
   ],
   "/users/directory": [LEAD],
 };
+
+/** The chips carry no id, so a tap is aimed with Playwright's text engine. */
+const domainChip = (domain: string) =>
+  `[role="group"] button:text-is("${domain}")`;
 
 /** The fields the form pairs into a grid on a wide screen. */
 const PAIRED_FIELDS = [
@@ -98,6 +107,20 @@ function domainChips(): Element[] {
 
 const saveButton = () => page.getByRole("button", { name: "Add Pitch" });
 
+/** Taps by accessible name: the row is found as a user finds it, then touched. */
+async function tapOption(name: string) {
+  await commands.tap(`#${page.getByRole("option", { name }).element().id}`);
+}
+
+/** The labels of any of `fields` that a second column would have squeezed. */
+function squeezedFields(fields: string[]): string[] {
+  return fields.filter(
+    (label) =>
+      page.getByLabelText(label).element().getBoundingClientRect().width <
+      window.innerWidth / 2,
+  );
+}
+
 describe("creating a pitch on a 360px screen", () => {
   // Guards the file: at the wrong width everything below passes vacuously.
   it("runs at the width the mobile layout was designed for", () => {
@@ -116,12 +139,7 @@ describe("creating a pitch on a 360px screen", () => {
   it("gives every paired field a column to itself", async () => {
     await showForm();
 
-    const narrow = PAIRED_FIELDS.filter((label) => {
-      const field = page.getByLabelText(new RegExp(label)).element();
-      return field.getBoundingClientRect().width < window.innerWidth / 2;
-    });
-
-    expect(narrow).toEqual([]);
+    expect(squeezedFields(PAIRED_FIELDS)).toEqual([]);
   });
 
   it("wraps the domain chips onto more than one line", async () => {
@@ -179,6 +197,65 @@ describe("creating a pitch on a 360px screen", () => {
     );
 
     expect(button.contains(atButton)).toBe(true);
+  });
+
+  // The way an unknown party gets onto a pitch, and the one path out of the
+  // form: a squeezed dialog blocks the save behind it.
+  it("opens the create-contact dialog with its name fields in one column", async () => {
+    await showForm();
+    await commands.tap("#pitch-contacts");
+    await userEvent.fill(
+      page.getByRole("combobox", { name: "Add contact" }),
+      "Nora Nobody",
+    );
+
+    await tapOption('Add "Nora Nobody" as a new contact');
+
+    expect(squeezedFields(["First name", "Last name"])).toEqual([]);
+  });
+
+  it("opens the create-organisation dialog with its paired fields in one column", async () => {
+    await showForm();
+    await commands.tap("#pitch-organisation");
+    await userEvent.fill(
+      page.getByRole("combobox", { name: "Organisation" }),
+      "Gamma Labs",
+    );
+
+    await tapOption('Add "Gamma Labs" as a new organisation');
+
+    expect(squeezedFields(["Type", "State/Territory"])).toEqual([]);
+  });
+
+  // The flow the ticket exists for, driven by a finger the whole way.
+  it("creates a pitch end to end by touch", async () => {
+    apiMocks.post.mockResolvedValue({ data: { id: "new-pitch" } });
+    await showForm();
+
+    await userEvent.fill(
+      page.getByLabelText("Title *"),
+      "Rangeland carbon sensing",
+    );
+    await commands.tap("#pitch-organisation");
+    await tapOption(ORGANISATION_NAME);
+    await commands.tap("#pitch-contacts");
+    await tapOption(CONTACT_LABEL);
+    await commands.tap(domainChip("Health"));
+
+    await commands.tap('[data-testid="save-bar"] button[type="submit"]');
+
+    await expect
+      .poll(() => apiMocks.post.mock.mock.calls.length)
+      .toBeGreaterThan(0);
+    expect(apiMocks.post.mock).toHaveBeenCalledWith(
+      "/pitches",
+      expect.objectContaining({
+        title: "Rangeland carbon sensing",
+        organisation_id: "o1",
+        contact_ids: ["c1"],
+        domain_tags: "Health",
+      }),
+    );
   });
 
   // On paper the bar is a rule and a grey band around two hidden buttons.

@@ -171,12 +171,22 @@ whoever inserts the next test.
   own list while that list is open.
 - `components/ui/SaveBar` holds a form's actions and pins them to the bottom of
   the viewport below `md`, so a save is reachable from the first screen of a
-  form several screens long; at `md` and up it is a plain static row. It adds
-  `env(safe-area-inset-bottom)` to its bottom padding — `index.html` carries the
-  `viewport-fit=cover` that makes that inset resolve — and hides itself on
-  paper, because the print stylesheet hides buttons but not the container around
-  them. **Only `PitchCreatePage` uses it so far**; the edit, assessment and
-  meeting forms still carry bare action rows and are the ones to convert next.
+  form several screens long; at `md` and up it is a plain `flex gap-3` row. It
+  adds `env(safe-area-inset-bottom)` to its bottom padding — `index.html`
+  carries the `viewport-fit=cover` that makes that inset resolve — and hides
+  itself on paper, which matters when the print comes from a phone: paper is
+  wider than `md`, so at a desk the band has already gone.
+  - It paints `bg-gray-50`, the background `index.html` puts on `<body>`,
+    because a transparent bar lets the form scroll through it. A form inside a
+    white card would need a different surface.
+  - At `md` it adds no padding of its own, so **the form spaces the actions
+    away from the last field, the way it spaces everything else**. A primitive
+    that shipped one page's spacing to every other page is the bug this avoids.
+  - It has to be the form's last child, or it floats over whatever follows.
+    `AssessmentCreatePage` ends with an explanatory `<p>` after its actions,
+    which has to move above them before that form can adopt it.
+  - **Only `PitchCreatePage` uses it so far**; the edit, assessment and meeting
+    forms still carry bare action rows and are the ones to convert next.
 
 ## Unit tests (Vitest + React Testing Library)
 
@@ -339,13 +349,14 @@ not a behaviour, and recording it as the latter is what stops the gap closing.
 Checks no suite here can reach. Run them on a real device or the Android
 emulator when touching the component named.
 
-| Component         | Step                                                                                                         | Viewport / device                                 | Expected                                                                                                                        |
-| ----------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `Combobox`        | Tap the field to raise the soft keyboard, then tap an option                                                 | Android, any phone size                           | The keyboard opening does not close the list; the tapped option is committed                                                    |
-| `Combobox`        | With the soft keyboard up, open a list longer than the space above it and scroll to the last row             | Android, any phone size                           | The list is reachable and scrolls; it is not rendered behind the keyboard                                                       |
-| `TableScroll`     | Print a list page (pitches, contacts, organisations, assessments, meetings, reports, admin, pipeline) to PDF | Desktop Chrome                                    | Every page prints exactly as it did before the table gained its scroll container                                                |
-| `SaveBar`         | Open a form that uses it and look at the pinned bar on a handset with a gesture bar                          | iOS Simulator, or Android with gesture navigation | The buttons clear the gesture bar; `env(safe-area-inset-bottom)` cannot be emulated in headless Chromium, which reports it as 0 |
-| `PitchCreatePage` | Create a pitch against the running stack, raising the soft keyboard for every field it has                   | A real phone, or the Android emulator             | Nothing the keyboard covers is unreachable; the browser suite already drives the same flow by tap, but has no keyboard to raise |
+| Component         | Step                                                                                                         | Viewport / device                                  | Expected                                                                                                                                                                                                              |
+| ----------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Combobox`        | Tap the field to raise the soft keyboard, then tap an option                                                 | Android, any phone size                            | The keyboard opening does not close the list; the tapped option is committed                                                                                                                                          |
+| `Combobox`        | With the soft keyboard up, open a list longer than the space above it and scroll to the last row             | Android, any phone size                            | The list is reachable and scrolls; it is not rendered behind the keyboard                                                                                                                                             |
+| `TableScroll`     | Print a list page (pitches, contacts, organisations, assessments, meetings, reports, admin, pipeline) to PDF | Desktop Chrome                                     | Every page prints exactly as it did before the table gained its scroll container                                                                                                                                      |
+| `SaveBar`         | Open a form that uses it and look at the pinned bar                                                          | iOS Simulator, or the **installed** app on Android | The buttons clear the gesture bar. An ordinary Android tab reports the inset as 0 — only the installed edge-to-edge window exposes one, so a browser tab is a false pass. Headless Chromium reports 0 at any viewport |
+| `SaveBar`         | Look at the row of buttons at the foot of a form that uses it                                                | Desktop Chrome, ≥768px                             | A plain row of buttons: no rule above it, no grey band, not pinned, and the gap above it matches the gaps between the form's fields. The harness has one 360px instance, so nothing automated covers this             |
+| `PitchCreatePage` | Create a pitch against the running stack, raising the soft keyboard for every field it has                   | A real phone, or the Android emulator              | Nothing the keyboard covers is unreachable; the browser suite already drives the same flow by tap, but has no keyboard to raise                                                                                       |
 
 ## Checklist before handoff
 

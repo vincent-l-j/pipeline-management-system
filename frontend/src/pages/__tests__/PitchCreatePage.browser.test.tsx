@@ -122,19 +122,28 @@ describe("creating a pitch on a 360px screen", () => {
     expect(bottom).toBeLessThanOrEqual(window.innerHeight);
   });
 
-  // Being inside the viewport is not the same as being reachable: the bar sits
-  // over the form, so this asks what is actually under the finger.
-  it("leaves the save action on top of the form it covers", async () => {
+  // Pinned over blank form, "on top" would mean nothing, so this parks a field
+  // where the bar is and asks what a finger in the overlap would land on.
+  it("covers the fields it is pinned over", async () => {
     await showForm();
-    const button = saveButton().element();
-    const { left, top, width, height } = button.getBoundingClientRect();
+    // Below the fold, or it cannot be scrolled down to where the bar sits, and
+    // not the last field, or the page bottoms out and the bar stops pinning.
+    const field = page.getByLabelText("Masterplan Alignment").element();
+    field.scrollIntoView({ block: "end" });
+    const bar = page.getByTestId("save-bar").element();
 
-    const atButton = document.elementFromPoint(
-      left + width / 2,
-      top + height / 2,
+    const over = bar.getBoundingClientRect();
+    const under = field.getBoundingClientRect();
+    const top = Math.max(over.top, under.top);
+    const bottom = Math.min(over.bottom, under.bottom);
+    expect(bottom).toBeGreaterThan(top);
+
+    const inTheOverlap = document.elementFromPoint(
+      under.left + under.width / 2,
+      (top + bottom) / 2,
     );
 
-    expect(button.contains(atButton)).toBe(true);
+    expect(bar.contains(inTheOverlap)).toBe(true);
   });
 
   // The bar is only worth having if the button in it still saves. Driven by a
@@ -153,7 +162,7 @@ describe("creating a pitch on a 360px screen", () => {
     await tapOption(CONTACT_LABEL);
     await commands.tap(domainChip("Health"));
 
-    await commands.tap('[data-testid="save-bar"] button[type="submit"]');
+    await commands.tap('button[type="submit"]');
 
     await expect
       .poll(() => apiMocks.post.mock.mock.calls.length)

@@ -177,6 +177,9 @@ whoever inserts the next test.
   paper, because the print stylesheet hides buttons but not the container around
   them. **Only `PitchCreatePage` uses it so far**; the edit, assessment and
   meeting forms still carry bare action rows and are the ones to convert next.
+- **A field grid needs a single-column state.** Two columns at 360px leave each
+  field about 156px, which no date input or select can use. Write
+  `grid-cols-1 sm:grid-cols-2`, not `grid-cols-2`.
 
 ## Unit tests (Vitest + React Testing Library)
 
@@ -346,6 +349,7 @@ emulator when touching the component named.
 | `TableScroll`     | Print a list page (pitches, contacts, organisations, assessments, meetings, reports, admin, pipeline) to PDF | Desktop Chrome                                    | Every page prints exactly as it did before the table gained its scroll container                                                |
 | `SaveBar`         | Open a form that uses it and look at the pinned bar on a handset with a gesture bar                          | iOS Simulator, or Android with gesture navigation | The buttons clear the gesture bar; `env(safe-area-inset-bottom)` cannot be emulated in headless Chromium, which reports it as 0 |
 | `PitchCreatePage` | Create a pitch against the running stack, raising the soft keyboard for every field it has                   | A real phone, or the Android emulator             | Nothing the keyboard covers is unreachable; the browser suite already drives the same flow by tap, but has no keyboard to raise |
+| `PitchFormFields` | Widen the window across the `sm` boundary on the new-pitch page                                              | Desktop Chrome, 600px → 700px                     | The paired fields go from one column to two, and the page at `md` and up looks as it did before the mobile work                 |
 
 ## Checklist before handoff
 

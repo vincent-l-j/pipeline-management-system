@@ -43,6 +43,16 @@ const RESPONSES: Record<string, unknown> = {
   "/users/directory": [LEAD],
 };
 
+/** The fields the form pairs into a grid on a wide screen. */
+const PAIRED_FIELDS = [
+  "Submission Date",
+  "Source",
+  "Pitch Request",
+  "Funding Pathway",
+  "Organisation",
+  "Rozetta Lead",
+];
+
 // Registered after React Testing Library's own act-environment beforeAll, so
 // this wins: the page settles outside act(), and that is the rendering a user
 // actually gets.
@@ -78,6 +88,14 @@ async function showForm() {
   await expect.element(page.getByText(LEAD.display_name)).toBeInTheDocument();
 }
 
+/** Scoped to the labelled group, so the save bar's buttons stay out of it. */
+function domainChips(): Element[] {
+  return page
+    .getByRole("group", { name: "Domains" })
+    .getByRole("button")
+    .elements();
+}
+
 const saveButton = () => page.getByRole("button", { name: "Add Pitch" });
 
 describe("creating a pitch on a 360px screen", () => {
@@ -91,6 +109,45 @@ describe("creating a pitch on a 360px screen", () => {
 
     const root = document.documentElement;
     expect(root.scrollWidth).toBeLessThanOrEqual(root.clientWidth);
+  });
+
+  // Two columns at this width leave each of these about 156px wide, which is
+  // the squeeze the single-column collapse exists to undo.
+  it("gives every paired field a column to itself", async () => {
+    await showForm();
+
+    const narrow = PAIRED_FIELDS.filter((label) => {
+      const field = page.getByLabelText(new RegExp(label)).element();
+      return field.getBoundingClientRect().width < window.innerWidth / 2;
+    });
+
+    expect(narrow).toEqual([]);
+  });
+
+  it("wraps the domain chips onto more than one line", async () => {
+    await showForm();
+
+    const lines = new Set(
+      domainChips().map((chip) => chip.getBoundingClientRect().top),
+    );
+
+    expect(lines.size).toBeGreaterThan(1);
+  });
+
+  it("gives every domain chip a 44px touch target", async () => {
+    await showForm();
+
+    const chips = domainChips();
+    expect(chips.length).toBeGreaterThan(0);
+    // Named rather than counted, so a failure says which chip is too small.
+    const small = chips
+      .filter((chip) => {
+        const { width, height } = chip.getBoundingClientRect();
+        return width < 44 || height < 44;
+      })
+      .map((chip) => chip.textContent);
+
+    expect(small).toEqual([]);
   });
 
   // The whole point of the pinned bar: the form is several screens long, and

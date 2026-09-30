@@ -98,9 +98,10 @@ export default function PitchFormFields({
       {/*
         One flat two-column grid rather than a row per pair, so the cells reflow
         on their own. `gap-y-5` matches the `space-y-5` the surrounding form uses
-        between its other fields.
+        between its other fields. Two columns only from `sm` up: below it they
+        would be about 156px each, too narrow for a date or a select.
       */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-5">
+      <div className="grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2">
         <div>
           <label className={labelClass} htmlFor="pitch-submission-date">
             Submission Date
@@ -220,9 +221,17 @@ export default function PitchFormFields({
       </div>
 
       <div>
-        <span className={labelClass}>Domains</span>
+        <span className={labelClass} id="pitch-domains-label">
+          Domains
+        </span>
         <p className="text-xs text-navy-400 mb-2">Select all that apply</p>
-        <div className="flex flex-wrap gap-2">
+        {/* A labelled group, so the chips are reachable as a set rather than as
+            eight buttons loose among the form's others. */}
+        <div
+          role="group"
+          aria-labelledby="pitch-domains-label"
+          className="flex flex-wrap gap-2"
+        >
           {DOMAIN_OPTIONS.map((domain) => {
             const selected = values.domain_tags.includes(domain);
             return (
@@ -234,7 +243,9 @@ export default function PitchFormFields({
                 onClick={() => {
                   toggleDomain(domain);
                 }}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors disabled:opacity-50 ${
+                // 44px each way for a finger, dropped at `md` so the desktop
+                // form keeps the compact pills it has always had.
+                className={`inline-flex min-h-11 min-w-11 items-center justify-center px-3 py-1.5 rounded-full text-sm font-medium border transition-colors disabled:opacity-50 md:min-h-0 md:min-w-0 ${
                   selected
                     ? "bg-teal-100 text-teal-700 border-teal-300"
                     : "bg-white text-navy-500 border-navy-200 hover:border-navy-400"

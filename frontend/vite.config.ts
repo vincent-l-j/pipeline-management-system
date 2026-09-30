@@ -6,6 +6,10 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
     port: 5173,
+    // The devcontainer reaches its siblings by service name, and Vite's host
+    // check 403s a Host header it was not told to expect. Without this, `app`
+    // has no working address for the dev server and ends up running its own.
+    allowedHosts: ["frontend"],
     proxy: {
       "/api": {
         // Right for both container workflows, since Vite runs inside the

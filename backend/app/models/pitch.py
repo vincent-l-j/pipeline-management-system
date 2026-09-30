@@ -160,16 +160,3 @@ class PitchContact(Base):
 
     pitch = relationship("Pitch", back_populates="contact_links")
     contact = relationship("Contact", back_populates="pitch_links")
-
-
-class PitchFileLink(Base, TimestampMixin):
-    """Superseded by PitchAttachment; kept only so the models still describe the
-    table until the migration that drops it. Nothing reads or writes it."""
-
-    __tablename__ = "pitch_file_links"
-
-    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    pitch_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("pitches.id"))
-    file_path: Mapped[str] = mapped_column(String(1000))
-    label: Mapped[str | None] = mapped_column(String(255))
-    description: Mapped[str | None] = mapped_column(Text)

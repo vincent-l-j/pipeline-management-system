@@ -123,6 +123,17 @@ describe("PitchFormFields", () => {
     expect(screen.queryByLabelText(/stage/i)).not.toBeInTheDocument();
   });
 
+  // A phone opens its own picker for a native select and nothing else, so
+  // replacing one of these with a bespoke dropdown would cost the platform
+  // control the user already knows.
+  it.each(["Source", "Pitch Request", "Funding Pathway", "Rozetta Lead"])(
+    "picks %s through a native select",
+    (label) => {
+      setup();
+      expect(screen.getByLabelText(new RegExp(label)).tagName).toBe("SELECT");
+    },
+  );
+
   it("reports a typed title as a partial patch of just that field", async () => {
     const user = userEvent.setup();
     const { onChange } = setup();

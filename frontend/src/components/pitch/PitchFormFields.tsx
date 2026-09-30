@@ -98,9 +98,10 @@ export default function PitchFormFields({
       {/*
         One flat two-column grid rather than a row per pair, so the cells reflow
         on their own. `gap-y-5` matches the `space-y-5` the surrounding form uses
-        between its other fields.
+        between its other fields. Two columns only from `sm` up: below it they
+        would be about 156px each, too narrow for a date or a select.
       */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-5">
+      <div className="grid grid-cols-1 gap-x-4 gap-y-5 sm:grid-cols-2">
         <div>
           <label className={labelClass} htmlFor="pitch-submission-date">
             Submission Date

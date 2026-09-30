@@ -51,6 +51,16 @@ const RESPONSES: Record<string, unknown> = {
 /** The chips carry no id, so a tap is aimed with Playwright's text engine. */
 const domainChip = (domain: string) => `button:text-is("${domain}")`;
 
+/** The fields the form pairs into a grid on a wide screen. */
+const PAIRED_FIELDS = [
+  "Submission Date",
+  "Source",
+  "Pitch Request",
+  "Funding Pathway",
+  "Organisation",
+  "Rozetta Lead",
+];
+
 // Registered after React Testing Library's own act-environment beforeAll, so
 // this wins: the page settles outside act(), and that is the rendering a user
 // actually gets.
@@ -93,6 +103,15 @@ async function tapOption(name: string) {
   await commands.tap(`#${page.getByRole("option", { name }).element().id}`);
 }
 
+/** The labels of any of `fields` that a second column would have squeezed. */
+function squeezedFields(fields: string[]): string[] {
+  return fields.filter(
+    (label) =>
+      page.getByLabelText(label).element().getBoundingClientRect().width <
+      window.innerWidth / 2,
+  );
+}
+
 describe("creating a pitch on a 360px screen", () => {
   // Guards the file: at the wrong width everything below passes vacuously.
   it("runs at the width the mobile layout was designed for", () => {
@@ -104,6 +123,14 @@ describe("creating a pitch on a 360px screen", () => {
 
     const root = document.documentElement;
     expect(root.scrollWidth).toBeLessThanOrEqual(root.clientWidth);
+  });
+
+  // Two columns at this width leave each of these about 156px wide, which is
+  // the squeeze the single-column collapse exists to undo.
+  it("gives every paired field a column to itself", async () => {
+    await showForm();
+
+    expect(squeezedFields(PAIRED_FIELDS)).toEqual([]);
   });
 
   // The whole point of the pinned bar: the form is several screens long, and

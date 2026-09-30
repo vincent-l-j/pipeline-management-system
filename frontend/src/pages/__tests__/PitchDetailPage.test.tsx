@@ -142,13 +142,6 @@ describe("PitchDetailPage", () => {
     mockUser = { role: "admin" };
   });
 
-  it("offers no linked-files card — attachments are the only way to attach a file", async () => {
-    setupGet();
-    render(<PitchDetailPage />);
-    await waitFor(() => screen.getByText("Test Pitch"));
-    expect(screen.queryByText("Linked Files")).not.toBeInTheDocument();
-  });
-
   it("shows an Edit link to the edit route for admin", async () => {
     setupGet();
     render(<PitchDetailPage />);

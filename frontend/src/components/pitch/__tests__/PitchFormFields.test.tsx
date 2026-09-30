@@ -161,6 +161,15 @@ describe("PitchFormFields", () => {
     expect(onChange).toHaveBeenCalledWith({ domain_tags: ["Health"] });
   });
 
+  it("groups the domain pills under the heading above them", () => {
+    setup();
+    expect(
+      within(screen.getByRole("group", { name: "Domains" }))
+        .getAllByRole("button")
+        .map((pill) => pill.textContent),
+    ).toContain("AI");
+  });
+
   it("marks the domain pills that are currently selected", () => {
     setup({ domain_tags: ["AI"] });
     expect(screen.getByRole("button", { name: "AI" })).toHaveAttribute(

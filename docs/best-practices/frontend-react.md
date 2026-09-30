@@ -12,9 +12,10 @@ Tailwind 3, Vitest). Match the existing components.
   component — anything else belongs in a function component.
 - Pages live in `src/pages/`, reusable pieces in `src/components/` (grouped by
   area: `pipeline/`, `pitch/`, `meetings/`, `assessments/`), with the cross-area
-  primitives — the `Combobox`, `OptionSelect` and `formStyles` fields share, and
-  the `TableScroll` every list table sits in — in `ui/`. A `ui/` primitive depends
-  on nothing outside `ui/`; that's what keeps it reusable across areas.
+  primitives — the `Combobox`, `OptionSelect` and `formStyles` fields share, the
+  `SaveBar` a form's actions sit in, and the `TableScroll` every list table sits
+  in — in `ui/`. A `ui/` primitive depends on nothing outside `ui/`; that's what
+  keeps it reusable across areas.
 - **Name a control with `aria-label` on the control itself, not with a visually
   hidden `<label>`.** `sr-only` is `position: absolute`, and `overflow` clips a
   descendant only when the container is also an ancestor of that descendant's
@@ -168,6 +169,14 @@ whoever inserts the next test.
   must claim its own flow room inside the container — `TableScroll` knows nothing
   about its content. `Combobox` does this: it renders a spacer the height of its
   own list while that list is open.
+- `components/ui/SaveBar` holds a form's actions and pins them to the bottom of
+  the viewport below `md`, so a save is reachable from the first screen of a
+  form several screens long; at `md` and up it is a plain static row. It adds
+  `env(safe-area-inset-bottom)` to its bottom padding — `index.html` carries the
+  `viewport-fit=cover` that makes that inset resolve — and hides itself on
+  paper, because the print stylesheet hides buttons but not the container around
+  them. **Only `PitchCreatePage` uses it so far**; the edit, assessment and
+  meeting forms still carry bare action rows and are the ones to convert next.
 
 ## Unit tests (Vitest + React Testing Library)
 
@@ -330,11 +339,13 @@ not a behaviour, and recording it as the latter is what stops the gap closing.
 Checks no suite here can reach. Run them on a real device or the Android
 emulator when touching the component named.
 
-| Component     | Step                                                                                                         | Viewport / device       | Expected                                                                         |
-| ------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------- | -------------------------------------------------------------------------------- |
-| `Combobox`    | Tap the field to raise the soft keyboard, then tap an option                                                 | Android, any phone size | The keyboard opening does not close the list; the tapped option is committed     |
-| `Combobox`    | With the soft keyboard up, open a list longer than the space above it and scroll to the last row             | Android, any phone size | The list is reachable and scrolls; it is not rendered behind the keyboard        |
-| `TableScroll` | Print a list page (pitches, contacts, organisations, assessments, meetings, reports, admin, pipeline) to PDF | Desktop Chrome          | Every page prints exactly as it did before the table gained its scroll container |
+| Component         | Step                                                                                                         | Viewport / device                                 | Expected                                                                                                                        |
+| ----------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `Combobox`        | Tap the field to raise the soft keyboard, then tap an option                                                 | Android, any phone size                           | The keyboard opening does not close the list; the tapped option is committed                                                    |
+| `Combobox`        | With the soft keyboard up, open a list longer than the space above it and scroll to the last row             | Android, any phone size                           | The list is reachable and scrolls; it is not rendered behind the keyboard                                                       |
+| `TableScroll`     | Print a list page (pitches, contacts, organisations, assessments, meetings, reports, admin, pipeline) to PDF | Desktop Chrome                                    | Every page prints exactly as it did before the table gained its scroll container                                                |
+| `SaveBar`         | Open a form that uses it and look at the pinned bar on a handset with a gesture bar                          | iOS Simulator, or Android with gesture navigation | The buttons clear the gesture bar; `env(safe-area-inset-bottom)` cannot be emulated in headless Chromium, which reports it as 0 |
+| `PitchCreatePage` | Create a pitch against the running stack, raising the soft keyboard for every field it has                   | A real phone, or the Android emulator             | Nothing the keyboard covers is unreachable; the browser suite already drives the same flow by tap, but has no keyboard to raise |
 
 ## Checklist before handoff
 

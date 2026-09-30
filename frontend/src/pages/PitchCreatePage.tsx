@@ -11,6 +11,7 @@ import PageHeader from "../components/PageHeader";
 import PitchFormFields from "../components/pitch/PitchFormFields";
 import OrganisationQuickCreateModal from "../components/organisations/OrganisationQuickCreateModal";
 import ContactQuickCreateModal from "../components/contacts/ContactQuickCreateModal";
+import SaveBar from "../components/ui/SaveBar";
 import {
   newPitchForm,
   pitchPayload,
@@ -165,8 +166,7 @@ export default function PitchCreatePage(): React.JSX.Element {
           }
         />
 
-        {/* Submit */}
-        <div className="flex gap-3 pt-2">
+        <SaveBar>
           <button
             type="submit"
             disabled={saving}
@@ -183,7 +183,7 @@ export default function PitchCreatePage(): React.JSX.Element {
           >
             Cancel
           </button>
-        </div>
+        </SaveBar>
       </form>
 
       {/*

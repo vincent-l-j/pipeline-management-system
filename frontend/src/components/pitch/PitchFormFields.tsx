@@ -215,9 +215,15 @@ export default function PitchFormFields({
       </div>
 
       <div>
-        <span className={labelClass}>Domains</span>
+        <span className={labelClass} id="pitch-domains-label">
+          Domains
+        </span>
         <p className="text-xs text-navy-400 mb-2">Select all that apply</p>
-        <div className="flex flex-wrap gap-2">
+        <div
+          role="group"
+          aria-labelledby="pitch-domains-label"
+          className="flex flex-wrap gap-2"
+        >
           {DOMAIN_OPTIONS.map((domain) => {
             const selected = values.domain_tags.includes(domain);
             return (
@@ -229,7 +235,7 @@ export default function PitchFormFields({
                 onClick={() => {
                   toggleDomain(domain);
                 }}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors disabled:opacity-50 ${
+                className={`inline-flex min-h-11 min-w-11 items-center justify-center px-3 py-1.5 rounded-full text-sm font-medium border transition-colors disabled:opacity-50 ${
                   selected
                     ? "bg-teal-100 text-teal-700 border-teal-300"
                     : "bg-white text-navy-500 border-navy-200 hover:border-navy-400"

@@ -230,6 +230,34 @@ describe("creating a pitch on a 360px screen", () => {
     );
   });
 
+  // The way an unknown party gets onto a pitch, and the one path out of the
+  // form: a squeezed dialog blocks the save behind it.
+  it("opens the create-contact dialog with its name fields in one column", async () => {
+    await showForm();
+    await commands.tap("#pitch-contacts");
+    await userEvent.fill(
+      page.getByRole("combobox", { name: "Add contact" }),
+      "Nora Nobody",
+    );
+
+    await tapOption('Add "Nora Nobody" as a new contact');
+
+    expect(squeezedFields(["First name", "Last name"])).toEqual([]);
+  });
+
+  it("opens the create-organisation dialog with its paired fields in one column", async () => {
+    await showForm();
+    await commands.tap("#pitch-organisation");
+    await userEvent.fill(
+      page.getByRole("combobox", { name: "Organisation" }),
+      "Gamma Labs",
+    );
+
+    await tapOption('Add "Gamma Labs" as a new organisation');
+
+    expect(squeezedFields(["Type", "State/Territory"])).toEqual([]);
+  });
+
   // On paper the bar is a rule and a grey band around two hidden buttons.
   it("does not print the save bar", async () => {
     await showForm();

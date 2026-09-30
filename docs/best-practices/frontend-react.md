@@ -12,8 +12,9 @@ Tailwind 3, Vitest). Match the existing components.
   component — anything else belongs in a function component.
 - Pages live in `src/pages/`, reusable pieces in `src/components/` (grouped by
   area: `pipeline/`, `pitch/`, `meetings/`, `assessments/`), with the cross-area
-  primitives — the `Combobox`, `OptionSelect` and `formStyles` fields share, and
-  the `TableScroll` every list table sits in — in `ui/`. A `ui/` primitive depends
+  primitives — the `Combobox`, `OptionSelect` and `formStyles` fields share, the
+  `SaveBar` a form's actions sit in, and the `TableScroll` every list table sits
+  in — in `ui/`. A `ui/` primitive depends
   on nothing outside `ui/`; that's what keeps it reusable across areas.
 - **Name a control with `aria-label` on the control itself, not with a visually
   hidden `<label>`.** `sr-only` is `position: absolute`, and `overflow` clips a
@@ -168,6 +169,16 @@ whoever inserts the next test.
   must claim its own flow room inside the container — `TableScroll` knows nothing
   about its content. `Combobox` does this: it renders a spacer the height of its
   own list while that list is open.
+- A form's actions go inside `components/ui/SaveBar`, which pins them to the
+  bottom of the viewport below `md` so a save is reachable from the first screen
+  of a form several screens long, and is a plain static row again at `md` and
+  up. It adds `env(safe-area-inset-bottom)` to its bottom padding — `index.html`
+  carries the `viewport-fit=cover` that makes that inset resolve — and hides
+  itself on paper, because the print stylesheet hides buttons but not the
+  container around them.
+- **A field grid needs a single-column state.** Two columns at 360px leave each
+  field about 156px, which no date input or select can use. Write
+  `grid-cols-1 sm:grid-cols-2`, not `grid-cols-2`.
 
 ## Unit tests (Vitest + React Testing Library)
 
@@ -330,11 +341,14 @@ not a behaviour, and recording it as the latter is what stops the gap closing.
 Checks no suite here can reach. Run them on a real device or the Android
 emulator when touching the component named.
 
-| Component     | Step                                                                                                         | Viewport / device       | Expected                                                                         |
-| ------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------- | -------------------------------------------------------------------------------- |
-| `Combobox`    | Tap the field to raise the soft keyboard, then tap an option                                                 | Android, any phone size | The keyboard opening does not close the list; the tapped option is committed     |
-| `Combobox`    | With the soft keyboard up, open a list longer than the space above it and scroll to the last row             | Android, any phone size | The list is reachable and scrolls; it is not rendered behind the keyboard        |
-| `TableScroll` | Print a list page (pitches, contacts, organisations, assessments, meetings, reports, admin, pipeline) to PDF | Desktop Chrome          | Every page prints exactly as it did before the table gained its scroll container |
+| Component         | Step                                                                                                         | Viewport / device                                 | Expected                                                                                                                        |
+| ----------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `Combobox`        | Tap the field to raise the soft keyboard, then tap an option                                                 | Android, any phone size                           | The keyboard opening does not close the list; the tapped option is committed                                                    |
+| `Combobox`        | With the soft keyboard up, open a list longer than the space above it and scroll to the last row             | Android, any phone size                           | The list is reachable and scrolls; it is not rendered behind the keyboard                                                       |
+| `TableScroll`     | Print a list page (pitches, contacts, organisations, assessments, meetings, reports, admin, pipeline) to PDF | Desktop Chrome                                    | Every page prints exactly as it did before the table gained its scroll container                                                |
+| `SaveBar`         | Open a form that uses it and look at the pinned bar on a handset with a gesture bar                          | iOS Simulator, or Android with gesture navigation | The buttons clear the gesture bar; `env(safe-area-inset-bottom)` cannot be emulated in headless Chromium, which reports it as 0 |
+| `PitchFormFields` | Widen the window across the `sm` boundary on the new-pitch page                                              | Desktop Chrome, 600px → 700px                     | The paired fields go from one column to two, and the page at `md` and up looks as it did before the mobile work                 |
+| `PitchCreatePage` | Fill in a pitch and save it, including picking an organisation and adding a contact                          | Chrome device emulation, 360px                    | The pitch is created and the app lands on its detail page, with no field or control out of reach                                |
 
 ## Checklist before handoff
 

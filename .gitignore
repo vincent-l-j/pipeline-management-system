@@ -50,5 +50,6 @@ Thumbs.db
 # Logs
 *.log
 
-# claude
-.claude
+# claude — local settings stay out; shared skills are part of the repo
+.claude/*
+!.claude/skills/

@@ -127,6 +127,16 @@ http://localhost:5173; VS Code forwards `frontend:5173`, `backend:8000` and MinI
 console on `minio:9001` by service name. Vite proxies `/api` to `backend:8000` over
 the compose network.
 
+That forward is host-side. **From inside `app`, the dev server is
+`http://frontend:5173`, not `localhost:5173`** — `forwardPorts` publishes the
+sibling to your machine, not to this container's loopback. `vite.config.ts` lists
+`frontend` in `server.allowedHosts` so that address works; without it Vite's host
+check answers 403 and the temptation is to run a second `npm run dev` here, which
+binds 5173 and shadows the real one. Two agents did exactly that. A dev server
+started in `app` does not inherit the compose service's environment — no
+`VITE_ENABLE_DEV_LOGIN`, so the Dev Login button vanishes and looks like a bug in
+the app. Don't start one; use the service name.
+
 Attachments need the `SPACES_*` keys filled in in the repo-root `.env` — the values
 for MinIO are listed in `.env.example` above them. `SPACES_ENDPOINT` is
 `http://minio:9000`, a service name, so it resolves from `backend` and `app` but not

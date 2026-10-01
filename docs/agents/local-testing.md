@@ -2,12 +2,11 @@
 
 How to use the app the way a person does — from inside the devcontainer, in a real
 browser — and what to do with what that turns up. The suites answer "does the code
-do what the test says". This answers "what does a user meet", which is a different
-question and catches a different class of bug.
-
-`mission/lessons/fixtures-smaller-than-production-hide-overflow.md` is the standing
-example: a chart ran 190px past the viewport while a green browser test asserted
-the same page did not overflow.
+do what the test says". This answers "what does a user experience", which catches
+two things they cannot: a test that is wrong or too small — bad assertion, bad
+setup, fixture lighter than production — and whatever nobody thought to assert.
+One example: a chart ran 190px past the viewport while a green browser test
+asserted the same page did not overflow.
 
 ## The address
 
@@ -95,8 +94,16 @@ await browser.close();
 Walk a whole path — nav, form, submit, result — not one route in isolation. Read
 every screenshot you take; a blank frame is a failed launch, not a pass.
 
-Run each path at **390x844** and **1280x900**. Most layout bugs here are phone-only
-and most of the app is built desk-first.
+Run each path at **390x844**, **768x1024** and **1280x900**. Most layout bugs here
+are phone-only and most of the app is built desk-first — but `md:` is the
+breakpoint this app leans on hardest and neither 390 nor 1280 lands inside its
+band. 1280 does apply `md:` styles, so the flip itself gets covered either way;
+what the obvious pair misses is anything sized to overflow at 768 and not at 1280.
+
+Do not sweep widths pixel by pixel. When a change is gated on one breakpoint, drive
+the two widths either side of that one — 767 and 768 for `md:` — and if the
+behaviour is meant to hold, pin it with a browser test rather than a drive, where
+the assertion is exact and the next change cannot quietly undo it.
 
 `document.documentElement.scrollWidth` against the viewport width is the cheapest
 real detector in the box — it found a detail page rendering 465px wide at 390px
@@ -120,15 +127,16 @@ Sort each row by what the check actually needs:
   anything but 0. Headless Chromium supplies neither at any viewport, and an
   ordinary Android tab reports the inset as 0 too, so only an installed
   edge-to-edge window is a real pass.
-- **Yours** — everything else. Widths above the harness's one instance, computed
-  style, stacking, and print, which needs no hardware at all:
+- **Yours** — everything else. Widths above the single 360px viewport the harness
+  declares, computed style, stacking, and print, which needs no hardware at all:
 
 ```js
 await page.emulateMedia({ media: "print" });
 await page.pdf({ path: "/tmp/list.pdf" }); // headless Chromium only
 ```
 
-A **native `<select>`** sits across the line and is worth its own note, because
+A **native `<select>`** straddles that hardware/yours split and is worth its own
+note, because
 headless makes it look settled when it isn't. Set its value with
 `selectOption` — that works, and is what a driven flow should do. Do not judge
 the open picker from a screenshot: headless paints Chromium's desktop dropdown
@@ -138,8 +146,9 @@ screenshot of the open list is a picture of something your user never sees.
 The `Combobox` next to it is an ordinary DOM listbox and drives fine; only its
 soft-keyboard behaviour is out of reach.
 
-That table is planned to split along this line into driver-reachable and
-hardware-only sections; until it does, judge each row by the test above.
+That table is planned to split along the same hardware/yours boundary into
+driver-reachable and hardware-only sections; until it does, judge each row by the
+test above.
 
 **A run is not coverage.** Reaching something with a throwaway script says what
 the browser can measure; it says nothing about what this repo's suite asserts.
@@ -152,14 +161,23 @@ pass vacuously, and a second instance runs the whole `include` glob against them
 
 ## Where findings go
 
-Three destinations, and picking the wrong one is how a finding evaporates:
+Picking the wrong destination is how a finding evaporates:
 
-| What you found                                   | Where it goes                                   |
-| ------------------------------------------------ | ----------------------------------------------- |
-| A defect in the feature this PR builds           | Fix it here, with a test                        |
-| A defect elsewhere in the app                    | A GitHub issue — `docs/agents/issue-tracker.md` |
-| A green suite that never reached what it asserts | `mission/lessons/<id>.md`                       |
+| What you found                                        | Where it goes                                   |
+| ----------------------------------------------------- | ----------------------------------------------- |
+| A defect in the feature this PR builds                | Fix it here, with a test                        |
+| A defect elsewhere in the app                         | A GitHub issue — `docs/agents/issue-tracker.md` |
+| No test would catch this PR's change regressing       | Write that test here, in this PR                |
+| A coverage gap away from what this PR touches         | A GitHub issue                                  |
+| A test that passed over a bug you just watched happen | A lesson under `mission/lessons/`               |
 
-The third is the valuable one and the easiest to skip. A test that passes over a
-bug you just saw with your own eyes is a reusable lesson about the seam, not a
-one-off; write it down and let consolidation promote it into `best-practices/`.
+A missing test sorts by reach, not by blame. If your change can break the thing
+nobody is asserting, the test belongs in your PR — the regression it would catch is
+the one you are about to introduce, and a green suite is about to call that fine.
+If your change cannot reach it, you have found an unrelated gap, and it files like
+any other defect elsewhere.
+
+The last row is the valuable one, the easiest to skip, and orthogonal to the rest —
+it rides along with any of them. A test that passes over a bug you just saw with
+your own eyes is a reusable lesson about the seam, not a one-off; write it down and
+let consolidation promote it into `best-practices/`.

@@ -31,9 +31,17 @@ subtly-wrong lore:
    PR renames `require_role`, restructures a layer, or changes an established
    pattern, it edits the relevant doc too — same discipline as keeping a test with
    its implementation. This keeps drift near zero without a separate ritual.
-3. **Prefer durable anchors over volatile ones.** Reference stable structure
-   (layers, directories, conventions like "no trailing slashes") in preference to a
-   single function name, which is more likely to be renamed.
+3. **Prefer durable anchors over volatile ones, and reference rather than restate.**
+   Reference stable structure (layers, directories, conventions like "no trailing
+   slashes") in preference to a single function name, which is more likely to be
+   renamed. Where another document already owns a fact, point at it by path rather
+   than copying it — a copy has nothing keeping it true and drifts silently, since
+   both versions still read correctly on their own. `AGENTS.md` names no viewports
+   for this reason: it says to drive the app and sends the reader to
+   `docs/agents/local-testing.md`, which owns why those widths. The same goes for
+   anything a tool derives — file counts, line counts, tests passing, files
+   touched. Name the command that produces the number rather than the number; the
+   number is regenerated on every run and hand-copied once.
 4. **Mark forward references.** If a doc cites a symbol that is _planned but not yet
    implemented_ (e.g. a schema described in a queued feature but not yet built), say
    so ("planned as `X`") rather than presenting it as existing. Reconcile it when

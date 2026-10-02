@@ -144,3 +144,9 @@ The five canonical roles, each label string equal to its name. See
 
 Single-context: `CONTEXT.md` and `docs/adr/` at the repo root, created lazily.
 See `docs/agents/domain.md`.
+
+### Driving the running app
+
+The stack is already up; reach Vite at `http://frontend:5173` from the
+devcontainer — never `localhost` — and drive it in the baked-in Chromium. Run this
+before opening a PR, not only the suites. See `docs/agents/local-testing.md`.

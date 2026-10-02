@@ -120,6 +120,13 @@ preferred.
   then route, then wiring) rather than one big commit. Keep a test with the code
   it covers. Each commit should build; all tests must be green at the branch tip
   before opening the PR.
+- **Drive the app at the branch tip, not only the suites.** Green tests and a
+  used app answer different questions, and the second one is where layout,
+  navigation and real-data bugs surface. Match the shape to the diff: a frontend
+  change gets walked in a browser, a backend change gets its touched routes
+  called against the running stack and the bodies read. The viewports to run, the
+  address to reach, and where each finding goes are in
+  `docs/agents/local-testing.md`.
 - **One concern per commit/PR.** Never fold in unrelated changes or drive-by
   refactors. Update any docs the change touches in the same PR (see
   `docs/best-practices/README.md`).
@@ -134,7 +141,8 @@ preferred.
 ## Definition of Done (per feature)
 
 - Tests written first and passing (`services.yaml` → `test-backend` / `test-frontend`).
-- Every `VAL-*` id the feature `fulfills` is observably satisfied on the running stack.
+- Every `VAL-*` id the feature `fulfills` is observably satisfied on the running
+  stack — observed by using the app, not inferred from a passing test.
 - Server-side authorization verified for any restricted action (not just hidden UI).
 - No new lint/secret/boundary violations.
 - The feature's `mission/features/` file is deleted by the same commit that

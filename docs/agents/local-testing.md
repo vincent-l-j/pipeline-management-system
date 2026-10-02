@@ -34,8 +34,8 @@ exactly like a dead service, and the app is fine.
 
 ## Signing in
 
-`ENABLE_DEV_LOGIN` is on locally, so `/login` carries a **Dev Login (Admin)**
-button. Click it like a user would.
+`/login` carries a **Dev Login (Admin)** button locally. Click it like a user
+would.
 
 To skip straight to a signed-in page, seed what that button's handler writes:
 
@@ -58,9 +58,9 @@ the admin nav — silently disappears. That looks exactly like an authorization 
 
 ## The browser
 
-Chromium is baked into the image for `npm run test:browser`; drive that same one
-through `frontend/node_modules/playwright`. Nothing needs installing, and
-`playwright install` cannot reach its CDN from here anyway.
+The image bakes in a Chromium for `npm run test:browser` — `services.yaml` has the
+why and the rebuild caveat. Drive that same one through
+`frontend/node_modules/playwright`; nothing needs installing.
 
 Two things that cost a session each:
 

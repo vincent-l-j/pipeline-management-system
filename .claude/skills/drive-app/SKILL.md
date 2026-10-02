@@ -8,7 +8,6 @@ description: Launch and drive Rozetta PMS in a real browser from the devcontaine
 The stack is already running — `db`, `backend` and `frontend` come up with the
 devcontainer. There is nothing to start.
 
-Read **`docs/agents/local-testing.md`** and follow it. It carries the address
-(`http://frontend:5173`, never `localhost`), the dev-login seeding and its
-`JSON.stringify` trap, the baked-in Chromium and its two Playwright gotchas, the
-viewports to run, and where each kind of finding goes.
+Read **`docs/agents/local-testing.md`** and follow it end to end. It owns the
+address, the sign-in, the browser, the viewports to run and where each finding
+goes. Every one of those has a trap in it — reconstruct none of them from memory.

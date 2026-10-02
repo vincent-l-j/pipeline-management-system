@@ -136,6 +136,12 @@ preferred.
 - **No scopes in the subject.** Write `feat:`, never `feat(contacts):`. Every
   commit since mid-July is bare; the type plus an imperative summary is the whole
   subject.
+- **A PR body carries what the diff cannot derive** — why the change exists, what
+  was considered and rejected, what was verified and how. Don't transcribe the
+  diff or count it; the diff regenerates on every push and the body does not, so
+  a transcription is wrong by the next one. Give a path for anything the diff does
+  not contain, because the diff is the reviewer's only context. Rule 3 in
+  `docs/best-practices/README.md` is the general form.
 - **Never commit** secrets, `.env`, or generated/vendored files.
 
 ## Definition of Done (per feature)

@@ -79,7 +79,7 @@ services:
   # The object store, locally. MinIO checks the signature; the unit suite's stub
   # does not, so a wrongly signed request is refused here rather than in production.
   minio:
-    image: minio/minio
+    image: cgr.dev/chainguard/minio:latest
     profiles: ["objectstore"]
     restart: always
     command: server /data --console-address ":9001"
@@ -108,7 +108,7 @@ services:
   # One-shot: MinIO creates no bucket on its own, and an upload to a missing one
   # fails the way a misconfigured one does.
   minio-bucket:
-    image: minio/mc
+    image: cgr.dev/chainguard/minio-client:latest
     profiles: ["objectstore"]
     restart: "no"
     depends_on:

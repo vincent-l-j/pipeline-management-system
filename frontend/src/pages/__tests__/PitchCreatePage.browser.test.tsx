@@ -125,8 +125,6 @@ describe("creating a pitch on a 360px screen", () => {
     expect(root.scrollWidth).toBeLessThanOrEqual(root.clientWidth);
   });
 
-  // Two columns at this width leave each of these about 156px wide, which is
-  // the squeeze the single-column collapse exists to undo.
   it("gives every paired field a column to itself", async () => {
     await showForm();
 

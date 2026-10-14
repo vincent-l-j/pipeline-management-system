@@ -90,6 +90,9 @@ services:
       # A region the store disagrees with is a SignatureDoesNotMatch that does
       # not mention the region.
       MINIO_SITE_REGION: ${SPACES_REGION:-syd1}
+      # For the healthcheck: defines the `local` alias without needing a
+      # writable mc config dir. The readiness endpoint needs no credentials.
+      MC_HOST_local: http://localhost:9000
     # 9000 is the S3 API, 9001 the browser console.
     ports:
       - "127.0.0.1:9000:9000"
@@ -105,32 +108,40 @@ services:
     networks:
       - appnet
 
-  # One-shot: MinIO creates no bucket on its own, and an upload to a missing one
-  # fails the way a misconfigured one does.
+  # One-shot: MinIO creates no bucket on its own, so uploads fail with
+  # NoSuchBucket until this runs. Distroless: no shell, so no retry loop;
+  # waiting is the healthcheck's job.
   minio-bucket:
     image: cgr.dev/chainguard/minio-client:latest
     profiles: ["objectstore"]
     restart: "no"
     depends_on:
-      - minio
+      minio:
+        condition: service_healthy
     environment:
-      MINIO_ROOT_USER: ${SPACES_ACCESS_KEY_ID:-rozettalocal}
-      MINIO_ROOT_PASSWORD: ${SPACES_SECRET_ACCESS_KEY:-change_me_to_a_strong_password}
-      BUCKET: ${SPACES_BUCKET:-rozetta-pms-local}
-    # `$$` keeps Compose from expanding these before the shell sees them.
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        until mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"; do
-          echo "waiting for minio..."
-          sleep 1
-        done
-        mc mb --ignore-existing "local/$$BUCKET"
-        # Already the default; explicit so the local bucket cannot quietly
-        # differ from the deployed one.
-        mc anonymous set none "local/$$BUCKET"
-        echo "bucket ready: $$BUCKET"
+      # Defines the `local` alias inline; replaces `mc alias set`.
+      MC_HOST_local: http://${SPACES_ACCESS_KEY_ID:-rozettalocal}:${SPACES_SECRET_ACCESS_KEY:-change_me_to_a_strong_password}@minio:9000
+    command:
+      - mb
+      - --ignore-existing
+      - --region
+      - ${SPACES_REGION:-syd1}
+      - local/${SPACES_BUCKET:-rozetta-pms-local}
+    networks:
+      - appnet
+
+  # Already the default; explicit so the local bucket cannot quietly differ
+  # from the deployed one. Separate service because there is no shell to chain.
+  minio-bucket-policy:
+    image: cgr.dev/chainguard/minio-client:latest
+    profiles: ["objectstore"]
+    restart: "no"
+    depends_on:
+      minio-bucket:
+        condition: service_completed_successfully
+    environment:
+      MC_HOST_local: http://${SPACES_ACCESS_KEY_ID:-rozettalocal}:${SPACES_SECRET_ACCESS_KEY:-change_me_to_a_strong_password}@minio:9000
+    command: ["anonymous", "set", "none", "local/${SPACES_BUCKET:-rozetta-pms-local}"]
     networks:
       - appnet
 

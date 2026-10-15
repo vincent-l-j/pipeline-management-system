@@ -187,6 +187,9 @@ whoever inserts the next test.
     which has to move above them before that form can adopt it.
   - **Only `PitchCreatePage` uses it so far**; the edit, assessment and meeting
     forms still carry bare action rows and are the ones to convert next.
+- **A field grid needs a single-column state.** Two columns at 360px leave each
+  field about 156px, which no date input or select can use. Write
+  `grid-cols-1 sm:grid-cols-2`, not `grid-cols-2`.
 
 ## Unit tests (Vitest + React Testing Library)
 
@@ -277,9 +280,18 @@ it depends on CSS — not by how important it is.
 - **jsdom has no layout engine and applies no stylesheet.** It cannot see any of
   the right-hand column, so an assertion put there does not fail — it passes
   vacuously. Don't grow the jsdom suite towards layout; move the assertion.
-- Config `vitest.browser.config.ts`, Chromium via Playwright, viewport pinned to
-  the 360px design floor. Files are `*.browser.test.tsx` beside their jsdom
-  neighbours; `vitest.config.ts` excludes that glob so the two run side by side.
+- Config `vitest.browser.config.ts`, Chromium via Playwright. Files are
+  `*.browser.test.tsx` beside their jsdom neighbours; `vitest.config.ts` excludes
+  that glob so the two run side by side.
+- **A viewport belongs to a browser instance, not to a test.** Nothing in a test
+  can resize it — Playwright's `setViewportSize` addresses the top-level tester
+  page, not the iframe the component renders in, and the `page` object exposes no
+  setter. So a second width is a **second instance with its own glob**: the
+  default one runs at the 360px design floor, and `*.desktop.browser.test.tsx`
+  runs at 1024px, clear of every breakpoint. Put the narrow and wide halves of a
+  responsive rule in the two files and both halves get a regression guard;
+  `PitchFormFields` is the worked example. The boundary pixel itself still has no
+  instance, so a rule that turns on at exactly `sm` is still a manual step.
 - **`css: true` is load-bearing.** Vitest stubs CSS imports out by default, and a
   browser suite without the stylesheet asserts nothing while still passing.
 - Drive interaction with `userEvent` from `vitest/browser`, not
@@ -355,8 +367,9 @@ emulator when touching the component named.
 | `Combobox`        | With the soft keyboard up, open a list longer than the space above it and scroll to the last row             | Android, any phone size                            | The list is reachable and scrolls; it is not rendered behind the keyboard                                                                                                                                             |
 | `TableScroll`     | Print a list page (pitches, contacts, organisations, assessments, meetings, reports, admin, pipeline) to PDF | Desktop Chrome                                     | Every page prints exactly as it did before the table gained its scroll container                                                                                                                                      |
 | `SaveBar`         | Open a form that uses it and look at the pinned bar                                                          | iOS Simulator, or the **installed** app on Android | The buttons clear the gesture bar. An ordinary Android tab reports the inset as 0 — only the installed edge-to-edge window exposes one, so a browser tab is a false pass. Headless Chromium reports 0 at any viewport |
-| `SaveBar`         | Look at the row of buttons at the foot of a form that uses it                                                | Desktop Chrome, ≥768px                             | A plain row of buttons: no rule above it, no grey band, not pinned, and the gap above it matches the gaps between the form's fields. The harness has one 360px instance, so nothing automated covers this             |
+| `SaveBar`         | Look at the row of buttons at the foot of a form that uses it                                                | Desktop Chrome, ≥768px                             | A plain row of buttons: no rule above it, no grey band, not pinned, and the gap above it matches the gaps between the form's fields. The desktop instance could cover this; no `*.desktop.browser.test.tsx` does yet  |
 | `PitchCreatePage` | Create a pitch against the running stack, raising the soft keyboard for every field it has                   | A real phone, or the Android emulator              | Nothing the keyboard covers is unreachable; the browser suite already drives the same flow by tap, but has no keyboard to raise                                                                                       |
+| `PitchFormFields` | Widen the window across the `sm` boundary on the new-pitch page                                              | Desktop Chrome, 600px → 700px                      | The paired fields go from one column to two _at 640px_, and the page at `md` and up looks as it did before the mobile work. Both sides of the boundary are covered by an instance; the pixel it flips on is not       |
 
 ## Checklist before handoff
 

@@ -127,8 +127,9 @@ Sort each row by what the check actually needs:
   anything but 0. Headless Chromium supplies neither at any viewport, and an
   ordinary Android tab reports the inset as 0 too, so only an installed
   edge-to-edge window is a real pass.
-- **Yours** — everything else. Widths above the single 360px viewport the harness
-  declares, computed style, stacking, and print, which needs no hardware at all:
+- **Yours** — everything else. Widths other than the 360px and 1024px viewports
+  the harness declares, the pixel a breakpoint flips on, computed style,
+  stacking, and print, which needs no hardware at all:
 
 ```js
 await page.emulateMedia({ media: "print" });
@@ -153,11 +154,13 @@ test above.
 **A run is not coverage.** Reaching something with a throwaway script says what
 the browser can measure; it says nothing about what this repo's suite asserts.
 The manual-steps table is scoped to the harness — `vitest.browser.config.ts`
-declares one instance, chromium at 360x780 — so a desktop check stays manual
-however easily your script reached it. Retire a manual step only by landing the
-test that replaces it, in the same commit. Note before you try: two files guard
-themselves with `expect(window.innerWidth).toBe(360)` so their assertions cannot
-pass vacuously, and a second instance runs the whole `include` glob against them.
+declares two instances, chromium at 360x780 and `desktop` at 1024x780 — so a
+check at any other width stays manual however easily your script reached it.
+Retire a manual step only by landing the test that replaces it, in the same
+commit. A desktop check goes in a `*.desktop.browser.test.tsx`: only the
+`desktop` instance runs that glob and the default instance excludes it, so the
+files that guard themselves with `expect(window.innerWidth).toBe(360)` never run
+at 1024px.
 
 ## Where findings go
 

@@ -30,11 +30,21 @@ export default defineConfig({
       // tester page already carries width=device-width and hasTouch alone already
       // reports pointer: coarse and hover: none.
       provider: playwright({ contextOptions: { hasTouch: true } }),
+      // An instance carries one viewport and nothing in the suite can change it
+      // mid-test, so a second width is a second instance with its own glob.
       instances: [
         {
           browser: "chromium",
           // 360px is the design floor the mobile work was built to.
           viewport: { width: 360, height: 780 },
+          exclude: ["**/*.desktop.browser.test.tsx"],
+        },
+        {
+          browser: "chromium",
+          name: "desktop",
+          // Clear of every breakpoint the layouts use, so `sm:` and `md:` apply.
+          viewport: { width: 1024, height: 780 },
+          include: ["src/**/*.desktop.browser.test.tsx"],
         },
       ],
       commands: {

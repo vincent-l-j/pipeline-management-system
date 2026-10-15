@@ -4,10 +4,6 @@ import PitchFormFields from "../PitchFormFields";
 import { EMPTY_PITCH_FORM } from "../pitchForm";
 
 /**
- * The wide half of the field grid's breakpoint. Its narrow half lives in
- * `pages/__tests__/PitchCreatePage.browser.test.tsx`, which runs at 360px —
- * a browser instance carries one viewport, so two widths means two files.
- *
  * The component is presentational, so this renders it directly rather than the
  * page: the grid is the only thing under test and it needs no lookups.
  */
@@ -32,8 +28,6 @@ function showFields() {
 }
 
 describe("the pitch field grid above the sm breakpoint", () => {
-  // Guards the file: below 640px the grid is one column and every pair below
-  // would fail for the right reason at the wrong width.
   it("runs at a width the second column applies at", () => {
     expect(window.innerWidth).toBeGreaterThanOrEqual(640);
   });

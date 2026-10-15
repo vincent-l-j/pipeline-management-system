@@ -129,19 +129,21 @@ describe("creating a pitch on a 360px screen", () => {
     );
   });
 
-  it("wraps the domain chips onto more than one line", async () => {
-    await showForm();
+  it.each(DOMAIN_OPTIONS)(
+    "keeps the %s chip inside the screen",
+    async (domain) => {
+      await showForm();
 
-    const chips = page
-      .getByRole("group", { name: "Domains" })
-      .getByRole("button")
-      .elements();
-    const lines = new Set(
-      chips.map((chip) => chip.getBoundingClientRect().top),
-    );
+      const { left, right } = page
+        .getByRole("group", { name: "Domains" })
+        .getByRole("button", { name: domain, exact: true })
+        .element()
+        .getBoundingClientRect();
 
-    expect(lines.size).toBeGreaterThan(1);
-  });
+      expect(left).toBeGreaterThanOrEqual(0);
+      expect(right).toBeLessThanOrEqual(window.innerWidth);
+    },
+  );
 
   it.each(DOMAIN_OPTIONS)(
     "gives the %s chip a 44px touch target",

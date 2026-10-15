@@ -6,34 +6,33 @@ expressive code that documents itself.
 
 ## The principle
 
-**Explain _why_ in comments; let the code explain _what_.**
+**Ideally, no comments exist.** Names, structure and tests carry the meaning.
 
-Comments should be rare. When they exist, they protect against categories of
-problems that code cannot:
+Comment only where the code would otherwise **mislead** — where a careful reader
+would get it wrong, or "fix" it and break something:
 
-- **Why** a non-obvious choice exists (business rule, architectural constraint).
-- **Why** a workaround is needed (bug in a dependency, performance gotcha, or
-  compatibility quirk).
-- **What will break** if someone changes this code (side effects, invariants,
-  warnings of consequences).
+- **A workaround** for a quirk outside the code: a dependency bug, a browser or
+  platform behaviour, a performance trap.
+- **What will break** if someone changes this code, when no test would catch it.
 - **Legal/compliance** notes (licenses, data handling, regulatory constraints).
 
-Comments should _never_ repeat what the code already says clearly.
+A non-obvious business rule is not on that list. The code enforces it, a test
+pins it, and the spec or commit message explains it; a comment restating it is a
+third copy that nothing keeps in sync.
 
 ## Guidelines
 
-### Do: Use comments for intent and non-obvious choices
+### Do: Comment the workaround that looks like a mistake
 
-```python
-# Avoid the N+1 query: fetch all contacts in one query, not per pitch.
-contacts = db.query(Contact).filter(Contact.pitch_id.in_(pitch_ids)).all()
-
-# The AI parser is optional; fall back to basic line splitting if not configured.
-parsed = parse_notes(notes)
-
-# We store `changed_at` in UTC so historical comparisons are unambiguous.
-pitch.changed_at = datetime.now(timezone.utc)
+```ts
+for (let i = 1; i <= steps; i++) {
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", ... });
+  // Real frames, so Chromium's gesture recogniser sees a drag.
+  await new Promise((r) => setTimeout(r, 16));
+}
 ```
+
+Without the comment, the sleep reads as leftover debugging and gets deleted.
 
 ### Don't: Comment obvious code
 
@@ -114,15 +113,42 @@ x = [...]
 screened_pitch_ids = [...]
 ```
 
-### Do: Use comments to explain architectural rationale
+### Don't: Restate business rules or specs
 
-```python
-# Integrity checks live in app code, not in DB triggers or cascades.
-# A cascade fires below the boundary the API tests assert at, so the
-# behaviour would be untestable as part of the contract. We catch it here.
-if not db.query(Pitch).filter(Pitch.id == pitch.id).first():
-    raise ValueError("Invalid pitch_id")
+❌ **Bad:**
+
+```tsx
+<button
+  // WCAG 2.5.5 covers a mouse as much as a finger, so the target applies at
+  // every width.
+  className="min-h-11 min-w-11"
+>
 ```
+
+The rule lives in the spec, the reason in the commit message, and a test fails if
+the target shrinks. The comment adds a copy that can drift from all three.
+
+### Don't: Put exact values in comments
+
+❌ **Bad:**
+
+```tsx
+// 44px each way for a finger, dropped at `md`.
+```
+
+A size, breakpoint or count restated in a comment goes stale the moment the code
+changes, and nothing fails when it does. Let the code (or a test) carry the value.
+
+### Don't: Explain what a test already guards
+
+❌ **Bad:**
+
+```tsx
+{/* A labelled group, so the chips are reachable as a set. */}
+<div role="group" aria-labelledby="pitch-domains-label">
+```
+
+If removing the markup fails a test loudly, the test is the explanation.
 
 ### Don't: Use comments to replace good error messages
 

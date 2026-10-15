@@ -86,6 +86,7 @@ See [`docs/best-practices/`](docs/best-practices/README.md) (the index also docu
 how to keep these docs in sync with the code — in short: code wins, and update a doc
 in the same change that alters the pattern it describes).
 
+- When (rarely) to comment — [`docs/best-practices/code-clarity.md`](docs/best-practices/code-clarity.md)
 - Backend patterns & pytest — [`docs/best-practices/backend-fastapi.md`](docs/best-practices/backend-fastapi.md)
 - React, Vitest & Tailwind — [`docs/best-practices/frontend-react.md`](docs/best-practices/frontend-react.md)
 - Frontend/backend/DB integration — [`docs/best-practices/database-integration.md`](docs/best-practices/database-integration.md)

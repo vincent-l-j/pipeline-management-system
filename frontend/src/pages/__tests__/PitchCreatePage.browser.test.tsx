@@ -103,15 +103,6 @@ async function tapOption(name: string) {
   await commands.tap(`#${page.getByRole("option", { name }).element().id}`);
 }
 
-/** The labels of any of `fields` that a second column would have squeezed. */
-function squeezedFields(fields: string[]): string[] {
-  return fields.filter(
-    (label) =>
-      page.getByLabelText(label).element().getBoundingClientRect().width <
-      window.innerWidth / 2,
-  );
-}
-
 describe("creating a pitch on a 360px screen", () => {
   // Guards the file: at the wrong width everything below passes vacuously.
   it("runs at the width the mobile layout was designed for", () => {
@@ -125,10 +116,16 @@ describe("creating a pitch on a 360px screen", () => {
     expect(root.scrollWidth).toBeLessThanOrEqual(root.clientWidth);
   });
 
-  it("gives every paired field a column to itself", async () => {
+  // Wider than half the viewport is what a field cannot be while a second
+  // column sits beside it, which is the squeeze the collapse exists to undo.
+  it.each(PAIRED_FIELDS)("gives %s a column to itself", async (label) => {
     await showForm();
 
-    expect(squeezedFields(PAIRED_FIELDS)).toEqual([]);
+    const field = page.getByLabelText(label).element();
+
+    expect(field.getBoundingClientRect().width).toBeGreaterThan(
+      window.innerWidth / 2,
+    );
   });
 
   // The whole point of the pinned bar: the form is several screens long, and

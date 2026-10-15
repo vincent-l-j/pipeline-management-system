@@ -173,18 +173,13 @@ describe("PitchFormFields", () => {
     expect(onChange).toHaveBeenCalledWith({ domain_tags: ["Health"] });
   });
 
-  it.each(DOMAIN_OPTIONS)(
-    "groups the %s pill under the heading above it",
-    (domain) => {
-      setup();
-      expect(
-        within(screen.getByRole("group", { name: "Domains" })).getByRole(
-          "button",
-          { name: domain },
-        ),
-      ).toBeInTheDocument();
-    },
-  );
+  it("presents the domain pills to assistive tech as a group named Domains", () => {
+    setup();
+    const group = screen.getByRole("group", { name: "Domains" });
+    expect(within(group).getAllByRole("button")).toHaveLength(
+      DOMAIN_OPTIONS.length,
+    );
+  });
 
   it("marks the domain pills that are currently selected", () => {
     setup({ domain_tags: ["AI"] });

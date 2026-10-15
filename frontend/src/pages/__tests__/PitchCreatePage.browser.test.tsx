@@ -3,6 +3,7 @@ import { cleanup, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import PitchCreatePage from "../PitchCreatePage";
 import { createApiMocks } from "../../test/mocks/api";
+import { DOMAIN_OPTIONS } from "../../components/pipeline/PipelineConfig";
 
 vi.mock("../../services/api", () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
@@ -127,6 +128,38 @@ describe("creating a pitch on a 360px screen", () => {
       window.innerWidth / 2,
     );
   });
+
+  it.each(DOMAIN_OPTIONS)(
+    "keeps the %s chip inside the screen",
+    async (domain) => {
+      await showForm();
+
+      const { left, right } = page
+        .getByRole("group", { name: "Domains" })
+        .getByRole("button", { name: domain, exact: true })
+        .element()
+        .getBoundingClientRect();
+
+      expect(left).toBeGreaterThanOrEqual(0);
+      expect(right).toBeLessThanOrEqual(window.innerWidth);
+    },
+  );
+
+  it.each(DOMAIN_OPTIONS)(
+    "gives the %s chip a 44px touch target",
+    async (domain) => {
+      await showForm();
+
+      const { width, height } = page
+        .getByRole("group", { name: "Domains" })
+        .getByRole("button", { name: domain, exact: true })
+        .element()
+        .getBoundingClientRect();
+
+      expect(width).toBeGreaterThanOrEqual(44);
+      expect(height).toBeGreaterThanOrEqual(44);
+    },
+  );
 
   // The whole point of the pinned bar: the form is several screens long, and
   // the save action has to be there from the first screen.

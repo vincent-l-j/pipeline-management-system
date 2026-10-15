@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import PitchFormFields from "../PitchFormFields";
 import { EMPTY_PITCH_FORM, PitchFormValues } from "../pitchForm";
 import { Contact, Organisation, User } from "../../../types";
+import { DOMAIN_OPTIONS } from "../../pipeline/PipelineConfig";
 
 const ORGANISATIONS = [
   { id: "org-1", name: "Acme Research" },
@@ -170,6 +171,14 @@ describe("PitchFormFields", () => {
     const { onChange } = setup({ domain_tags: ["AI", "Health"] });
     await user.click(screen.getByRole("button", { name: "AI" }));
     expect(onChange).toHaveBeenCalledWith({ domain_tags: ["Health"] });
+  });
+
+  it("presents the domain pills to assistive tech as a group named Domains", () => {
+    setup();
+    const group = screen.getByRole("group", { name: "Domains" });
+    expect(within(group).getAllByRole("button")).toHaveLength(
+      DOMAIN_OPTIONS.length,
+    );
   });
 
   it("marks the domain pills that are currently selected", () => {

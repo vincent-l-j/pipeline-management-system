@@ -2,6 +2,7 @@ import { page } from "vitest/browser";
 import { render } from "@testing-library/react";
 import PitchFormFields from "../PitchFormFields";
 import { EMPTY_PITCH_FORM } from "../pitchForm";
+import { DOMAIN_OPTIONS } from "../../pipeline/PipelineConfig";
 
 /**
  * The component is presentational, so this renders it directly rather than the
@@ -40,5 +41,24 @@ describe("the pitch field grid above the sm breakpoint", () => {
 
     expect(second.top).toBe(first.top);
     expect(second.left).toBeGreaterThanOrEqual(first.right);
+  });
+});
+
+describe("the domain chips above the md breakpoint", () => {
+  it("runs at a width md applies at", () => {
+    expect(window.innerWidth).toBeGreaterThanOrEqual(768);
+  });
+
+  it.each(DOMAIN_OPTIONS)("gives the %s chip a 44px target", (domain) => {
+    showFields();
+
+    const { width, height } = page
+      .getByRole("group", { name: "Domains" })
+      .getByRole("button", { name: domain, exact: true })
+      .element()
+      .getBoundingClientRect();
+
+    expect(width).toBeGreaterThanOrEqual(44);
+    expect(height).toBeGreaterThanOrEqual(44);
   });
 });

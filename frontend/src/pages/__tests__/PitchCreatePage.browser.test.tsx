@@ -62,6 +62,10 @@ const PAIRED_FIELDS = [
   "Rozetta Lead",
 ];
 
+/** The fields each quick-create dialog pairs into a grid on a wide screen. */
+const NEW_CONTACT_PAIRED_FIELDS = ["First name", "Last name"];
+const NEW_ORGANISATION_PAIRED_FIELDS = ["Type", "State/Territory"];
+
 // Registered after React Testing Library's own act-environment beforeAll, so
 // this wins: the page settles outside act(), and that is the rendering a user
 // actually gets.
@@ -102,6 +106,29 @@ const saveButton = () => page.getByRole("button", { name: "Add Pitch" });
 /** Taps by accessible name: the row is found as a user finds it, then touched. */
 async function tapOption(name: string) {
   await commands.tap(`#${page.getByRole("option", { name }).element().id}`);
+}
+
+/** Opens the dialog the way a user does: a name nobody matches, then its create row. */
+async function openNewContactDialog() {
+  await showForm();
+  await commands.tap("#pitch-contacts");
+  await userEvent.fill(
+    page.getByRole("combobox", { name: "Add contact" }),
+    "Nora Nobody",
+  );
+  await tapOption('Add "Nora Nobody" as a new contact');
+  return page.getByRole("dialog");
+}
+
+async function openNewOrganisationDialog() {
+  await showForm();
+  await commands.tap("#pitch-organisation");
+  await userEvent.fill(
+    page.getByRole("combobox", { name: "Organisation" }),
+    "Gamma Labs",
+  );
+  await tapOption('Add "Gamma Labs" as a new organisation');
+  return page.getByRole("dialog");
 }
 
 describe("creating a pitch on a 360px screen", () => {
@@ -233,33 +260,31 @@ describe("creating a pitch on a 360px screen", () => {
     );
   });
 
-  // The way an unknown party gets onto a pitch, and the one path out of the
-  // form: a squeezed dialog blocks the save behind it.
-  it("opens the create-contact dialog with its name fields in one column", async () => {
-    await showForm();
-    await commands.tap("#pitch-contacts");
-    await userEvent.fill(
-      page.getByRole("combobox", { name: "Add contact" }),
-      "Nora Nobody",
-    );
+  it.each(NEW_CONTACT_PAIRED_FIELDS)(
+    "gives the new contact's %s a column to itself",
+    async (label) => {
+      const dialog = await openNewContactDialog();
 
-    await tapOption('Add "Nora Nobody" as a new contact');
+      const field = dialog.getByLabelText(label, { exact: true }).element();
 
-    expect(squeezedFields(["First name", "Last name"])).toEqual([]);
-  });
+      expect(field.getBoundingClientRect().width).toBeGreaterThan(
+        window.innerWidth / 2,
+      );
+    },
+  );
 
-  it("opens the create-organisation dialog with its paired fields in one column", async () => {
-    await showForm();
-    await commands.tap("#pitch-organisation");
-    await userEvent.fill(
-      page.getByRole("combobox", { name: "Organisation" }),
-      "Gamma Labs",
-    );
+  it.each(NEW_ORGANISATION_PAIRED_FIELDS)(
+    "gives the new organisation's %s a column to itself",
+    async (label) => {
+      const dialog = await openNewOrganisationDialog();
 
-    await tapOption('Add "Gamma Labs" as a new organisation');
+      const field = dialog.getByLabelText(label, { exact: true }).element();
 
-    expect(squeezedFields(["Type", "State/Territory"])).toEqual([]);
-  });
+      expect(field.getBoundingClientRect().width).toBeGreaterThan(
+        window.innerWidth / 2,
+      );
+    },
+  );
 
   // On paper the bar is a rule and a grey band around two hidden buttons.
   it("does not print the save bar", async () => {

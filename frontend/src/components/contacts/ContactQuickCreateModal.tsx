@@ -133,8 +133,6 @@ export default function ContactQuickCreateModal({
         </p>
 
         <div className="space-y-3">
-          {/* One column below `sm`: inside the dialog's own padding, two leave
-              each name about 134px. */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className={labelClass} htmlFor="quick-contact-first-name">

@@ -24,14 +24,14 @@ one; buying speed back with a second such difference would undo it.
 
 import os
 
+from tests.postgres import app_test_database_url, create_database_if_absent
+
 # Must be set before app.core.config / app.core.database are imported, so the
 # app's own module-level engine points at the test database too. Written into the
 # environment rather than into a module variable, which is the only shape allowed
-# ahead of the imports below; it is read back once they are done.
-os.environ["DATABASE_URL"] = os.environ.get(
-    "APP_TEST_DATABASE_URL",
-    "postgresql://rozetta:change_me_to_a_strong_password@db:5432/pms_app_test",
-)
+# ahead of the app imports below; it is read back once they are done.
+# `tests.postgres` can come first because it does not import `app`.
+os.environ["DATABASE_URL"] = app_test_database_url()
 os.environ["ENABLE_DEV_LOGIN"] = "false"
 # config.py has no defaults for these secrets (a missing secret must crash prod,
 # not run on a guessable key); give the test app throwaway values to boot with.
@@ -51,7 +51,6 @@ import uuid
 from datetime import UTC, datetime
 from pathlib import Path
 
-import psycopg2
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
@@ -122,29 +121,6 @@ def _get_test_db():
         db.close()
 
 
-def _create_database_if_absent() -> None:
-    """Create the test database, so no environment needs a manual prep step.
-
-    Connects to `postgres`, the maintenance database every server has. An absent
-    *database* is something we can fix; an unreachable *server* is not, and its
-    error propagates — a configured database that cannot be reached is a broken
-    run, not an absent one.
-    """
-    target = make_url(_TEST_DATABASE_URL)
-    admin = target.set(database="postgres")
-    connection = psycopg2.connect(admin.render_as_string(hide_password=False))
-    connection.autocommit = True  # CREATE DATABASE cannot run inside a transaction
-    try:
-        cursor = connection.cursor()
-        cursor.execute("SELECT 1 FROM pg_database WHERE datname = %s", (target.database,))
-        if cursor.fetchone() is None:
-            # Interpolated because an identifier cannot be a bind parameter. The
-            # name comes from our own environment, and it is quoted.
-            cursor.execute(f'CREATE DATABASE "{target.database}"')
-    finally:
-        connection.close()
-
-
 def _upgrade_to_head() -> None:
     """Build the schema with Alembic, not `create_all`.
 
@@ -177,7 +153,7 @@ def _database():
     stale schema from the last one. `DROP SCHEMA ... CASCADE` also clears the
     enum types and `alembic_version`, which `DROP TABLE` would leave behind.
     """
-    _create_database_if_absent()
+    create_database_if_absent(_TEST_DATABASE_URL)
     with _engine.begin() as connection:
         connection.execute(text("DROP SCHEMA IF EXISTS public CASCADE"))
         connection.execute(text("CREATE SCHEMA public"))

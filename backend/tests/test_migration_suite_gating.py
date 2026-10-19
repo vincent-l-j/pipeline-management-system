@@ -1,14 +1,20 @@
 """Tests for how the migration suite reacts to its database configuration.
 
 Each case runs that suite in a subprocess, because what is under test is the
-exit status of a whole pytest run — a session-scoped skip or error cannot be
-observed from inside the run it governs.
+outcome of a whole pytest run — a session fixture's error cannot be observed
+from inside the run it governs.
 """
 
 import os
 import subprocess
 import sys
+import uuid
 from pathlib import Path
+
+import pytest
+from sqlalchemy.engine import make_url
+
+from tests.postgres import app_test_database_url, database_exists, drop_database
 
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 
@@ -17,7 +23,7 @@ BACKEND_DIR = Path(__file__).resolve().parents[1]
 UNREACHABLE_URL = "postgresql://pms:pms@127.0.0.1:1/pms_migrations_test"
 
 
-def _run_migration_suite(env: dict[str, str]) -> subprocess.CompletedProcess:
+def _run_migration_suite(env: dict[str, str], *args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         [
             sys.executable,
@@ -26,10 +32,9 @@ def _run_migration_suite(env: dict[str, str]) -> subprocess.CompletedProcess:
             "tests/migrations",
             "-m",
             "migrations",
-            # -rs surfaces skip reasons, which are otherwise suppressed.
-            "-rs",
             "-p",
             "no:cacheprovider",
+            *args,
         ],
         cwd=BACKEND_DIR,
         capture_output=True,
@@ -47,11 +52,19 @@ def test_unreachable_database_fails_the_run_with_the_driver_error():
     assert "Connection refused" in output, output
 
 
-def test_unconfigured_database_skips_with_a_reason():
-    env = {k: v for k, v in os.environ.items() if k != "TEST_DATABASE_URL"}
+@pytest.fixture
+def absent_database_url():
+    target = make_url(app_test_database_url()).set(database=f"pms_absent_{uuid.uuid4().hex}")
+    url = target.render_as_string(hide_password=False)
+    yield url
+    drop_database(url)
 
-    result = _run_migration_suite(env)
+
+def test_absent_database_is_created(absent_database_url):
+    result = _run_migration_suite(
+        {**os.environ, "TEST_DATABASE_URL": absent_database_url}, "--setup-only"
+    )
 
     output = result.stdout + result.stderr
     assert result.returncode == 0, output
-    assert "TEST_DATABASE_URL not set" in output, output
+    assert database_exists(absent_database_url)

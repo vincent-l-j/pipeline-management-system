@@ -15,9 +15,9 @@ So `TEST_DATABASE_URL` must not name the same database as
     TEST_DATABASE_URL=postgresql://user:pass@localhost:5432/pms_migrations_test \\
         pytest tests/migrations
 
-Skipped when TEST_DATABASE_URL is unset, so `pytest --ignore=tests/migrations` is
-not the only way to run without it. Once it is set the database is required: an
-unreachable one fails the run with the driver's error rather than skipping.
+TEST_DATABASE_URL defaults to `pms_migrations_test` on the compose `db` service.
+The database is created if absent, but an unreachable server fails the run with
+the driver's error rather than skipping.
 """
 
 import os
@@ -25,8 +25,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-import psycopg2
 import pytest
+
+from tests.postgres import create_database_if_absent, migration_test_database_url
 
 # backend/ — the directory containing alembic.ini.
 BACKEND_DIR = Path(__file__).resolve().parents[2]
@@ -35,17 +36,9 @@ VERSIONS_DIR = BACKEND_DIR / "alembic" / "versions"
 
 @pytest.fixture(scope="session")
 def pg_url() -> str:
-    """The disposable Postgres URL, or skip the whole module if unconfigured."""
-    url = os.environ.get("TEST_DATABASE_URL")
-    if not url:
-        pytest.skip(
-            "TEST_DATABASE_URL not set — migration tests need a disposable Postgres. "
-            "See tests/migrations/conftest.py for how to run them."
-        )
-    # Connect eagerly and let the driver's error propagate. A configured database
-    # that cannot be reached is a broken run, not an absent one, and catching the
-    # exception to return a boolean is what erased the diagnosis.
-    psycopg2.connect(url).close()
+    """The disposable Postgres URL, its database created if absent."""
+    url = migration_test_database_url()
+    create_database_if_absent(url)
     return url
 
 

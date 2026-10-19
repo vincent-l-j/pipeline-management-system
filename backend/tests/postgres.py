@@ -15,12 +15,16 @@ def app_test_database_url() -> str:
     return os.environ.get("APP_TEST_DATABASE_URL", _compose_url("pms_app_test"))
 
 
+def migration_test_database_url() -> str:
+    return os.environ.get("TEST_DATABASE_URL", _compose_url("pms_migrations_test"))
+
+
 @contextmanager
 def admin_connection(url: str) -> Iterator[psycopg2.extensions.connection]:
     """An autocommit connection to `postgres`, the maintenance database every server has."""
     admin = make_url(url).set(database="postgres")
     connection = psycopg2.connect(admin.render_as_string(hide_password=False))
-    connection.autocommit = True  # CREATE DATABASE cannot run inside a transaction
+    connection.autocommit = True  # CREATE/DROP DATABASE cannot run inside a transaction
     try:
         yield connection
     finally:
@@ -45,3 +49,11 @@ def create_database_if_absent(url: str) -> None:
     database = make_url(url).database
     with admin_connection(url) as connection, connection.cursor() as cursor:
         cursor.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(database)))
+
+
+def drop_database(url: str) -> None:
+    database = make_url(url).database
+    with admin_connection(url) as connection, connection.cursor() as cursor:
+        cursor.execute(
+            sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(sql.Identifier(database))
+        )

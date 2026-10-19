@@ -197,9 +197,7 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt -r requirements-dev.txt
         working-directory: backend
-      # tests/migrations is excluded, not merely unconfigured: TEST_DATABASE_URL
-      # is unset here so it would skip anyway, but naming the exclusion keeps this
-      # job's scope from depending on that.
+      # tests/migrations runs in its own job, against its own database.
       - run: pytest --ignore=tests/migrations
         working-directory: backend
         env:
@@ -222,8 +220,8 @@ jobs:
           POSTGRES_DB: pms_migrations_test
         ports:
           - 5432:5432
-        # Gate steps until Postgres accepts connections, else the conftest's
-        # reachability check can race and silently skip the whole module.
+        # Gate steps until Postgres accepts connections; the suite fails if it
+        # cannot connect.
         options: >-
           --health-cmd pg_isready
           --health-interval 10s

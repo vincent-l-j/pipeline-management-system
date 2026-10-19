@@ -104,9 +104,10 @@ Decide per migration which applies, and note it in the migration docstring.
 ## The migration test suite
 
 The migration tests live in `backend/tests/migrations/` and drive the Alembic CLI
-against a **disposable** Postgres (never a real DB — they `DROP SCHEMA`). They `skip`
-unless `TEST_DATABASE_URL` is set and reachable, and that database must be a
-different one from the application suite's `APP_TEST_DATABASE_URL`.
+against a **disposable** Postgres (never a real DB — they `DROP SCHEMA`). `TEST_DATABASE_URL`
+defaults to `pms_migrations_test` on the compose `db` service; the database is created if
+absent and an unreachable server fails the run. It must be a different database from the
+application suite's `APP_TEST_DATABASE_URL`.
 `test_migrations_match_models` (an `alembic check`) is the gate that a
 migration actually matches `app/models/`; the suite implements Levels 1–2 above.
 

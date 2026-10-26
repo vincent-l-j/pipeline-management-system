@@ -65,7 +65,8 @@ conflicts with the feature's spec.
   the behaviour they check, not which task or spec item they came from.
 - You iterate until you believe the work is correct, then hand off. Correctness is
   judged against the spec's acceptance scenarios via `/speckit-analyze`,
-  `/speckit-converge` and a PR review — never self-validated.
+  `/speckit-converge` and a PR review — never self-validated. A small bug fix with
+  no spec is judged against its issue.
 - **Lessons and proposals** (see `methodology.md`): a lesson from a defect becomes a
   rule in `docs/best-practices/` in the PR that fixes it, merged into an existing
   rule where possible. An idea for an automated check is filed as a `needs-triage`
@@ -122,11 +123,17 @@ preferred.
   answer of unknown age. Before building on an earlier branch, check ancestry, not
   the diff: `git merge-base --is-ancestor <base> origin/main`. A "no" with an empty
   diff means the earlier branch was squash-merged, so base on `origin/main`.
+- **PRs target `main`.** `develop` only deploys the staging (UAT) app; see
+  `README.md` ("Production deployment") for when to push to it.
 - **One branch per PR, one concern per PR.** A spec (or issue) lands as one or more
-  PRs, each on its own branch (`<type>/<short-slug>`). Backend and frontend land as
-  separate, smaller PRs — don't combine them.
-- **Name the branch for what it does.** The prefix is the Conventional Commit
-  type of the work it carries, not a fixed `feat/` — `ci/lint-workflows`,
+  PRs, each on its own branch. Backend and frontend land as separate, smaller PRs —
+  don't combine them.
+- **A specified feature's branches start with its spec directory's name**, as Spec
+  Kit numbers it under `specs/` (see `methodology.md`) — for example
+  `001-align-docs-constitution-decisions` for a later PR on
+  `specs/001-align-docs-constitution/`.
+- **A change without a spec names its branch for what it does.** The prefix is the
+  Conventional Commit type of the work it carries, not a fixed `feat/` — `ci/lint-workflows`,
   `refactor/clean-test-output`, `docs/frontend-typescript-best-practice`. Where
   the commits mix types, use the dominant one; a feature plus its docs is still
   `feat/`. A branch prefixed `feat/` whose commits are all `fix:` misleads the
@@ -173,6 +180,10 @@ preferred.
   takes under five minutes without a code change (C5).
 - Correctness is confirmed by `/speckit-analyze`, `/speckit-converge` and a PR
   review against the spec (see the TDD section above), never by the implementer
-  alone.
+  alone. A small bug fix with no spec is reviewed against its issue instead (see
+  `methodology.md`).
+- If the change alters a specified feature, its spec was updated first, in the same
+  PR.
 - **Done means deployed, not merged.** The change is in production and the signal
-  its plan's Constitution Check named has been checked (C6).
+  its plan's Constitution Check named has been checked (C6). A docs-only change is
+  done when it merges to `main`.

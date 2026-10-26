@@ -67,7 +67,8 @@ artifacts are:
 
 - **`specs/<feature>/spec.md`** — the feature's user stories and acceptance
   scenarios. Those scenarios are the source of truth for "correct"; "done" is
-  deployed and observed (C6).
+  deployed and observed (C6). Specs are living documentation: kept after the feature
+  ships, and updated first whenever the feature changes.
 - **`specs/<feature>/plan.md`, `tasks.md`** — the design, its Constitution Check,
   and the dependency-ordered tasks, each story with its independent test.
 - **`AGENTS.md`** — boundaries + coding conventions. Read before editing.
@@ -80,7 +81,8 @@ To implement a feature: run the Spec Kit steps in `methodology.md` (specify →
 clarify → plan → tasks → analyze → implement → converge). Implementing means reading
 the spec's acceptance scenarios → the plan → `AGENTS.md` → the relevant
 best-practices doc → **write tests first** → implement → run the story's
-independent test from `tasks.md`. A defect found along the way becomes a rule in
+independent test from `tasks.md`. A small bug fix skips Spec Kit — a failing
+reproduction test, the fix, and a PR (see `methodology.md`). A defect found along the way becomes a rule in
 `docs/best-practices/` in the PR that fixes it; an idea for an automated check
 becomes a `needs-triage` GitHub issue.
 
@@ -103,8 +105,9 @@ in the same change that alters the pattern it describes).
 
 1. **Tests first (TDD).** Tests encode intended behaviour; write them before code.
    Correctness is judged against the spec's acceptance scenarios via
-   `/speckit-analyze`, `/speckit-converge` and a PR review citing rule ids, never by
-   the implementer alone. Done means deployed and observed (C6), not merged.
+   `/speckit-analyze`, `/speckit-converge` and a PR review citing rule ids (a small
+   bug fix: against its issue), never by the implementer alone. Done means deployed and observed (C6), not merged; a
+   docs-only change is done when it merges to `main`.
 2. **The backend is the only security boundary.** Enforce authz server-side with
    `require_role`. Frontend role checks (`user.role`) are UX only — `localStorage`
    is client-controlled.

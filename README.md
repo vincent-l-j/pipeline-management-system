@@ -213,8 +213,9 @@ the repo spec). CI is the single deploy path:
 
 Each workflow runs `digitalocean/app_action/deploy@v2`, which applies **both** the spec and the
 code together — so a field that drifts from reality in the committed spec gets pushed onto the
-live app on the next deploy. Keep the spec mirroring the deployed app. Branch flow:
-PRs → `develop` (staging/UAT) → `main` (prod). Managed Postgres data persists across deploys and
+live app on the next deploy. Keep the spec mirroring the deployed app. Branch flow: PRs target
+`main` (prod). `develop` is not a PR target; push to it only to put a change on the staging (UAT)
+app for user-acceptance testing. Managed Postgres data persists across deploys and
 is backed up by the platform when `production: true` is set on the DB.
 
 ### Staging / UAT environment

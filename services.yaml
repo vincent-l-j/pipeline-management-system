@@ -1,4 +1,4 @@
-# Commands and services validators/workers use to build, test, and run the system.
+# Commands and services contributors and CI use to build, test, and run the system.
 # The canonical local stack is Docker Compose (db + backend + frontend, plus minio
 # behind the `objectstore` profile). The command keys below also work on a host
 # with Python 3.12 + Node installed.
@@ -15,7 +15,7 @@ commands:
   # Full test suite: backend pytest + frontend vitest, jsdom and browser.
   test: (cd backend && pytest) && (cd frontend && npm test && npm run test:browser)
 
-  # Granular test entry points (used by per-feature verificationSteps).
+  # Granular test entry points (used by tasks.md verification steps).
   test-backend: cd backend && pytest
   test-frontend: cd frontend && npm test
 
@@ -69,8 +69,9 @@ services:
     port: 5173
     depends_on: [backend]
 
-  # The object store attachments live in. Only needed to exercise them for real
-  # (VAL-ATTACH-002) — the unit suites stub the transport and need nothing running.
+  # The object store attachments live in. Only needed to exercise them for real —
+  # upload a file and compare the stored object's checksum with the source. The unit
+  # suites stub the transport and need nothing running.
   # Both services are named explicitly because naming a profiled service is what
   # enables its profile; `up -d minio` alone would skip the bucket initialiser and
   # every upload would fail against a bucket that does not exist.

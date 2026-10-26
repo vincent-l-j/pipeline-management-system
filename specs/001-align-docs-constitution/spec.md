@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-25
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "correct the docs to match the constitution"
 
@@ -43,6 +43,14 @@
   gates, and a PR reviewer (human or agent) judges the change against the spec and cites
   constitution rules by id. The implementer never signs off on their own work. Done means
   deployed and observed (C6), not merged.
+- Follow-up decisions after the first rollout (from the cold read on `main`):
+  - PRs target `main`. `develop` only deploys the staging (UAT) app.
+  - A small bug fix doesn't need a spec folder.
+  - A docs-only change is done when it merges to `main`.
+  - Specs are living documentation: kept in the repo and updated first, before the code,
+    whenever the feature changes.
+  - `AGENTS.md` references Spec Kit's branch naming instead of restating a convention of
+    its own.
 
 ## User Scenarios & Testing _(mandatory)_
 
@@ -280,9 +288,23 @@ artifact they name exists, or is created by a Spec Kit command they name.
   Definition of Done, and the methodology MUST say that correctness is judged against the
   feature spec's acceptance scenarios, through the `/speckit-analyze` and
   `/speckit-converge` gates and a PR review that cites constitution rules by id, never by
-  the implementer alone. They MUST say that done means deployed and observed (C6). No
+  the implementer alone. They MUST say that done means deployed and observed (C6), and
+  that a docs-only change is done when it merges to `main`. No
   in-scope document may name an independent validator judging against a validation
   contract as the arbiter.
+- **FR-021**: Every in-scope document that describes branch flow MUST say PRs target
+  `main`, and that `develop` only deploys the staging (UAT) app.
+- **FR-022**: `methodology.md` MUST give a small bug fix a path with no spec folder. A small
+  bug fix restores behaviour the code was meant to have, without adding a capability or
+  changing specified behaviour. Its path: a failing reproduction test first (C3), then the
+  fix, then a PR whose body states the revert path (C5) and the production signal (C6),
+  reviewed against the issue it fixes. Anything larger goes through Spec Kit.
+- **FR-023**: `methodology.md` MUST say specs are living documentation: a `specs/<feature>/`
+  directory is kept after the feature ships, and a later change to the feature updates its
+  spec first, in the same PR as the code.
+- **FR-024**: `AGENTS.md` MUST reference Spec Kit for how a specified feature's branch is
+  named, not restate a naming scheme. Only branches for changes without a spec keep the
+  `<type>/<short-slug>` convention.
 
 ### Key Entities
 

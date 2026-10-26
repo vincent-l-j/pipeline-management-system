@@ -6,8 +6,8 @@ How the three layers connect in this repo, and the rules that keep them in sync.
 
 ```
 React component
-  → src/services/api.js (axios, baseURL "/api", attaches Bearer token)
-    → dev:  Vite proxy forwards /api → http://backend:8000  (vite.config.js)
+  → src/services/api.ts (axios, baseURL "/api", attaches Bearer token)
+    → dev:  Vite proxy forwards /api → http://backend:8000  (vite.config.ts)
       prod: same origin; App Platform routes /api to the backend
     → FastAPI route (app/api/routes/*)
       → Depends(get_db) → SQLAlchemy Session → PostgreSQL
@@ -27,8 +27,8 @@ The frontend never talks to the database, and never constructs URLs beyond the
   it. When you add/rename/remove a field, update the consumers and their tests in
   the same feature.
 - Enum values cross the wire as their string value (`"received"`, `"admin"`).
-  The frontend keeps its display labels in config modules (`PipelineConfig.js`,
-  `AssessmentConfig.js`) keyed by those raw values — extend those maps, don't
+  The frontend keeps its display labels in config modules (`PipelineConfig.ts`,
+  `AssessmentConfig.ts`) keyed by those raw values — extend those maps, don't
   hardcode labels inline.
 
 ## Sessions, transactions, and integrity
@@ -65,7 +65,7 @@ The frontend never talks to the database, and never constructs URLs beyond the
 
 ## Auth across the boundary
 
-- Login yields a JWT; the frontend stores it in `localStorage` and `api.js`
+- Login yields a JWT; the frontend stores it in `localStorage` and `api.ts`
   attaches it as `Authorization: Bearer <token>` on every request.
 - A `401` anywhere triggers the response interceptor to clear storage and redirect
   to `/login` — components don't need to handle expiry themselves.
@@ -94,9 +94,12 @@ The frontend never talks to the database, and never constructs URLs beyond the
   live. It needs the `db` service up (`APP_TEST_DATABASE_URL`, default
   `pms_app_test`); the schema is rebuilt from the migrations per run and every
   table truncated between tests.
-- **Frontend**: mock `services/api` so components are tested against the _contract_
-  (the shapes above), not a live backend. Keep mock payloads faithful to the real
-  `*Out` schema — a drifted mock hides integration breaks.
+- **Frontend**: component tests today mock `services/api`, so components are
+  tested against the _contract_ (the shapes above), not a live backend. That is a
+  mock of the project's own code, grandfathered under C3; a new test doesn't add
+  to it without recording the exception in its plan. Where the pattern is used,
+  keep mock payloads faithful to the real `*Out` schema — a drifted mock hides
+  integration breaks.
 - **End-to-end**: the contract's `VAL-*` assertions are verified black-box
   against the running stack (`services.yaml` brings it up; health at
   `/api/health`). That's the layer that catches proxy/CORS/field-name mismatches
@@ -110,4 +113,5 @@ The frontend never talks to the database, and never constructs URLs beyond the
   add a purpose-built endpoint if a low-privilege caller still needs a subset.
 - Cascade/orphan logic left to the DB instead of the application layer, where no
   test of the API contract can observe it.
-- Mock payloads in frontend tests that no longer match the real schema.
+- Mock payloads in frontend tests that no longer match the real schema — the
+  standing cost of the grandfathered mock pattern above.

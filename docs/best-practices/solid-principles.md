@@ -6,7 +6,9 @@ alike. This doc states each principle and shows how it already shows up (or shou
 show up) in Rozetta PMS, so new code stays consistent with the grain of the repo.
 
 The backend and frontend best-practices docs describe the _conventions_; this doc
-explains the _why_ behind them.
+explains the _why_ behind them. Where SOLID and the
+[constitution](../../.specify/memory/constitution.md) pull different ways, the
+constitution governs.
 
 ---
 
@@ -18,9 +20,9 @@ This is the backbone of the layering already in place:
 
 - **Backend:** `routes/` handle HTTP (parse, authorize, shape responses),
   `models/` handle persistence, `schemas/` handle serialization/validation, and
-  `services/` (e.g. `ai_notetaker.py`) hold logic that would otherwise bloat a
-  route. A route that starts doing parsing or multi-step business logic should
-  push that into a service.
+  `services/` (e.g. `ai_notetaker.py`) hold logic that has earned its own module.
+  A route that starts doing parsing or multi-step business logic keeps it inline
+  until the same logic has three call sites, then extracts it (C1).
 - **Frontend:** pages/containers fetch and own state; presentational components
   render props (`KanbanBoard` owns the pitches and the move handler; `KanbanColumn`
   and `PitchCard` just render what they're given).
@@ -34,7 +36,8 @@ changed" _and_ "the response fields changed") wants splitting.
 
 _Open for extension, closed for modification._
 
-Prefer adding data/implementations over editing existing branching logic:
+The point is cheap change, not open-ended extension: a case that lives in data can
+be added _or deleted_ by editing one entry (C1). Prefer data over branching logic:
 
 - Pipeline stages, sources, funding pathways, and assessment criteria are **config
   and enums** (`PipelineStage`, `PIPELINE_STAGES`, `SOURCE_LABELS`,
@@ -69,7 +72,9 @@ _Subtypes must be usable wherever the base type is expected — without surprise
   contract when the implementation is a whole other system.
 - The three auth fixtures (`admin_client`, `assessor_client`, `viewer_client`) are
   substitutable `TestClient`s differing only in role, so the same test shape works
-  across roles.
+  across roles. They work by overriding the project's own `get_current_user`
+  dependency, which is grandfathered under C3; new tests don't extend that
+  pattern without recording the exception in their plan.
 
 Smell: a "subtype" that throws or no-ops where the base type wouldn't (e.g. a
 narrower schema that silently drops a field a caller relied on).
@@ -101,16 +106,19 @@ _Depend on abstractions, not concretions; wire the concretion in at the edge._
 
 - **Backend:** routes never construct a `SessionLocal()` or decode a JWT inline —
   they declare `Depends(get_db)` / `Depends(get_current_user)`. FastAPI injects the
-  concrete implementation, and tests swap it via `app.dependency_overrides`. That
-  substitution is the whole reason the suite can run without Postgres or real
-  tokens.
-- **Frontend:** components depend on the `api` abstraction (`services/api.js`), not
+  concrete implementation, so a handler's dependencies are visible in its
+  signature (C2). The suite runs against real Postgres; the one own-code
+  substitution it makes, overriding `get_current_user` through
+  `app.dependency_overrides`, is grandfathered under C3 rather than a pattern to
+  copy. External services are what gets swapped, as the document store above
+  shows.
+- **Frontend:** components depend on the `api` abstraction (`services/api.ts`), not
   on axios directly. Auth flows through the `useAuth()` hook, not `localStorage`
   reads scattered through components. Swapping transport or auth storage is then a
   one-file change.
-- **Services:** the AI notetaker depends on "a way to parse notes" and falls back
-  to a basic parser when the Claude client isn't configured — the caller doesn't
-  care which implementation runs.
+- **Services:** the AI notetaker is _not_ an example to follow here. It reads its
+  API key from the environment and constructs its model client inline, which is
+  grandfathered under C2; a change to it injects the client instead.
 
 Smell: a component importing `axios`, or a route calling `SessionLocal()` /
 reading env vars directly — that's depending on a concretion the edge should have
@@ -122,7 +130,7 @@ injected.
 
 SOLID serves changeability; it is not a mandate to add layers. For a small,
 CRUD-shaped feature, a thin route + schemas is already SRP/DIP-compliant — don't
-invent a service class with one caller just to "be SOLID". Reach for a new
-abstraction when a **second** reason to change, a **second** implementation, or a
-**second** consumer actually appears. Premature interfaces cost more than they
+invent a service class with one caller just to "be SOLID". Inline until it
+hurts: a new base class, shared hook, service or interface names its three
+existing call sites, or it waits (C1). Premature interfaces cost more than they
 save.

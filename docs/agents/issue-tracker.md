@@ -25,13 +25,13 @@ When set to `yes`, PRs run through the same labels and states as issues, using t
 
 GitHub shares one number space across issues and PRs, so a bare `#42` may be either: resolve with `gh pr view 42` and fall back to `gh issue view 42`.
 
-## Relationship to `mission/`
+## Relationship to `specs/`
 
-This repo also runs the `mission/` methodology (see `CLAUDE.md`): `mission/contract/`
-holds the behavioural assertions and `mission/features/` is the queue that drains.
-That is separate from this issue tracker and takes precedence for "is the mission
-done". Never put a `mission/` queue id in a GitHub issue — those ids name files that
-are deleted when the work drains.
+An issue captures work that isn't specified yet: a defect, a gap, an idea. When it
+is picked up, `/speckit-specify` turns it into `specs/<feature>/`, and the spec
+links the issue number. Once a spec exists, its acceptance scenarios — not the
+issue — define "done" (see `methodology.md`). Ideas for automated checks are filed
+here as `needs-triage` issues and never block the work in hand.
 
 ## When a skill says "publish to the issue tracker"
 

@@ -1,9 +1,9 @@
 # AGENTS.md — Rozetta PMS
 
-Mission boundaries and coding conventions for workers on this codebase. Read this
-before implementing a feature. The mission-level contract is one assertion per file
-under `mission/contract/`; the feature queue is one feature per file under
-`mission/features/`; build/run/test commands are in `services.yaml`.
+Boundaries and coding conventions for anyone changing this codebase. Read this
+before implementing a feature. Each feature's spec, plan and tasks live under
+`specs/<feature>/` (see `methodology.md`); build/run/test commands are in
+`services.yaml`.
 
 The [constitution](.specify/memory/constitution.md) governs principles, and the
 Spec Kit commands check every plan against it. This file, `CLAUDE.md` and
@@ -11,7 +11,7 @@ Spec Kit commands check every plan against it. This file, `CLAUDE.md` and
 them seems to contradict the constitution, the constitution wins until it is
 amended.
 
-## Mission Boundaries
+## Boundaries
 
 **Ports (this project only):**
 
@@ -35,20 +35,17 @@ Do not bind other ports or assume services on them.
 **Off-limits:**
 
 - Docker containers and ports not belonging to this project.
-- `methodology.md`, anything under `mission/contract/`, and the _shape_ of a
-  `mission/features/` entry — do not rewrite the contract or invent assertions.
-  The only queue file a worker touches is its own feature's, and it touches it
-  once: the implementation commit **deletes** it. There is no `status` field to
-  flip — presence is pending, absence is done.
-- Queue ids outside `mission/`. An id names a file that is deleted when its work
-  drains, so no tracked file elsewhere may reference one.
+- The constitution (`.specify/memory/constitution.md`). It changes only through its
+  own amendment PR, never as part of feature work.
+- Ephemeral ids in durable files. Code, tests, comments and best-practices rules
+  never cite a task id from `tasks.md`, a branch name or anything else that gets
+  deleted or renumbered (see `methodology.md`).
 - Secrets: never commit `.env` or hardcode keys. `SECRET_KEY`, Azure, and
   `ANTHROPIC_API_KEY` come from the environment. Leave `ENABLE_DEV_LOGIN=false`
   for anything prod-like.
 
-Workers: return to the orchestrator if you cannot complete the work within these
-boundaries, or if a feature's `expectedBehavior` conflicts with an assertion in
-`mission/contract/`.
+Stop and ask the user if the work can't be done within these boundaries, or if it
+conflicts with the feature's spec.
 
 ## Test-Driven Development
 
@@ -64,13 +61,15 @@ boundaries, or if a feature's `expectedBehavior` conflicts with an assertion in
   order, print rules, breakpoint gating, measured size — goes in the real-browser
   suite (`*.browser.test.tsx`) instead, because jsdom passes it vacuously. See
   `docs/best-practices/frontend-react.md` for which seam takes what.
-- **Do not reference `VAL-*` assertions in test docstrings or source code comments.**
-  Assertions are declared under `mission/contract/`, claimed by a feature's
-  `fulfills`, and verified independently; test names and docstrings should describe
-  what they test, not which assertion they fulfill.
-- You iterate until you believe the work is correct, then hand off. Final
-  correctness is decided by an independent validator against the contract — do not
-  mark your own work validated.
+- **Don't cite task ids in tests or comments.** Test names and docstrings describe
+  the behaviour they check, not which task or spec item they came from.
+- You iterate until you believe the work is correct, then hand off. Correctness is
+  judged against the spec's acceptance scenarios via `/speckit-analyze`,
+  `/speckit-converge` and a PR review — never self-validated.
+- **Lessons and proposals** (see `methodology.md`): a lesson from a defect becomes a
+  rule in `docs/best-practices/` in the PR that fixes it, merged into an existing
+  rule where possible. An idea for an automated check is filed as a `needs-triage`
+  GitHub issue.
 
 ## Backend Conventions (Python 3.12, FastAPI, SQLAlchemy 2.0)
 
@@ -119,9 +118,9 @@ preferred.
 
 - **Start clean.** Begin from a clean working tree; never commit on a detached
   `HEAD` or directly on `main`. Create a branch off `main` first.
-- **A branch and PR per feature.** One `mission/features/` id → one branch
-  (`<type>/<short-slug>`) → one PR. Backend and frontend are separate feature ids,
-  so they land as separate, smaller PRs — don't combine them.
+- **A branch and PR per feature.** One spec (or issue) → one branch
+  (`<type>/<short-slug>`) → one PR. Backend and frontend land as separate, smaller
+  PRs — don't combine them.
 - **Name the branch for what it does.** The prefix is the Conventional Commit
   type of the work it carries, not a fixed `feat/` — `ci/lint-workflows`,
   `refactor/clean-test-output`, `docs/frontend-typescript-best-practice`. Where
@@ -159,9 +158,7 @@ preferred.
 ## Definition of Done (per feature)
 
 - Tests written first and passing (`services.yaml` → `test-backend` / `test-frontend`).
-- Every `VAL-*` id the feature `fulfills` is observably satisfied on the running
-  stack — observed by using the app, not inferred from a passing test.
+- Every acceptance scenario in the feature's spec is observably satisfied on the
+  running stack — observed by using the app, not inferred from a passing test.
 - Server-side authorization verified for any restricted action (not just hidden UI).
 - No new lint/secret/boundary violations.
-- The feature's `mission/features/` file is deleted by the same commit that
-  implements it — that deletion is what records completion.

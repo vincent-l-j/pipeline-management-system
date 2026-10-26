@@ -14,8 +14,6 @@ It records pitches from submission to final decision, logs meetings (with option
 - **Dashboard, full-text search, and reports** with CSV export
 - **Role-based access** — Admin, Assessor, Viewer
 
-For end-user documentation, see [`Rozetta_PMS_User_Guide.md`](./Rozetta_PMS_User_Guide.md).
-
 ## Tech stack
 
 | Layer    | Technology                                                                            |

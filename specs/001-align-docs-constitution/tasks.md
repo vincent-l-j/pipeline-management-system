@@ -63,7 +63,7 @@ fetched base. The phases land in order, because several files are edited by more
 **Purpose**: Land the constitution, the Spec Kit setup and this spec on `origin/main`. Every
 story PR cites the constitution, so it has to exist on the base branch first.
 
-- [ ] T002 Push `chore/specify` and open its PR to `main` after the user confirms. The branch
+- [x] T002 Push `chore/specify` and open its PR to `main` after the user confirms. The branch
       holds the Spec Kit initialisation, the ratified constitution
       (`.specify/memory/constitution.md`), the deletion of `mission/contract/`, and
       `specs/001-align-docs-constitution/` (including this file). The PR body says these are
@@ -186,7 +186,7 @@ and confirm each passage is rewritten, labelled or replaced by a pointer.
   - Production revert (~:369-370): state the revert path (redeploy the previous commit, plus
     the downgrade or restore path) and that it takes under 5 minutes (C5).
   - "Done" (~:374-378): add "the production signal named in the plan has been checked" (C6).
-- [ ] T013 [US1] Re-run [quickstart.md](quickstart.md) check 4 and
+- [x] T013 [US1] Re-run [quickstart.md](quickstart.md) check 4 and
       `npm run format:prettier:check`, and confirm both pass. Open PR
       `docs/constitution-conformance` after the user confirms. The PR body lists the research
       R5 conformance gaps (C4 commands, A22 alerts) as deliberately out of scope.
@@ -215,7 +215,7 @@ reader reaches the constitution in one hop.
   - Add the conflict rule from [contracts/precedence-statement.md](contracts/precedence-statement.md)
     as a new rule next to rule 1 ("The code is the source of truth").
   - Reword rule 5's "Four short docs" so it doesn't count the docs (README rule 3).
-- [ ] T017 [US2] Run [quickstart.md](quickstart.md) check 3 and the Prettier check, and confirm
+- [x] T017 [US2] Run [quickstart.md](quickstart.md) check 3 and the Prettier check, and confirm
       both pass. Open PR `docs/constitution-precedence` after the user confirms.
 
 **Checkpoint**: US1 and US2 are both complete.
@@ -314,7 +314,7 @@ needs the workflow PR's new destinations.
       tests. Change no existing line.
 - [x] T029 [P] [US4] In `README.md` (~:17), delete the sentence linking
       `Rozetta_PMS_User_Guide.md`. The file was deleted in an earlier cleanup.
-- [ ] T030 [US4] Run [quickstart.md](quickstart.md) check 1 (ignore `mission/` existing and
+- [x] T030 [US4] Run [quickstart.md](quickstart.md) check 1 (ignore `mission/` existing and
       the `mission/lessons` and `mission/proposals` paths, which the drain PR removes), plus
       checks 2 and 6, the Prettier check, and the check 8 cold read. Open PR
       `docs/spec-kit-workflow` after the user confirms.
@@ -364,7 +364,7 @@ cite the lesson's filename.
 - [x] T040 [US4] Delete `mission/` with `git rm -r mission`. It holds the 9 lessons merged in
       T031–T037 and the 2 proposals: one filed in T038, one declined. This depends on
       T031–T039.
-- [ ] T041 [US4] Run all of [quickstart.md](quickstart.md) checks 1 and 5 and the Prettier check.
+- [x] T041 [US4] Run all of [quickstart.md](quickstart.md) checks 1 and 5 and the Prettier check.
       Open PR `docs/drain-mission-queues` after the user confirms. The body lists:
   - each of the 9 lessons with its outcome and target;
   - both proposals with their outcomes (filed with its issue number, or declined);
@@ -394,7 +394,7 @@ signal checked, and it names who confirms correctness.
     alone isn't done (C6);
   - correctness is confirmed by `/speckit-analyze`, `/speckit-converge` and a PR review
     against the spec, never by the implementer alone.
-- [ ] T043 [US3] Check the US3 acceptance scenarios against the edited DoD, and run the Prettier
+- [x] T043 [US3] Check the US3 acceptance scenarios against the edited DoD, and run the Prettier
       check. Open PR `docs/definition-of-done` after the user confirms. Its body carries the
       follow-up list from research R6, R7 and R10:
   - stale facts outside rewritten passages (`navy`/`teal`→`amber` in AGENTS.md, the DR

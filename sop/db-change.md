@@ -33,6 +33,17 @@ index, or enum value.
 
 A model edit alone changes no database — it only takes effect through a migration.
 
+**Every change is expand-then-contract (C5 in the
+[constitution](../.specify/memory/constitution.md)).** Removing, renaming or narrowing
+something takes three separate releases, each one a pass through this SOP:
+
+1. **Expand:** an additive migration with a working `downgrade()`.
+2. **Tolerate:** application code that works with both the old and the new shape.
+3. **Contract:** a later migration that drops the old shape.
+
+A purely additive change (a new nullable column, a new table) is step 1 alone. A migration
+that cannot be reversed says so in its docstring and names the restore path instead.
+
 ---
 
 ## 2. Generate the migration (against a throwaway/local DB)
@@ -122,6 +133,11 @@ alembic downgrade -1       # step back one
 CONFIRM]` before downgrading anything holding data.
 - **In production, prefer a new forward migration** that corrects the mistake over a manual
   downgrade. Data already lost to a bad migration is not recovered by downgrading.
+- **The production revert path** is redeploying the previous commit. Because each step is
+  expand-then-contract, the previous code still runs against the expanded schema, so the
+  revert takes under five minutes and needs no code change (C5). If the release being
+  reverted contracted the schema, the path is the migration docstring's downgrade or
+  restore, and its stated time applies instead.
 
 ---
 
@@ -130,3 +146,5 @@ CONFIRM]` before downgrading anything holding data.
 - Migration file reviewed and applied cleanly on a throwaway/local DB.
 - Change covered by a test.
 - Merged to `main`; deploy's migrate job applied it without error; app boots.
+- The production signal the plan named (a structured log field, a request-correlated
+  record, or a health signal) has been checked and shows the change working (C6).

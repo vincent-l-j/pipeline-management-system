@@ -138,7 +138,8 @@ there, which removes the route to the internet but not the route between these
 containers. That is the whole reason a local store is worth having.
 
 One thing it does not prove: DO's own behaviour at the edges. A real Space is
-still what closes VAL-ATTACH-002, by checksum. The lifecycle rule in the next
+still the only proof that an uploaded file arrives byte-identical (compare the
+source and stored checksums); no automated test covers that. The lifecycle rule in the next
 section is a billing concern with no local equivalent either.
 
 ## Object storage: the Space pitch attachments live in ⚠️

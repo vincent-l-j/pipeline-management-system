@@ -100,8 +100,8 @@ The frontend never talks to the database, and never constructs URLs beyond the
   to it without recording the exception in its plan. Where the pattern is used,
   keep mock payloads faithful to the real `*Out` schema — a drifted mock hides
   integration breaks.
-- **End-to-end**: the contract's `VAL-*` assertions are verified black-box
-  against the running stack (`services.yaml` brings it up; health at
+- **End-to-end**: the feature spec's acceptance scenarios are verified on the
+  running stack (`services.yaml` brings it up; health at
   `/api/health`). That's the layer that catches proxy/CORS/field-name mismatches
   the unit tests can't.
 

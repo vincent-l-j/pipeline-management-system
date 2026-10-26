@@ -51,8 +51,8 @@ subtly-wrong lore:
    implemented_ (e.g. a schema described in a queued feature but not yet built), say
    so ("planned as `X`") rather than presenting it as existing. Reconcile it when
    the feature lands.
-5. **No tooling needed.** A handful of short docs doesn't warrant link-checkers or doctests;
-   reviewer attention plus rule 2 is sufficient. Add automation only if drift
+5. **No tooling needed.** A handful of short docs doesn't warrant link-checkers or
+   doctests; reviewer attention plus rule 2 is sufficient. Add automation only if drift
    actually becomes a recurring problem.
 
 What _doesn't_ rot, and is safe to rely on: the principles and conventions
@@ -60,7 +60,5 @@ themselves (server-side authz, tests-first, integrity-in-app-code, the SOLID
 definitions). Only the anchoring examples need maintenance.
 
 The same "fix it in the same change / code-wins" spirit applies to the
-implementation-anchored parts of the mission-control docs (a feature's
-`verificationSteps`, `services.yaml` commands). The black-box assertions under
-`mission/contract/` are deliberately implementation-independent and should not need
-this upkeep.
+implementation-anchored parts of the workflow docs (the checks in a feature's
+`tasks.md`, `services.yaml` commands).

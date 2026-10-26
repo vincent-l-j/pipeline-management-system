@@ -55,36 +55,34 @@ silently doesn't force.
 backend/app/   FastAPI: api/routes, core (config/db/security), models, schemas, services
 frontend/src/  React: pages, components, contexts, services/api.ts
 docs/          architecture.md, best-practices/
-mission/       the work queues: contract/, features/, lessons/, proposals/
+specs/         one directory per feature: spec, plan, research, tasks
+.specify/      Spec Kit templates, scripts, and the constitution (memory/)
 sop/           db bootstrap/migration runbooks, tooling, instance sheets
 ```
 
 ## How work is organized (read these first)
 
-This repo follows the multi-agent methodology in **`methodology.md`**. The
-mission-control artifacts are:
+Features are specified and built with Spec Kit, following **`methodology.md`**. The
+artifacts are:
 
-- **`mission/contract/VAL-<id>.md`** — one black-box behavioural assertion per file.
-  Together they are the source of truth for "done".
-- **`mission/features/<id>.json`** — one feature per file; the filename is the id.
-  Each declares which assertions it `fulfills`, its `verificationSteps`, and its
-  `dependsOn`.
-- **`AGENTS.md`** — mission boundaries + coding conventions. Read before editing.
+- **`specs/<feature>/spec.md`** — the feature's user stories and acceptance
+  scenarios. Those scenarios are the source of truth for "correct"; "done" is
+  deployed and observed (C6).
+- **`specs/<feature>/plan.md`, `tasks.md`** — the design, its Constitution Check,
+  and the dependency-ordered tasks, each story with its independent test.
+- **`AGENTS.md`** — boundaries + coding conventions. Read before editing.
 - **`services.yaml`** — build/run/test commands and services.
 - **`sop/`** — Standard Operating Procedures: runbooks for database bootstrap
   (`db-bootstrap.md`), schema changes (`db-change.md`), and tooling (`bin/db.sh`).
   See `sop/instances/rozetta-pms.md` for app-specific values.
 
-**These are queues that drain, not logs that grow.** There is no `status` field:
-presence is pending, absence is done. An empty `mission/features/` means the mission
-is complete. `mission/` also holds `lessons/` and `proposals/` on the same terms —
-see `methodology.md` for what each drains into.
-
-To implement a feature: read its `mission/features/` entry → the assertions it
-fulfills → `AGENTS.md` → the relevant best-practices doc → **write tests first** →
-implement → run the feature's `verificationSteps`. The commit that implements a
-feature also **deletes that feature's file**, so spec and implementation land
-together and cannot desync.
+To implement a feature: run the Spec Kit steps in `methodology.md` (specify →
+clarify → plan → tasks → analyze → implement → converge). Implementing means reading
+the spec's acceptance scenarios → the plan → `AGENTS.md` → the relevant
+best-practices doc → **write tests first** → implement → run the story's
+independent test from `tasks.md`. A defect found along the way becomes a rule in
+`docs/best-practices/` in the PR that fixes it; an idea for an automated check
+becomes a `needs-triage` GitHub issue.
 
 ## Reference docs
 
@@ -104,8 +102,9 @@ in the same change that alters the pattern it describes).
 ## Golden rules
 
 1. **Tests first (TDD).** Tests encode intended behaviour; write them before code.
-   Final correctness is judged by validators against the assertions in
-   `mission/contract/`, not by the implementer.
+   Correctness is judged against the spec's acceptance scenarios via
+   `/speckit-analyze`, `/speckit-converge` and a PR review citing rule ids, never by
+   the implementer alone. Done means deployed and observed (C6), not merged.
 2. **The backend is the only security boundary.** Enforce authz server-side with
    `require_role`. Frontend role checks (`user.role`) are UX only — `localStorage`
    is client-controlled.
@@ -117,8 +116,8 @@ in the same change that alters the pattern it describes).
 6. **Pydantic schemas are allowlists.** Don't widen one to pass a field through;
    keep non-client-settable fields (e.g. `current_stage` on `PitchUpdate`) out.
 7. **Enforce data integrity in app code, not DB cascades** — a cascade fires below
-   the boundary the API tests assert at, so the behaviour would be untestable as
-   part of the contract. (The old reason, "SQLite tests don't enforce foreign
+   the boundary the API tests assert at, so the behaviour would be untestable
+   through the API. (The old reason, "SQLite tests don't enforce foreign
    keys", no longer holds: the suite runs on Postgres.) See the integration doc.
 8. **API fields are `snake_case`** on both sides of the wire; don't rename on the
    frontend.
@@ -131,19 +130,17 @@ in the same change that alters the pattern it describes).
 ## Boundaries
 
 Ports: frontend 5173, backend 8000, Postgres 5432 — this project only. Don't touch
-other containers/ports. Don't rewrite `methodology.md` or anything in
-`mission/contract/`, and don't invent assertions; the only queue file a worker
-touches is its own `mission/features/` entry, which its implementation commit
-deletes. Never reference a queue id from a tracked file outside `mission/` — ids
-name files that are deleted when the work drains. Full details in `AGENTS.md`.
+other containers/ports. The constitution changes only through its own amendment PR.
+Durable files (code, tests, comments, best-practices rules) never cite ephemeral ids
+such as task ids or branch names. Full details in `AGENTS.md`.
 
 ## Agent skills
 
 ### Issue tracker
 
 Issues live as GitHub issues in `vincent-l-j/pipeline-management-system`, driven by
-the `gh` CLI. Separate from the `mission/` queues, which remain the source of truth
-for the contract. See `docs/agents/issue-tracker.md`.
+the `gh` CLI. Issues hold work that isn't specified yet; `specs/` holds features that
+are. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 

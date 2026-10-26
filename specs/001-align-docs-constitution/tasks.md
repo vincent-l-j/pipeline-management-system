@@ -237,9 +237,9 @@ needs the workflow PR's new destinations.
 
 ### PR `docs/spec-kit-workflow`
 
-- [ ] T018 [US4] Re-run [quickstart.md](quickstart.md) checks 1 and 2, and confirm the
+- [x] T018 [US4] Re-run [quickstart.md](quickstart.md) checks 1 and 2, and confirm the
       contract and queue hits and the two broken links are still there.
-- [ ] T019 [P] [US4] Rewrite `methodology.md` to match
+- [x] T019 [P] [US4] Rewrite `methodology.md` to match
       [contracts/methodology-outline.md](contracts/methodology-outline.md):
   - Five sections, in order. Keep "Automating a rule", including the admission bar and
     "What automates well", with "worker", "milestone" and "runner" wording removed.
@@ -247,7 +247,7 @@ needs the workflow PR's new destinations.
   - Don't restate the branch flow; point to AGENTS.md "Version control".
   - Nothing from the outline's "must not appear" list may remain.
   - Remove the `AGENT-READINESS.md` link and the `best-practices/testing.md` reference.
-- [ ] T020 [P] [US4] Edit `CLAUDE.md`:
+- [x] T020 [P] [US4] Edit `CLAUDE.md`:
   - Repository map (~:52): replace the `mission/` line with `specs/` (one folder per feature:
     spec, plan, tasks) and `.specify/` (Spec Kit templates, scripts and the constitution).
   - "How work is organized" (~:58-79): rewrite for the Spec Kit flow. Point to
@@ -263,7 +263,7 @@ needs the workflow PR's new destinations.
     ephemeral ids (task ids, branch names).
   - Issue tracker blurb (~:136-137): remove "Separate from the `mission/` queues…", and say
     that issues hold work not yet specified, while `specs/` holds specified features.
-- [ ] T021 [P] [US4] Edit `AGENTS.md`:
+- [x] T021 [P] [US4] Edit `AGENTS.md`:
   - Opening (~:3-6): drop the contract and feature-queue sentence. Point to `specs/` and
     `services.yaml`.
   - Off-limits (~:32-38): replace with "the constitution (amendment PR only)" plus the
@@ -283,36 +283,36 @@ needs the workflow PR's new destinations.
   - Definition of Done (~:150, ~:154): change the `VAL-*` line to "every acceptance scenario
     in the feature's spec is observably satisfied on the running stack", and delete the
     "feature file is deleted" line.
-- [ ] T022 [P] [US4] In `docs/agents/issue-tracker.md`, replace the "Relationship to `mission/`"
+- [x] T022 [P] [US4] In `docs/agents/issue-tracker.md`, replace the "Relationship to `mission/`"
       section (~:28-34) with "Relationship to `specs/`". An issue captures work that isn't
       specified yet. `/speckit-specify` turns it into `specs/<feature>/`, and the spec links
       the issue number. Ideas for automated checks are filed as `needs-triage` issues.
-- [ ] T023 [P] [US4] In `docs/agents/local-testing.md` (~:175), change the destination for "A
+- [x] T023 [P] [US4] In `docs/agents/local-testing.md` (~:175), change the destination for "A
       test that passed over a bug you just watched happen" to "A rule in
       `docs/best-practices/`, in this PR (merged into an existing rule where possible)".
       Adjust the next paragraph if it refers to lessons.
-- [ ] T024 [P] [US4] In `docs/best-practices/README.md`:
+- [x] T024 [P] [US4] In `docs/best-practices/README.md`:
   - Remove the closing paragraph's `mission/contract/` sentences (~:57-61).
   - Reword "a feature's `verificationSteps`" to "a feature's `tasks.md` verification steps".
-- [ ] T025 [P] [US4] In `docs/best-practices/database-integration.md` (~:100-103), change "the
+- [x] T025 [P] [US4] In `docs/best-practices/database-integration.md` (~:100-103), change "the
       contract's `VAL-*` assertions are verified black-box" to "the feature spec's acceptance
       scenarios are verified on the running stack".
-- [ ] T026 [P] [US4] Edit the comments in `services.yaml` (comments only, no command changes):
+- [x] T026 [P] [US4] Edit the comments in `services.yaml` (comments only, no command changes):
   - Line 1: change "validators/workers use" to "contributors and CI use".
   - (~:18) Change "used by per-feature verificationSteps" to "used by `tasks.md`
     verification steps".
   - (~:72-73) Replace "(VAL-ATTACH-002)" with research R7's wording: "upload a file and
     compare the stored object's checksum with the source".
-- [ ] T027 [P] [US4] In `sop/instances/rozetta-pms.md` (~:140-142), replace "what closes
+- [x] T027 [P] [US4] In `sop/instances/rozetta-pms.md` (~:140-142), replace "what closes
       VAL-ATTACH-002, by checksum" with research R7's wording. A real Space is the only proof
       an upload arrives byte-identical (compare checksums), and no automated test covers it.
-- [ ] T028 [P] [US4] Append to `docs/adr/0002-remove-pitch-file-links.md` the
+- [x] T028 [P] [US4] Append to `docs/adr/0002-remove-pitch-file-links.md` the
       `## Update YYYY-MM-DD` note from [contracts/adr-note.md](contracts/adr-note.md), dated
       the day it is written. It says the cited assertions were retired on 2026-10-25, that the
       decision stands, and that the guards are `backend/tests/test_attachments.py`,
       `backend/tests/test_spaces_document_store.py` and the `PitchAttachments` component
       tests. Change no existing line.
-- [ ] T029 [P] [US4] In `README.md` (~:17), delete the sentence linking
+- [x] T029 [P] [US4] In `README.md` (~:17), delete the sentence linking
       `Rozetta_PMS_User_Guide.md`. The file was deleted in an earlier cleanup.
 - [ ] T030 [US4] Run [quickstart.md](quickstart.md) check 1 (ignore `mission/` existing and
       the `mission/lessons` and `mission/proposals` paths, which the drain PR removes), plus

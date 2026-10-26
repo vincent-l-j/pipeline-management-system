@@ -172,7 +172,7 @@ Picking the wrong destination is how a finding evaporates:
 | A defect elsewhere in the app                         | A GitHub issue — `docs/agents/issue-tracker.md` |
 | No test would catch this PR's change regressing       | Write that test here, in this PR                |
 | A coverage gap away from what this PR touches         | A GitHub issue                                  |
-| A test that passed over a bug you just watched happen | A lesson under `mission/lessons/`               |
+| A test that passed over a bug you just watched happen | A rule in `docs/best-practices/`, in this PR    |
 
 A missing test sorts by reach, not by blame. If your change can break the thing
 nobody is asserting, the test belongs in your PR — the regression it would catch is
@@ -182,5 +182,5 @@ any other defect elsewhere.
 
 The last row is the valuable one, the easiest to skip, and orthogonal to the rest —
 it rides along with any of them. A test that passes over a bug you just saw with
-your own eyes is a reusable lesson about the seam, not a one-off; write it down and
-let consolidation promote it into `best-practices/`.
+your own eyes is a reusable lesson about the seam, not a one-off; write the rule into
+`docs/best-practices/` in this PR, merged into an existing rule where one fits.

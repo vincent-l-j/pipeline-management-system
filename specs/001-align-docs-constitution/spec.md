@@ -29,6 +29,9 @@
   are deleted), and the existing proposals become GitHub issues. From now on, a lesson is
   written straight into best-practices in the PR that fixes the defect, and a proposal is
   filed as a GitHub issue for triage. No holding queue remains.
+- User direction (2026-10-26, after planning): don't file the queue-id grep proposal. It is
+  declined: the contract is gone, so no new assertion ids can appear and the check would
+  guard nothing. Its file is deleted without an issue.
 - Q: ADR 0002 gives the now-deleted contract's assertions as its deciding factor. How should
   ADRs that cite retired artifacts be corrected? → A: Append-only. Keep the decision and its
   original reasoning, and add a short dated note under it saying the cited contract was
@@ -260,9 +263,10 @@ artifact they name exists, or is created by a Spec Kit command they name.
   best-practices rule (preferring an existing rule), dropped in favour of a constitution
   rule id, or deleted as a one-off or already enforced. The outcome for each MUST be stated
   in the PR description.
-- **FR-016**: Each existing proposal MUST be filed as a GitHub issue that carries its
-  enforced rule, evidence, approach, cost and confidence, and the proposal file is then
-  deleted.
+- **FR-016**: The assertion-target lint proposal MUST be filed as a GitHub issue that
+  carries its enforced rule, evidence, approach, cost and confidence. The queue-id grep
+  proposal is declined, and no issue is filed for it. Both proposal files are then deleted,
+  and the PR description states each outcome.
 - **FR-017**: After FR-015 and FR-016, `mission/` MUST be deleted, and no in-scope document
   may refer to it or its subfolders as a place to put work.
 - **FR-018**: The methodology and the agent conventions MUST state the new homes: lessons
@@ -309,12 +313,15 @@ artifact they name exists, or is created by a Spec Kit command they name.
   one link.
 - **SC-004**: Every mention of a grandfathered pattern in the in-scope documents carries its
   rule id.
-- **SC-005**: The change touches only documentation files, and the documentation formatting
-  check passes.
+- **SC-005**: Each of the five story PRs touches only documentation files (Markdown,
+  comment-only `services.yaml` edits, and deletions under `mission/`), and the documentation
+  formatting check passes. The foundation PR that lands the Spec Kit setup is outside this
+  criterion.
 - **SC-006**: Searching the in-scope documents for the validation contract, the feature
   queue, the runner and assertion ids finds 0 references that present them as current.
 - **SC-007**: `mission/` no longer exists, all 9 existing lessons have a stated outcome,
-  and both existing proposals are open GitHub issues.
+  the assertion-target lint
+  proposal is an open GitHub issue, and the declined queue-id grep proposal has none.
 
 ## Assumptions
 
@@ -331,8 +338,9 @@ artifact they name exists, or is created by a Spec Kit command they name.
   This feature labels it in the docs and does not pay it down.
 - **One PR or several**: the work can land as one docs PR or be split by document, following
   the repo's small-commit convention. Either way it's revertible by a plain revert, which
-  takes under five minutes (C5). Its production signal (C6) doesn't apply because no
-  runtime behaviour changes.
+  takes under five minutes (C5). No runtime behaviour changes, so C6's "observed" means the
+  quickstart checks pass on `main` and a fresh session's cold read finds no dead ends (see
+  plan.md, Constitution Check).
 - **Baseline inventory of conflicts** found during specification. This is not exhaustive;
   the plan's sweep confirms and extends it.
   1. Design-principles doc: "push that into a service" and "reach for a new abstraction when

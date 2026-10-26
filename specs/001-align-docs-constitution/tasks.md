@@ -325,7 +325,7 @@ Before each merge, read the lesson file in `mission/lessons/`. Write the rule as
 sentences of self-contained prose, merged into the existing rule named in research R2. Don't
 cite the lesson's filename.
 
-- [ ] T031 [P] [US4] In `docs/best-practices/frontend-react.md`, merge four lessons:
+- [x] T031 [P] [US4] In `docs/best-practices/frontend-react.md`, merge four lessons:
   - "a removal leaves no test behind": a new testing guideline near the `queryBy*` absence
     advice;
   - "fixtures smaller than production hide overflow": into "Give a layout fixture more than
@@ -333,35 +333,35 @@ cite the lesson's filename.
   - "memoize effect handlers": a new Components guideline;
   - "test the behaviour, not the content": next to "assert on what the component rendered,
     not what the test arranged".
-- [ ] T032 [P] [US4] In `docs/best-practices/backend-fastapi.md` testing section, add a
+- [x] T032 [P] [US4] In `docs/best-practices/backend-fastapi.md` testing section, add a
       one-line pointer to the removal-leaves-no-test-behind rule in `frontend-react.md`.
-- [ ] T033 [P] [US4] In `docs/agents/local-testing.md` "The address" (~:11-33), merge "a
+- [x] T033 [P] [US4] In `docs/agents/local-testing.md` "The address" (~:11-33), merge "a
       shadowed port serves a different environment". Name the process that answered
       (`ss -ltnp`, `/proc/<pid>/environ`) before blaming config drift.
-- [ ] T034 [P] [US4] In `AGENTS.md` Version control, "Start clean", merge "branch off the
+- [x] T034 [P] [US4] In `AGENTS.md` Version control, "Start clean", merge "branch off the
       fetched target":
   - fetch first, and cut from `origin/<base>`;
   - check ancestry with `git merge-base --is-ancestor` before stacking;
   - a non-ancestor with an empty diff means the earlier branch was squash-merged.
-- [ ] T035 [P] [US4] In `docs/best-practices/README.md` rule 4 (forward references), merge
+- [x] T035 [P] [US4] In `docs/best-practices/README.md` rule 4 (forward references), merge
       "docs cannot cite a sibling branch". A doc asserts only what is true on its own branch.
       Replace the stale "queued feature" example with a planned issue.
-- [ ] T036 [P] [US4] In `docs/best-practices/migrations.md` Level 2 (~:73-81), merge "pin
+- [x] T036 [P] [US4] In `docs/best-practices/migrations.md` Level 2 (~:73-81), merge "pin
       migration tests to revisions". Rewrite steps 3-4 so both ends of a per-revision test are
       named revisions instead of `upgrade head` / `downgrade -1`. This matches
       `backend/tests/migrations/`.
-- [ ] T037 [P] [US4] In `docs/agents/issue-tracker.md` "Create an issue" (~:7), merge "search
+- [x] T037 [P] [US4] In `docs/agents/issue-tracker.md` "Create an issue" (~:7), merge "search
       the tracker before filing". Search with `gh issue list --state all --search "<terms>"`,
       comment on an existing match, and close duplicates as `duplicate`.
-- [ ] T038 [US4] Search for an existing match, then show the user the issue from
+- [x] T038 [US4] Search for an existing match, then show the user the issue from
       [contracts/issue-drafts.md](contracts/issue-drafts.md) item 1 ("Lint: an assertion must
       read a value the code under test produced"). After they confirm, file it with
       `gh issue create --label needs-triage`. Don't file item 2, which was declined.
-- [ ] T039 [US4] Show the user follow-up items 3–6 from
+- [x] T039 [US4] Show the user follow-up items 3–6 from
       [contracts/issue-drafts.md](contracts/issue-drafts.md): the react-hooks lint, the C4
       `services.yaml` routing, the A22 alerts, and the error-reference log test. File each one
       they confirm, searching first. Record the declined ones for the PR body.
-- [ ] T040 [US4] Delete `mission/` with `git rm -r mission`. It holds the 9 lessons merged in
+- [x] T040 [US4] Delete `mission/` with `git rm -r mission`. It holds the 9 lessons merged in
       T031–T037 and the 2 proposals: one filed in T038, one declined. This depends on
       T031–T039.
 - [ ] T041 [US4] Run all of [quickstart.md](quickstart.md) checks 1 and 5 and the Prettier check.

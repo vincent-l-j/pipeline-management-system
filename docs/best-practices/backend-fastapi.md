@@ -425,6 +425,9 @@ def test_organisation_rbac(request, role, operation, expected):
   the test claims.
 - For data-integrity features (orphan/cascade), assert the _side effects_: the
   child survives with a nulled FK, or the join row is gone.
+- **A removal leaves no test behind** — a 404 on a deleted route passes for every
+  path that was never a route. See the rule of that name in
+  `frontend-react.md`; it applies here unchanged.
 - **Assert on what the code produced, not on what the test arranged.** Asserting
   a value the setup just wrote proves the setup ran. `assert
 logging.getLogger().level == ...` after configuring logging, `assert

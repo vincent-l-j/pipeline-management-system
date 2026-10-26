@@ -45,7 +45,7 @@ rozetta-pms/
                         + minio (9000 API / 9001 browser, `objectstore` profile)
 ```
 
-The frontend proxies `/api` requests to the backend (see `frontend/vite.config.js`). The database schema is managed by Alembic — run `alembic upgrade head` to create/update tables (see [Database migrations](#database-migrations)).
+The frontend proxies `/api` requests to the backend (see `frontend/vite.config.ts`). The database schema is managed by Alembic — run `alembic upgrade head` to create/update tables (see [Database migrations](#database-migrations)).
 
 For a fuller breakdown of how the dev and production stacks differ (containers, routing, build stages, and where tests run), see [`docs/architecture.md`](./docs/architecture.md).
 
@@ -119,7 +119,7 @@ npm install
 npm run dev          # serves http://localhost:5173
 ```
 
-> When running outside Docker, the Vite proxy target (`http://backend:8000` in `vite.config.js`) won't resolve. Change it to `http://localhost:8000` for local-only development.
+> When running outside Docker, the Vite proxy target (`http://backend:8000` in `vite.config.ts`) won't resolve. Change it to `http://localhost:8000` for local-only development.
 
 ### Database migrations
 

@@ -172,7 +172,7 @@ whoever inserts the next test.
 - Utility-first: compose classes in `className`; avoid custom CSS. The only global
   stylesheet is `src/index.css` (Tailwind directives + print styles) — extend it
   only for cross-cutting concerns like print.
-- Use the brand palette from `tailwind.config.js`: `navy` (primary, 50–950) and
+- Use the brand palette from `tailwind.config.ts`: `navy` (primary, 50–950) and
   `amber` (accent). Prefer these over raw Tailwind colors for brand surfaces;
   semantic states (red/green) are fine for errors/success.
 - Conditional classes via template strings; keep the conditional at the end:

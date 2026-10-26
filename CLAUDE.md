@@ -93,6 +93,7 @@ in the same change that alters the pattern it describes).
 - Backend patterns & pytest — [`docs/best-practices/backend-fastapi.md`](docs/best-practices/backend-fastapi.md)
 - React, Vitest & Tailwind — [`docs/best-practices/frontend-react.md`](docs/best-practices/frontend-react.md)
 - Frontend/backend/DB integration — [`docs/best-practices/database-integration.md`](docs/best-practices/database-integration.md)
+- Alembic migrations, deployment and rollback — [`docs/best-practices/migrations.md`](docs/best-practices/migrations.md)
 - SOLID design principles (why the conventions are shaped this way) — [`docs/best-practices/solid-principles.md`](docs/best-practices/solid-principles.md)
 
 ## Golden rules

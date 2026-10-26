@@ -385,7 +385,7 @@ signal checked, and it names who confirms correctness.
 
 **PR**: `docs/definition-of-done`
 
-- [ ] T042 [US3] Edit the `AGENTS.md` Definition of Done. Add these items, citing the rule id
+- [x] T042 [US3] Edit the `AGENTS.md` Definition of Done. Add these items, citing the rule id
       for each and not paraphrasing:
   - a bug fix starts with a failing reproduction test (C3);
   - any new repeatable command is added to `services.yaml` and CI invokes it (C4);

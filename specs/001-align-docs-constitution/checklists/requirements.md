@@ -35,6 +35,5 @@
   paths are the scope, not implementation choices. Where the inventory quotes doc wording
   (for example, "mock `src/services/api`"), it identifies a conflict and doesn't prescribe a
   fix.
-- Scope defaults were chosen without asking: docs move to match the constitution, the
-  constitution is not amended, and `methodology.md` and `mission/contract/` are excluded.
-  They're recorded under Assumptions; revisit them with `/speckit-clarify` if needed.
+- Scope was settled in the `/speckit-clarify` session of 2026-10-26. See the spec's
+  Clarifications section.

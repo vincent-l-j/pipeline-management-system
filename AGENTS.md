@@ -162,7 +162,17 @@ preferred.
 ## Definition of Done (per feature)
 
 - Tests written first and passing (`services.yaml` → `test-backend` / `test-frontend`).
+  A bug fix starts with a test that reproduces it and failed before the fix (C3).
 - Every acceptance scenario in the feature's spec is observably satisfied on the
   running stack — observed by using the app, not inferred from a passing test.
 - Server-side authorization verified for any restricted action (not just hidden UI).
 - No new lint/secret/boundary violations.
+- Any new repeatable command is added to `services.yaml`, and CI invokes that same
+  command (C4).
+- The plan states how the change is reverted, and the revert takes under five
+  minutes without a code change (C5).
+- Correctness is confirmed by `/speckit-analyze`, `/speckit-converge` and a PR
+  review against the spec (see the TDD section above), never by the implementer
+  alone.
+- **Done means deployed, not merged.** The change is in production and the signal
+  its plan named has been checked (C6).

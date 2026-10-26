@@ -75,12 +75,21 @@ models in `app/models/`) and `alembic heads` returns a single head.
 
 Catches migrations that corrupt or drop real data.
 
-1. Apply migrations up to the _previous_ revision.
+1. Apply migrations up to the revision _before_ the one under test, by name.
 2. Seed representative rows (a pitch with stage history, contacts, an assessment —
    enough to exercise FKs and NOT-NULL columns).
-3. `alembic upgrade head`; assert existing data is preserved / correctly transformed.
-4. `alembic downgrade -1`; assert it reverses **without unintended data loss**. Any
-   intentionally lossy downgrade must be asserted-and-documented, not discovered later.
+3. `alembic upgrade <revision>`; assert existing data is preserved / correctly
+   transformed.
+4. `alembic downgrade <previous revision>`; assert it reverses **without unintended
+   data loss**. Any intentionally lossy downgrade must be asserted-and-documented,
+   not discovered later.
+
+**Pin every assertion point to a named revision.** `head` and `-1` are positions in a
+history that keeps growing; they land on the revision under test only while it is
+the newest, which is exactly when the test is written and reviewed. The next
+migration then breaks a test about someone else's change. A floating _journey_ is
+fine — upgrading to `head` and returning to a named anchor — as long as the place
+where you assert is fixed. `backend/tests/migrations/` already follows this.
 
 ### Level 3 — Deployment rehearsal (staging clone)
 

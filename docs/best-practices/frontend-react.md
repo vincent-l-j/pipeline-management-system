@@ -33,6 +33,11 @@ Tailwind 3, Vitest). Match the existing components.
   bookmark or reach with the back button (the selected record, filters, tab,
   search query) lives in the URL (A7).
 - A new dependency states its size cost in the plan (A6).
+- **A function an effect calls is wrapped in `useCallback` and listed in the
+  dependency array.** `useState` setters are identity-stable and need no entry;
+  every other function does. Don't bypass a named helper (calling the setter
+  directly) to keep the array short — that duplicates the behaviour the helper
+  owns. No `eslint-plugin-react-hooks` checks this yet, so it rests on review.
 - Wrap page content in the shared `Layout` + `PageHeader`. `Layout` is the app
   shell: it owns the navigation drawer's open/closed state, the mobile app bar
   and the backdrop, and positions the sidebar. `Sidebar` is presentational — it
@@ -265,6 +270,13 @@ Guidelines:
   — avoid test-ids unless there's no accessible handle.
 - Use `findBy*` / `waitFor` for anything after an async resolve; use
   `queryBy*` to assert absence.
+- **A removal leaves no test behind.** On a deletion, an absence assertion may
+  drive the red phase, but delete it with the code it removed. What survives is
+  the ADR saying why the thing is gone and the tests of behaviour that _remains_
+  (the layout around a removed card, a migration's drop and its downgrade). Keep
+  an absence test only where something could silently recreate the thing, such as
+  a generated artifact or a permission that fails open. A test naming a route or
+  string no source file contains reads like a clue to something that isn't there.
 - Drive interactions with `@testing-library/user-event`, not raw `fireEvent`.
 - **Testing role-gated UI:** render inside the real `AuthProvider` with the stored
   `user` seeded for each role, and assert presence/absence of controls (this
@@ -282,6 +294,12 @@ Guidelines:
   own contents will all pass against a gutted implementation. When you assert a
   request was made, assert the payload the code built — not the object the mock was
   primed with. The check to apply: if you deleted the behaviour, would this fail?
+- **Assert the requirement, not a consequence of today's data.** "Every chip is
+  fully on screen" holds for any content that meets it; "the chips wrap onto more
+  than one line" holds only while today's labels happen to be long. Counts, row
+  totals and orderings the spec doesn't state (`lines.size > 1`, `toHaveLength(n)`
+  for a literal `n`) are suspect. Ask whether the test would still pass if the
+  content changed but stayed correct.
 
 ## Real-browser tests (Vitest browser mode)
 
@@ -333,6 +351,11 @@ it depends on CSS — not by how important it is.
   replaces every cell's text with inputs, the columns collapse to fit them, and
   the far side lands back inside the viewport — so an overflow assertion passes
   with nothing to stick out past. One row tests the narrow case, not the real one.
+  Size the fixture from the endpoint that fills it: read the route's bound (a
+  `[-12:]` slice, a page size, a limit) and use that many. And a `flex-1` item that
+  must shrink also needs `min-w-0` — its default `min-width: auto` refuses to go
+  below its content's width, so twelve columns can overflow a card that two fit
+  in. Measure (`scrollWidth` against `clientWidth`) before editing the stylesheet.
 - Don't duplicate the jsdom suite here. The browser suite asserts that navigation
   items are big enough to tap; _which_ destinations exist stays in jsdom.
 

@@ -47,10 +47,13 @@ subtly-wrong lore:
    anything a tool derives — file counts, line counts, tests passing, files
    touched. Name the command that produces the number rather than the number; the
    number is regenerated on every run and hand-copied once.
-4. **Mark forward references.** If a doc cites a symbol that is _planned but not yet
-   implemented_ (e.g. a schema described in a queued feature but not yet built), say
-   so ("planned as `X`") rather than presenting it as existing. Reconcile it when
-   the feature lands.
+4. **Mark forward references, and assert only what is true on this branch.** If a
+   doc cites a symbol that is _planned but not yet implemented_ (e.g. a schema
+   described in an open issue but not yet built), say so ("planned as `X`") rather
+   than presenting it as existing. The same holds for a capability that exists only
+   on another, unmerged branch: neither branch can see the contradiction, and it
+   surfaces only at merge. State the current truth, and let the commit that
+   delivers the capability update the doc.
 5. **No tooling needed.** A handful of short docs doesn't warrant link-checkers or
    doctests; reviewer attention plus rule 2 is sufficient. Add automation only if drift
    actually becomes a recurring problem.

@@ -32,6 +32,13 @@ trips the config watcher and Vite restarts with it. Reach for that before
 concluding the stack is down: a 403 on the one address you were told to use reads
 exactly like a dead service, and the app is fine.
 
+**Before blaming configuration, name the process that answered.** `ss -ltnp` gives
+the listener and `/proc/<pid>/environ` shows who started it and with what. Compare
+the response against the service you meant to reach, not against the compose file:
+a config file says what a container _would_ receive, not what the socket in front
+of you _did_. A wrong address that still serves a working app never corrects
+itself, so the same check applies whenever a URL was inherited rather than derived.
+
 ## Signing in
 
 `/login` carries a **Dev Login (Admin)** button locally. Click it like a user

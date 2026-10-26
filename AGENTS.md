@@ -117,7 +117,11 @@ Optimise commits and PRs for easy review — smaller and more focused is always
 preferred.
 
 - **Start clean.** Begin from a clean working tree; never commit on a detached
-  `HEAD` or directly on `main`. Create a branch off `main` first.
+  `HEAD` or directly on `main`. `git fetch` first and cut from the remote ref —
+  `git checkout -b <new> origin/main` — because a local branch ref is a cached
+  answer of unknown age. Before building on an earlier branch, check ancestry, not
+  the diff: `git merge-base --is-ancestor <base> origin/main`. A "no" with an empty
+  diff means the earlier branch was squash-merged, so base on `origin/main`.
 - **One branch per PR, one concern per PR.** A spec (or issue) lands as one or more
   PRs, each on its own branch (`<type>/<short-slug>`). Backend and frontend land as
   separate, smaller PRs — don't combine them.

@@ -59,3 +59,12 @@ that performed that cascade is gone. Between the two deploys the foreign key sti
 exists with no ORM cascade behind it, so deleting a pitch that had linked-file rows
 would fail on the constraint — harmless here only because that set is empty and no
 endpoint remains that could add to it.
+
+## Update 2026-10-26
+
+The behavioural assertions this decision cites were retired on 2026-10-25, when
+the repo moved to Spec Kit. The decision stands:
+uploaded attachments remain the only specified and tested way to attach a file to a
+pitch, guarded by `backend/tests/test_attachments.py`,
+`backend/tests/test_spaces_document_store.py` and the `PitchAttachments` component
+tests.

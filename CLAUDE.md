@@ -66,9 +66,10 @@ Features are specified and built with Spec Kit, following **`methodology.md`**. 
 artifacts are:
 
 - **`specs/<feature>/spec.md`** — the feature's user stories and acceptance
-  scenarios. Those scenarios are the source of truth for "done".
+  scenarios. Those scenarios are the source of truth for "correct"; "done" is
+  deployed and observed (C6).
 - **`specs/<feature>/plan.md`, `tasks.md`** — the design, its Constitution Check,
-  and the dependency-ordered tasks with their verification steps.
+  and the dependency-ordered tasks, each story with its independent test.
 - **`AGENTS.md`** — boundaries + coding conventions. Read before editing.
 - **`services.yaml`** — build/run/test commands and services.
 - **`sop/`** — Standard Operating Procedures: runbooks for database bootstrap
@@ -78,8 +79,8 @@ artifacts are:
 To implement a feature: run the Spec Kit steps in `methodology.md` (specify →
 clarify → plan → tasks → analyze → implement → converge). Implementing means reading
 the spec's acceptance scenarios → the plan → `AGENTS.md` → the relevant
-best-practices doc → **write tests first** → implement → run the task's
-verification steps. A defect found along the way becomes a rule in
+best-practices doc → **write tests first** → implement → run the story's
+independent test from `tasks.md`. A defect found along the way becomes a rule in
 `docs/best-practices/` in the PR that fixes it; an idea for an automated check
 becomes a `needs-triage` GitHub issue.
 

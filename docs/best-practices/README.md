@@ -60,5 +60,5 @@ themselves (server-side authz, tests-first, integrity-in-app-code, the SOLID
 definitions). Only the anchoring examples need maintenance.
 
 The same "fix it in the same change / code-wins" spirit applies to the
-implementation-anchored parts of the workflow docs (a feature's `tasks.md`
-verification steps, `services.yaml` commands).
+implementation-anchored parts of the workflow docs (the checks in a feature's
+`tasks.md`, `services.yaml` commands).

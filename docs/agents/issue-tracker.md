@@ -1,6 +1,6 @@
 # Issue tracker: GitHub
 
-Issues and specs for this repo live as GitHub issues. Use the `gh` CLI for all operations.
+Issues for this repo live as GitHub issues; specified features live in `specs/` (see below). Use the `gh` CLI for all operations.
 
 ## Conventions
 
@@ -30,7 +30,7 @@ GitHub shares one number space across issues and PRs, so a bare `#42` may be eit
 An issue captures work that isn't specified yet: a defect, a gap, an idea. When it
 is picked up, `/speckit-specify` turns it into `specs/<feature>/`, and the spec
 links the issue number. Once a spec exists, its acceptance scenarios — not the
-issue — define "done" (see `methodology.md`). Ideas for automated checks are filed
+issue — define what "correct" means (see `methodology.md`). Ideas for automated checks are filed
 here as `needs-triage` issues and never block the work in hand.
 
 ## When a skill says "publish to the issue tracker"

@@ -118,9 +118,9 @@ preferred.
 
 - **Start clean.** Begin from a clean working tree; never commit on a detached
   `HEAD` or directly on `main`. Create a branch off `main` first.
-- **A branch and PR per feature.** One spec (or issue) → one branch
-  (`<type>/<short-slug>`) → one PR. Backend and frontend land as separate, smaller
-  PRs — don't combine them.
+- **One branch per PR, one concern per PR.** A spec (or issue) lands as one or more
+  PRs, each on its own branch (`<type>/<short-slug>`). Backend and frontend land as
+  separate, smaller PRs — don't combine them.
 - **Name the branch for what it does.** The prefix is the Conventional Commit
   type of the work it carries, not a fixed `feat/` — `ci/lint-workflows`,
   `refactor/clean-test-output`, `docs/frontend-typescript-best-practice`. Where

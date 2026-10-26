@@ -15,7 +15,7 @@ commands:
   # Full test suite: backend pytest + frontend vitest, jsdom and browser.
   test: (cd backend && pytest) && (cd frontend && npm test && npm run test:browser)
 
-  # Granular test entry points (used by tasks.md verification steps).
+  # Granular test entry points (used by the checks in specs/*/tasks.md).
   test-backend: cd backend && pytest
   test-frontend: cd frontend && npm test
 

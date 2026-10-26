@@ -78,12 +78,13 @@ Each step is a Spec Kit command, and each writes into `specs/<feature>/`:
 9. **`/speckit-converge`** — checks the code against the spec, plan and tasks, and
    appends any unbuilt work as new tasks until it reports converged.
 
-A small change can skip clarify, checklist and analyze. A bug fix starts with a
+A small change can skip clarify and checklist; analyze and converge are the
+correctness gates and always run. A bug fix starts with a
 test that reproduces it and fails (C3).
 
 Branches, commits and PRs follow `AGENTS.md` ("Version control"); they aren't
 restated here. A change is done when it is deployed and the production signal its
-plan named has been checked, not when it merges (C6).
+plan's Constitution Check named has been checked, not when it merges (C6).
 
 ## Automating a rule
 
@@ -141,8 +142,8 @@ So an idea for a check is filed as a GitHub issue labelled `needs-triage` (see
 observed, the approach, an honest cost and a confidence, and **the current work
 carries on**. Triage then either:
 
-- **Accepts** it — the issue is relabelled `ready-for-agent` or `ready-for-human`
-  and becomes a feature like any other; or
+- **Accepts** it — it becomes a feature like any other: specified with
+  `/speckit-specify`, then relabelled `ready-for-agent` or `ready-for-human`; or
 - **Declines** it — the issue is closed `wontfix`. The rule stays prose. Not every
   rule is worth a tool, and a declined proposal that keeps reappearing is itself a
   signal.

@@ -9,7 +9,7 @@ It records pitches from submission to final decision, logs meetings (with option
 - **Pipeline board** — drag-and-drop Kanban across 10 stages (Received → … → Completed), plus a list view with filters
 - **Pitches** — full records with source, funding pathway, domains, lead, confidentiality, attachments, and an activity timeline
 - **Organisations & Contacts** — external parties linked to pitches and meetings
-- **Meetings** — summaries, key points, action items, attendees, and an **AI Notetaker** that turns raw notes into structured records (Claude, with a basic-parser fallback)
+- **Meetings** — summaries, key points, action items, attendees, and an **AI Notetaker** that turns raw notes into structured records (Claude, with a basic-parser fallback; how it reads its key and builds its client is grandfathered under C2 in the [constitution](.specify/memory/constitution.md), and it has no eval set yet, A16)
 - **Assessments** — versioned scoring against 6 criteria (1–5) with a Proceed / Park / Decline recommendation; prior versions are never overwritten
 - **Dashboard, full-text search, and reports** with CSV export
 - **Role-based access** — Admin, Assessor, Viewer
@@ -300,6 +300,9 @@ red check skips the deploy rather than being reported alongside it.
 
 The `db` service has to be up — `docker compose up -d db` if it isn't.
 
+The named command is `test-backend` in `services.yaml` (`cd backend && pytest`). Two ways to
+run it:
+
 ```bash
 # In a container (parity with prod — recommended):
 docker compose run --rm backend pytest
@@ -335,10 +338,15 @@ open http://localhost:8000/docs
 
 ### Running the frontend tests
 
+The named command is `test-frontend` in `services.yaml` (`cd frontend && npm test`). CI still
+runs the same suite inside a container build target instead:
+
 ```bash
-# On the host:
 docker build --target test ./frontend
 ```
+
+That gap between the local command and CI is grandfathered under C4; closing it is the
+paydown.
 
 ### Frontend build check
 

@@ -169,10 +169,10 @@ preferred.
 - No new lint/secret/boundary violations.
 - Any new repeatable command is added to `services.yaml`, and CI invokes that same
   command (C4).
-- The plan states how the change is reverted, and the revert takes under five
-  minutes without a code change (C5).
+- The plan's Constitution Check states how the change is reverted, and the revert
+  takes under five minutes without a code change (C5).
 - Correctness is confirmed by `/speckit-analyze`, `/speckit-converge` and a PR
   review against the spec (see the TDD section above), never by the implementer
   alone.
 - **Done means deployed, not merged.** The change is in production and the signal
-  its plan named has been checked (C6).
+  its plan's Constitution Check named has been checked (C6).

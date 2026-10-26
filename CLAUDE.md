@@ -10,6 +10,12 @@ pitches. FastAPI + PostgreSQL backend, React + Vite + Tailwind frontend, deploye
 on DigitalOcean App Platform. See `README.md` for the product overview and
 `docs/architecture.md` for how the stack fits together.
 
+The [constitution](.specify/memory/constitution.md) governs principles, and the
+Spec Kit commands check every plan against it. This file, `AGENTS.md` and
+`docs/best-practices/` hold tool names, versions, style and workflow. Where one of
+them seems to contradict the constitution, the constitution wins until it is
+amended.
+
 ## Commands
 
 Canonical commands live in `services.yaml`. In short:
@@ -81,6 +87,9 @@ feature also **deletes that feature's file**, so spec and implementation land
 together and cannot desync.
 
 ## Reference docs
+
+- Principles every plan and diff is checked against, cited by id (C1–C6, A4–A22) —
+  [`.specify/memory/constitution.md`](.specify/memory/constitution.md)
 
 See [`docs/best-practices/`](docs/best-practices/README.md) (the index also documents
 how to keep these docs in sync with the code — in short: code wins, and update a doc

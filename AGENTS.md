@@ -5,6 +5,12 @@ before implementing a feature. The mission-level contract is one assertion per f
 under `mission/contract/`; the feature queue is one feature per file under
 `mission/features/`; build/run/test commands are in `services.yaml`.
 
+The [constitution](.specify/memory/constitution.md) governs principles, and the
+Spec Kit commands check every plan against it. This file, `CLAUDE.md` and
+`docs/best-practices/` hold tool names, versions, style and workflow. Where one of
+them seems to contradict the constitution, the constitution wins until it is
+amended.
+
 ## Mission Boundaries
 
 **Ports (this project only):**

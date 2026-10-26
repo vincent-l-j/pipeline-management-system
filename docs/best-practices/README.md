@@ -26,7 +26,12 @@ subtly-wrong lore:
 1. **The code is the source of truth; the docs are orientation.** If a doc and the
    code disagree, the code wins — fix the doc. Examples are _illustrative pointers
    to a pattern_, not an authoritative catalog; a reader who follows a pointer to a
-   moved symbol should still learn the pattern.
+   moved symbol should still learn the pattern. The
+   [constitution](../../.specify/memory/constitution.md) sits above both on
+   principles: a doc that disagrees with it is corrected in the same change that
+   notices it. If the doc seems right and the rule wrong, file a GitHub issue
+   proposing an amendment and leave the doc deferring to the rule until the
+   amendment lands. Docs cite rules by id ("C3") rather than paraphrasing them.
 2. **Update the doc in the same change that alters the pattern it describes.** If a
    PR renames `require_role`, restructures a layer, or changes an established
    pattern, it edits the relevant doc too — same discipline as keeping a test with
@@ -46,7 +51,7 @@ subtly-wrong lore:
    implemented_ (e.g. a schema described in a queued feature but not yet built), say
    so ("planned as `X`") rather than presenting it as existing. Reconcile it when
    the feature lands.
-5. **No tooling needed.** Four short docs don't warrant link-checkers or doctests;
+5. **No tooling needed.** A handful of short docs doesn't warrant link-checkers or doctests;
    reviewer attention plus rule 2 is sufficient. Add automation only if drift
    actually becomes a recurring problem.
 

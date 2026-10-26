@@ -205,13 +205,13 @@ reader reaches the constitution in one hop.
 
 **PR**: `docs/constitution-precedence`
 
-- [ ] T014 [P] [US2] In `CLAUDE.md`, add the precedence statement from
+- [x] T014 [P] [US2] In `CLAUDE.md`, add the precedence statement from
       [contracts/precedence-statement.md](contracts/precedence-statement.md) directly under
       "What this is". Link `.specify/memory/constitution.md`. Add a constitution bullet at the
       top of "Reference docs".
-- [ ] T015 [P] [US2] In `AGENTS.md`, add the same precedence statement after the opening
+- [x] T015 [P] [US2] In `AGENTS.md`, add the same precedence statement after the opening
       paragraph, linking `.specify/memory/constitution.md`.
-- [ ] T016 [P] [US2] In `docs/best-practices/README.md`:
+- [x] T016 [P] [US2] In `docs/best-practices/README.md`:
   - Add the conflict rule from [contracts/precedence-statement.md](contracts/precedence-statement.md)
     as a new rule next to rule 1 ("The code is the source of truth").
   - Reword rule 5's "Four short docs" so it doesn't count the docs (README rule 3).

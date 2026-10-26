@@ -86,10 +86,10 @@ and confirm each passage is rewritten, labelled or replaced by a pointer.
 
 **PR**: `docs/constitution-conformance`
 
-- [ ] T003 [US1] Re-run [quickstart.md](quickstart.md) check 4. Confirm that the
+- [x] T003 [US1] Re-run [quickstart.md](quickstart.md) check 4. Confirm that the
       "should print nothing" greps currently print hits, and that the grandfathered mentions
       currently carry no rule ids.
-- [ ] T004 [P] [US1] Edit `docs/best-practices/solid-principles.md`:
+- [x] T004 [P] [US1] Edit `docs/best-practices/solid-principles.md`:
   - SRP (~:19-23): replace "A route that starts doing parsing or multi-step business logic
     should push that into a service" with inline-until-three-call-sites (C1).
   - OCP: reframe so adding data or config serves easy deletion, not open-ended extension (C1).
@@ -104,7 +104,7 @@ and confirm each passage is rewritten, labelled or replaced by a pointer.
   - Closing section (~:123-128): change "second reason, implementation, consumer" to three
     occurrences or call sites (C1).
   - Opening: one line saying SOLID explains the conventions and the constitution governs.
-- [ ] T005 [P] [US1] Edit `docs/best-practices/frontend-react.md`:
+- [x] T005 [P] [US1] Edit `docs/best-practices/frontend-react.md`:
   - UI states (~:66-67): "three UI states" becomes the four states (loading, error, empty,
     loaded), each tested, plus a timeout that turns a hang into the error state and a retry
     path from the error state (A5).
@@ -127,7 +127,7 @@ and confirm each passage is rewritten, labelled or replaced by a pointer.
     without a recorded exception".
   - Inside these passages, fix `.jsx`, `.js` and `App.jsx` to `.tsx`/`.ts`, and fix
     `vitest.config.js`, `src/test/setup.js` and `src/test/mocks/dnd.js` to `.ts`.
-- [ ] T006 [P] [US1] Edit `docs/best-practices/backend-fastapi.md`:
+- [x] T006 [P] [US1] Edit `docs/best-practices/backend-fastapi.md`:
   - Layout (~:14, ~:18-19): replace "reusable logic in `services/`" with "a service needs
     three call sites, otherwise inline" (C1).
   - Settings (~:156-160): label module-level settings as grandfathered under C2. Handlers
@@ -143,7 +143,7 @@ and confirm each passage is rewritten, labelled or replaced by a pointer.
     failing reproduction test (C3), that a new operation states the structured event and
     fields it emits (A21), and that the plan names its production observation signal (C6).
   - Where the notetaker is described, label it grandfathered under C2 and A16.
-- [ ] T007 [P] [US1] Edit `docs/best-practices/database-integration.md`:
+- [x] T007 [P] [US1] Edit `docs/best-practices/database-integration.md`:
   - Frontend testing (~:97-99): change "mock `services/api` so components are tested against
     the contract" to present the pattern as grandfathered under C3.
   - Pitfalls (~:113): frame the mock-payload drift pitfall as a cost of that grandfathered
@@ -152,7 +152,7 @@ and confirm each passage is rewritten, labelled or replaced by a pointer.
     `vite.config.js` (~~:10) to `.ts`, and `PipelineConfig.js`/`AssessmentConfig.js` (~~:30)
     to `.ts`.
   - Leave the `VAL-*` end-to-end line (~:100) alone. T025 handles it.
-- [ ] T008 [P] [US1] Edit `docs/best-practices/migrations.md`:
+- [x] T008 [P] [US1] Edit `docs/best-practices/migrations.md`:
   - (~:48-50) Change "**Prefer** expand/contract" to "migrations are expand-then-contract
     (C5)".
   - (~:39-42) A lossy downgrade also names its restore path and revert time (C5).
@@ -160,14 +160,14 @@ and confirm each passage is rewritten, labelled or replaced by a pointer.
     under C5.
   - Deploy section (~:122-127): point to C5.
   - Leave Level 2 steps 3-4 alone. T036 rewrites them.
-- [ ] T009 [P] [US1] Edit `AGENTS.md`:
+- [x] T009 [P] [US1] Edit `AGENTS.md`:
   - Testing-Driven Development section: label the backend auth fixtures (~~:50-51) as
     grandfathered under C3. Change "mock `src/services/api`" (~~:53-54) to grandfathered
     under C3, with new tests not extending it without a recorded exception.
   - Frontend Conventions: add one-line A4 (native controls, no `<div onClick>`) and A7 (URL
     state in the URL) pointers.
   - Don't touch the `VAL-`, `mission/` or orchestrator wording. T021 handles it.
-- [ ] T010 [P] [US1] Edit `README.md`:
+- [x] T010 [P] [US1] Edit `README.md`:
   - (~:12, and the AI env var row) The notetaker's env-key read and basic-parser fallback
     are grandfathered under C2. It has no eval set yet (A16).
   - Testing (~:303-309): cite the `services.yaml` `test-backend` command where it gives the
@@ -175,12 +175,12 @@ and confirm each passage is rewritten, labelled or replaced by a pointer.
   - (~:338-341) Label CI's `docker build --target test` for the jsdom suite as the
     grandfathered C4 gap.
   - Don't touch the user-guide link. T029 handles it.
-- [ ] T011 [P] [US1] Edit `docs/architecture.md`:
+- [x] T011 [P] [US1] Edit `docs/architecture.md`:
   - Label CI's `--target test` (~:170-171) as grandfathered under C4.
   - Label logging configured at import (~:206) as grandfathered under C2.
   - Label the notetaker env read and inline client (~:187-189) as grandfathered under C2,
     with no eval set yet (A16).
-- [ ] T012 [P] [US1] Edit `sop/db-change.md`:
+- [x] T012 [P] [US1] Edit `sop/db-change.md`:
   - Steps 1-3 (~:274-315): require an additive migration with a working downgrade, then code
     tolerant of both shapes, then a later contract step (C5).
   - Production revert (~:369-370): state the revert path (redeploy the previous commit, plus

@@ -48,10 +48,13 @@ boundaries, or if a feature's `expectedBehavior` conflicts with an assertion in
 
 - Write tests **before** code; tests encode intended behaviour, not implementation.
 - Backend: `pytest` in `backend/tests/`, using the `admin_client` / `assessor_client`
-  / `viewer_client` fixtures (`conftest.py`). Keep `follow_redirects=False`. Add
-  test-only deps to `requirements-dev.txt`.
+  / `viewer_client` fixtures (`conftest.py`). Those fixtures override the project's
+  own `get_current_user`, which is grandfathered under C3. Keep
+  `follow_redirects=False`. Add test-only deps to `requirements-dev.txt`.
 - Frontend: Vitest + React Testing Library, co-located in `__tests__/` next to the
-  component; mock `src/services/api`. Anything that depends on CSS — stacking
+  component. Existing tests mock `src/services/api`, a mock of the project's own
+  code grandfathered under C3; a new test doesn't extend it without recording the
+  exception in its plan. Anything that depends on CSS — stacking
   order, print rules, breakpoint gating, measured size — goes in the real-browser
   suite (`*.browser.test.tsx`) instead, because jsdom passes it vacuously. See
   `docs/best-practices/frontend-react.md` for which seam takes what.
@@ -92,6 +95,9 @@ boundaries, or if a feature's `expectedBehavior` conflicts with an assertion in
   another class component.
 - **All HTTP goes through `src/services/api.ts`** (axios, `baseURL: '/api'`, bearer-token
   and 401 interceptors). Do not call `fetch`/`axios` directly elsewhere.
+- Interactive elements are native controls or carry the matching role and keyboard
+  handling; no `<div onClick>` (A4). Anything a user would bookmark or share lives
+  in the URL (A7).
 - Auth/role via `useAuth()` (`AuthContext`); `token`/`user` persist in `localStorage`.
   Role-based UI gating (e.g. `user.role === 'admin'`) is **UX only, not a security
   control** — the backend must independently enforce it.

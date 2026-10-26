@@ -39,15 +39,17 @@ run this"** — this doc doesn't repeat them.
 - **Every migration has a real `downgrade()`.** `--autogenerate` often emits an
   incomplete or empty downgrade. A rollback is only as good as the `downgrade()` you
   hand-verify. If a downgrade is genuinely lossy (e.g. dropping a populated column),
-  say so in the migration docstring rather than pretending it reverses.
+  say so in the migration docstring rather than pretending it reverses, and name
+  the restore path that recovers instead and how long it takes (C5).
 - **Test migrations against real Postgres**, in a disposable database of their own.
   Both suites need one now (`backend/tests/conftest.py` builds its schema by running
   these migrations), but they must not share a database: the migration tests
   `DROP SCHEMA public CASCADE` between tests, which would pull the application
   suite's schema out from under it.
-- **Prefer expand/contract.** Additive migration → deploy code tolerant of both old
-  and new shapes → later contract (drop the old). Each step is independently
-  reversible, and a forward deploy never needs a lockstep rollback.
+- **Migrations are expand-then-contract (C5).** Additive migration → deploy code
+  tolerant of both old and new shapes → later contract (drop the old). Each step
+  is independently reversible, and a forward deploy never needs a lockstep
+  rollback.
 - **One head.** Keep the revision history linear; `alembic heads` should return
   exactly one. Resolve branches with an explicit merge revision.
 
@@ -100,6 +102,8 @@ Rehearse the rollback story you'll actually use — they differ:
   the backed-up tier yet is tracked in its instance sheet, not here.
 
 Decide per migration which applies, and note it in the migration docstring.
+Neither path is rehearsed as part of the deploy today; that gap is grandfathered
+under C5, and recovery is redeploying the previous commit.
 
 ## The migration test suite
 
@@ -123,8 +127,9 @@ wrapper; for the one-time `create_all()`→Alembic cutover, follow
 
 Schema is applied by a PRE_DEPLOY `migrate` job (`run_command: alembic upgrade head`)
 defined in `.do/app.yaml`. PRE_DEPLOY runs the migration **before** new app instances take
-traffic; combined with expand/contract, that keeps deploys zero-downtime and each step
-reversible, and it means the production migration is never run by hand (after initial setup).
+traffic; combined with expand-then-contract (C5), that keeps deploys zero-downtime and each
+step reversible, and it means the production migration is never run by hand (after initial
+setup).
 
 ## See also
 

@@ -11,12 +11,16 @@ backend/app/
 ├── core/         config.py, database.py, logging.py, request_context.py, security.py
 ├── models/       SQLAlchemy models (one file per aggregate)
 ├── schemas/      Pydantic request/response models
-├── services/     cross-cutting logic (ai_notetaker.py)
+├── services/     extracted logic (ai_notetaker.py)
 └── main.py       app factory: middleware + router registration
 ```
 
-Keep HTTP concerns in `routes/`, persistence in `models/`, serialization in
-`schemas/`, and reusable logic in `services/`. Routes should stay thin.
+Keep HTTP concerns in `routes/`, persistence in `models/` and serialization in
+`schemas/`. Logic stays inline in its route until it has three call sites; only
+then does it move to `services/` (C1). The meeting-note parser in
+`ai_notetaker.py` reads its API key from the environment and constructs its model
+client inline, which is grandfathered under C2, and it has no eval set against
+the real model yet (A16). A change to its prompt or model builds that first.
 
 ## Routing
 
@@ -156,13 +160,17 @@ for field, value in data.model_dump(exclude_unset=True).items():
 ## Config
 
 - All settings via `app/core/config.py` (`pydantic-settings`), read from env / `.env`.
+  The module-level `settings` object is grandfathered under C2: a new handler
+  receives what it needs from settings as an injected dependency (`Depends`)
+  rather than importing the live object.
 - Secrets (`SECRET_KEY`, Azure, `ANTHROPIC_API_KEY`) come from the environment —
   never hardcode or commit them. Defaults in `config.py` are dev-only placeholders.
 
 ## Logging
 
 `app/core/logging.py` configures the whole process: `setup_logging()` runs in
-`main.py` before the app is built, and every record — the app's and uvicorn's
+`main.py` before the app is built (configuration as an import side effect,
+grandfathered under C2), and every record — the app's and uvicorn's
 startup and shutdown lines — is written to **stdout as one line of JSON**.
 `LOG_LEVEL` and `ENVIRONMENT` come from `Settings`.
 
@@ -217,9 +225,11 @@ data. Add to `_NOISE_RECORD_ATTRS` if another dependency does the same thing.
 - Get a logger with `logging.getLogger(__name__)` at module level. Don't add
   handlers to it; the JSON handler lives on the root logger and app loggers
   propagate to it (which is also what keeps pytest's `caplog` working).
-- **Never f-string caller-supplied data into the message.** Pass it via `extra=`,
-  where `json.dumps` escapes it — otherwise a newline in user input splits one
-  record across two log lines and a downstream parser sees garbage.
+- **Never interpolate variable data into the message.** Pass every variable value
+  as a named field via `extra=`, not only caller-supplied ones (A21). `json.dumps`
+  escapes it there — otherwise a newline in user input splits one record across
+  two log lines and a downstream parser sees garbage — and a fixed message is one
+  you can count and filter on.
 - `extra=` keys become top-level fields, so they must not collide with the
   reserved `LogRecord` attributes (`message`, `module`, `filename`, `args`,
   `asctime`, `name`, `levelname`, …) — `Logger.makeRecord` raises `KeyError` if
@@ -302,7 +312,8 @@ error report and writes it to the stream at `ERROR` on a named logger
 
 ### Request correlation
 
-`app/core/request_context.py` gives every request an id. It is taken from the
+`app/core/request_context.py` is how records carry the request id and acting user
+that A21 requires. It gives every request an id. It is taken from the
 inbound `X-Request-ID` header when that value is safe (the header is
 caller-controlled and reaches both the response and the logs, so an implausible
 one is replaced with a generated id), returned on **every** response, and stamped
@@ -323,7 +334,8 @@ query string, status, duration, and the acting user when authenticated).
   `get_current_user` stashes the acting user on `request.state`, which is backed
   by the shared ASGI scope and so is visible to the middleware afterwards.
 - Successful liveness/readiness requests are logged at `DEBUG` rather than `INFO`,
-  so routine probes don't bury real signal but are still available at `LOG_LEVEL=DEBUG`.
+  so routine probes don't bury real signal but are still available at `LOG_LEVEL=DEBUG`
+  (A22).
 
 ## Unit tests (pytest + TestClient)
 
@@ -342,14 +354,17 @@ query string, status, duration, and the acting user when authenticated).
   override. `users.id` is a real foreign-key target, so a `current_user` with no
   row behind it fails every route that stamps an actor (`assessor_id`,
   `uploaded_by_id`, `changed_by_id`).
-- Use the ready-made fixtures instead of building auth: `client` (unauthenticated),
-  `admin_client`, `assessor_client`, `viewer_client`. They override
-  `get_current_user`, so you test authorization logic without minting JWTs.
+- The ready-made fixtures are `client` (unauthenticated), `admin_client`,
+  `assessor_client` and `viewer_client`. They override `get_current_user`, so
+  authorization logic is tested without minting JWTs. That override of the
+  project's own dependency is grandfathered under C3: existing tests use it, and a
+  new kind of override needs its exception recorded in the plan.
 - `follow_redirects=False` is deliberate — a stray `307` (trailing-slash bug) must
   surface as a failure, not be silently followed.
 
 **Write tests first (TDD).** For each endpoint cover the happy path, each role
-boundary, and the not-found case:
+boundary, and the not-found case. A bug fix starts with a test that reproduces
+the bug and fails; the fix isn't done until it passes (C3):
 
 ```python
 def test_admin_can_delete_org(admin_client):
@@ -431,3 +446,6 @@ in client.headers` all pass against a gutted implementation — one of them is
 - [ ] Privileged actions gate on `require_role`.
 - [ ] `*Update` excludes fields that must not be client-settable.
 - [ ] Tests cover happy path + every role + 404, and pass via `cd backend && pytest`.
+- [ ] A bug fix has a reproducing test that failed before the fix (C3).
+- [ ] A new operation logs a structured event with its fields named (A21), and the
+      plan says which signal shows it working in production (C6).

@@ -5,7 +5,7 @@ Tailwind 3, Vitest). Match the existing components.
 
 ## Components
 
-- Function components + hooks only. One component per file; `PascalCase.jsx`.
+- Function components + hooks only. One component per file; `PascalCase.tsx`.
   The single exception is `src/components/ErrorBoundary.tsx`: React 18 exposes
   `getDerivedStateFromError` / `componentDidCatch` to class components only and
   offers no hook equivalent. Don't take it as licence for a second class
@@ -25,8 +25,14 @@ Tailwind 3, Vitest). Match the existing components.
   which was its one advantage over `aria-label`. Queries by accessible name see
   no difference, so no test will tell you. Before wrapping existing markup in a
   scroll container, grep the subtree for `sr-only`, `absolute` and `fixed`.
+- Interactive elements are native controls or carry the matching role and
+  keyboard handling; no `<div onClick>` in new code (A4).
 - Keep data-fetching in the page/container; pass plain props to presentational
-  children (e.g. `KanbanColumn` → `PitchCard`).
+  children (e.g. `KanbanColumn` → `PitchCard`). Fetched data is a cache of the
+  server, refetched rather than edited in place, and anything a user would
+  bookmark or reach with the back button (the selected record, filters, tab,
+  search query) lives in the URL (A7).
+- A new dependency states its size cost in the plan (A6).
 - Wrap page content in the shared `Layout` + `PageHeader`. `Layout` is the app
   shell: it owns the navigation drawer's open/closed state, the mobile app bar
   and the backdrop, and positions the sidebar. `Sidebar` is presentational — it
@@ -38,7 +44,7 @@ Tailwind 3, Vitest). Match the existing components.
 
 ## Routing
 
-- Routes are declared in `App.jsx`. Authenticated routes are wrapped in
+- Routes are declared in `App.tsx`. Authenticated routes are wrapped in
   `ProtectedRoute` (redirects to `/login` when there's no token).
 - **Admin-only routes need their own guard**, not just `ProtectedRoute` — a
   client redirect is UX, and must be backed by a server `403` (see security note).
@@ -46,25 +52,35 @@ Tailwind 3, Vitest). Match the existing components.
 
 ## Talking to the backend
 
-- **All HTTP goes through `src/services/api.js`.** It's a preconfigured axios
+- **All HTTP goes through `src/services/api.ts`.** It's a preconfigured axios
   instance (`baseURL: '/api'`) with interceptors that attach the bearer token and
   redirect to `/login` on `401`. Never call `fetch`/`axios` directly in a
   component.
 
-```jsx
+```tsx
 import api from "../services/api";
+import { apiErrorMessage } from "../services/apiError";
 
-useEffect(() => {
-  api
-    .get("/pitches")
+const load = useCallback(() => {
+  setLoading(true);
+  setError(null);
+  void api
+    .get<Pitch[]>("/pitches", { timeout: 10_000 })
     .then(({ data }) => setPitches(data))
-    .catch(() => setError("Could not load pitches"))
+    .catch((err: unknown) =>
+      setError(apiErrorMessage(err, "Could not load pitches")),
+    )
     .finally(() => setLoading(false));
 }, []);
+
+useEffect(load, [load]);
 ```
 
-- Always handle three UI states: loading, empty, and error. The existing pages
-  show the pattern (`loading ? … : items.length === 0 ? … : <table/>`).
+- Design all four states of a data-fetching view: loading, error, empty and
+  loaded, each with a test (A5). The loading state ends: pass a `timeout` so a
+  hung request becomes the error state (the shared client sets none, which is
+  grandfathered under A5). The error state offers a retry that calls `load`
+  again, and the empty state has copy, not a blank frame.
 - For optimistic updates (e.g. moving a Kanban card), update local state first,
   fire the request, and **revert on failure** — see `KanbanBoard.handleDragEnd`.
 
@@ -131,7 +147,8 @@ the rest of the file.
 `mockClear()` doesn't drop an implementation either: a `mockReturnValue` set in
 one test survives into the next, so restate each mock's default in `beforeEach`
 instead of relying on the following test to overwrite it. Module-level state
-(`services/api.ts` keeps the last request id in a module variable) survives too —
+(`services/api.ts` keeps the last request id in a module variable, mutable module
+state grandfathered under C2) survives too —
 `vi.resetModules()` plus a dynamic `import()` in `beforeEach` gives each test a
 fresh module. A test file whose result depends on its own order is a trap for
 whoever inserts the next test.
@@ -193,7 +210,7 @@ whoever inserts the next test.
 
 ## Unit tests (Vitest + React Testing Library)
 
-- Config: `vitest.config.js` (jsdom, `globals: true`, setup `src/test/setup.js`
+- Config: `vitest.config.ts` (jsdom, `globals: true`, setup `src/test/setup.ts`
   which imports `@testing-library/jest-dom`). Because `globals` is on, `describe`/
   `it`/`expect`/`vi` need no import.
 - Location: co-located `__tests__/` next to the component under test.
@@ -209,7 +226,10 @@ whoever inserts the next test.
   array instead. Spell that array out rather than deriving it from the constant the
   component renders — a test built from the same source as the code under test
   cannot fail when that source changes.
-- **Mock the network** by mocking `src/services/api`:
+- **Mocking the network today means mocking `src/services/api`.** That is a
+  mock of the project's own code, grandfathered under C3: existing tests use it,
+  and a new test doesn't add to the pattern without recording the exception in
+  its plan. This is what the existing pattern looks like:
 
 ```jsx
 import { render, screen, waitFor } from "@testing-library/react";
@@ -246,14 +266,16 @@ Guidelines:
 - Use `findBy*` / `waitFor` for anything after an async resolve; use
   `queryBy*` to assert absence.
 - Drive interactions with `@testing-library/user-event`, not raw `fireEvent`.
-- **Testing role-gated UI:** render with a mocked `useAuth` returning each role and
-  assert presence/absence of controls (this validates the UX, while the backend
-  test validates the actual security boundary).
+- **Testing role-gated UI:** render inside the real `AuthProvider` with the stored
+  `user` seeded for each role, and assert presence/absence of controls (this
+  validates the UX, while the backend test validates the actual security
+  boundary). Mocking `useAuth` is a mock of the project's own code and isn't
+  grandfathered (C3).
 - **Router-dependent components:** wrap in `<MemoryRouter>` (and `initialEntries`
   for route-guard tests), or mock `useNavigate` from `react-router-dom` to assert
   navigation.
-- **Drag-and-drop:** `@hello-pangea/dnd` is aliased to a stub (`src/test/mocks/dnd.js`)
-  in `vitest.config.js`; test the stage-change _handler/callback_, not the drag
+- **Drag-and-drop:** `@hello-pangea/dnd` is aliased to a stub (`src/test/mocks/dnd.ts`)
+  in `vitest.config.ts`; test the stage-change _handler/callback_, not the drag
   physics.
 - **Assert on what the component rendered or the helper sent, not on what the test
   arranged.** A mock's own return value, a stubbed prop echoed back, or a fixture's
@@ -373,10 +395,12 @@ emulator when touching the component named.
 
 ## Checklist before handoff
 
-- [ ] All network access via `services/api.js`; loading/empty/error states handled.
+- [ ] All network access via `services/api.ts`; loading, error, empty and loaded
+      states designed and tested, with a timeout and a retry (A5).
 - [ ] Role-gated controls hidden appropriately (and known to be UX, not security).
 - [ ] Brand palette + neighbouring-component styling matched.
-- [ ] Tests co-located, `api` mocked, queried by role/text, and passing via
+- [ ] Tests co-located, no new mock of the project's own code without a recorded
+      exception (C3), queried by role/text, and passing via
       `cd frontend && npm test`.
 - [ ] Anything CSS-dependent routed by the seam table above — to the browser
       suite, or to a manual step written down with its viewport.

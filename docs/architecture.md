@@ -168,7 +168,9 @@ suite needs a Postgres, and `RUN pytest` in a build stage cannot reach one.
   files, not Node — no need to ship `node_modules` or source.
 
 CI (`.github/workflows/ci.yml`) runs `docker build --target test` and `--target build` for the
-frontend, and `--target dev` for the backend, on every pull request. The backend suite runs in
+frontend (running the jsdom suite in a build target rather than through `services.yaml`'s
+`test-frontend` is grandfathered under C4 in the
+[constitution](../.specify/memory/constitution.md)), and `--target dev` for the backend, on every pull request. The backend suite runs in
 a job of its own with a `postgres:16` service rather than inside a build stage — it needs a
 real database, which a build stage cannot reach — and the migration tests run in a second such
 job against a database of their own. Production builds don't re-run tests; instead both deploy
@@ -186,7 +188,8 @@ the deploy fires on the push the merge produces.
   accepted; `ADMIN_EMAILS` are granted Admin on first sign-in. Roles: Admin / Assessor / Viewer.
 - **AI Notetaker** — `backend/app/services/ai_notetaker.py` calls the Anthropic Claude API to
   turn raw meeting notes into structured records, with a basic text-parser fallback when
-  `ANTHROPIC_API_KEY` is unset.
+  `ANTHROPIC_API_KEY` is unset. It reads that key from the environment and builds its client
+  inline (grandfathered under C2), and has no eval set against the real model yet (A16).
 - **Document store** — pitch attachments are files, and files do not belong in Postgres. The
   bytes live in a DigitalOcean Space; the `pitch_attachments` row holds only a pointer
   (`store_item_id`), plus the name, type, size and uploader. `backend/app/services/document_store.py`
@@ -203,7 +206,8 @@ the deploy fires on the push the merge produces.
   failure abandons the upload, but a process killed mid-request cannot, and orphaned parts are
   billed until something aborts them — hence the lifecycle rule recorded in
   `sop/instances/rozetta-pms.md`.
-- **Observability** — `backend/app/core/logging.py` configures the process at import time so
+- **Observability** — `backend/app/core/logging.py` configures the process at import time
+  (an import side effect, grandfathered under C2) so
   every record, including uvicorn's own startup/shutdown lines, is emitted to stdout as a single
   line of JSON (timestamp, level, logger, service, environment, message, plus any `extra=`
   fields). `LOG_LEVEL` and `ENVIRONMENT` are settings, so a container can be restarted at

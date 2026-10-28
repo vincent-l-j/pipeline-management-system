@@ -452,7 +452,7 @@ data from a backup, and reconnects the app.
        `databases` component name (`db`). Mismatch causes the migration to fail.
    - Commit and push
    - GitHub Actions triggers `deploy-production.yml` → waits for approval → deploys
-   - **Verify:** `curl -sf https://ims.rozettainstitute.com/api/health` returns 200
+   - **Verify:** `curl -sf https://ims.rozettainstitute.com/api/health/ready` returns 200
    - App should now serve the restored data
 
 6. **Cleanup.**

@@ -25,7 +25,7 @@ Do not bind other ports or assume services on them.
 
 - USE the `db` service from `docker-compose.yml` (Postgres 16) for local runtime.
 - Backend tests **run against a disposable PostgreSQL database** built by the
-  migrations (`APP_TEST_DATABASE_URL` in `tests/conftest.py`, defaulting to the
+  migrations (`APP_TEST_DATABASE_URL` in `backend/tests/conftest.py`, defaulting to the
   `db` service). They need Postgres up; that is deliberate — SQLite could not fail
   the way the real database does. The schema is rebuilt per run and every table is
   truncated between tests, so never point it at a database that matters, and never
@@ -104,7 +104,7 @@ conflicts with the feature's spec.
 - Auth/role via `useAuth()` (`AuthContext`); `token`/`user` persist in `localStorage`.
   Role-based UI gating (e.g. `user.role === 'admin'`) is **UX only, not a security
   control** — the backend must independently enforce it.
-- Styling: Tailwind utilities, existing `navy`/`teal` palette; match surrounding
+- Styling: Tailwind utilities, existing `navy`/`amber` palette; match surrounding
   components rather than introducing new patterns.
 - The Vite dev proxy targets `http://backend:8000` (Docker). For host-only dev,
   point it at `http://localhost:8000`.

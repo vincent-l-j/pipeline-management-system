@@ -59,7 +59,7 @@ restrain a sibling container that shares its bind mounts. See
 ```
 
 - **Frontend** — Vite dev server on `5173` with hot module reload; the source tree is
-  bind-mounted. `/api` requests are proxied to `backend:8000` (see `frontend/vite.config.js`),
+  bind-mounted. `/api` requests are proxied to `backend:8000` (see `frontend/vite.config.ts`),
   so the browser only ever talks to `5173`.
 - **Backend** — `backend/Dockerfile` target `dev`: installs `requirements-dev.txt` (test
   tooling), runs `uvicorn ... --reload`, and includes the dev-only routes (`dev.py`). The app

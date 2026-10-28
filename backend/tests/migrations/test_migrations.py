@@ -91,7 +91,7 @@ def _seed_connected_graph(url: str) -> None:
 
         pitch = Pitch(
             title="A pitch",
-            current_stage=PipelineStage.RECEIVED,
+            current_stage=PipelineStage.INITIAL_SCREEN,
             organisation_id=org.id,
             lead_id=user.id,
         )
@@ -409,3 +409,120 @@ def test_dropping_pitch_file_links_is_reversible_as_an_empty_table(alembic, clea
 
     alembic("downgrade", _PITCH_ATTACHMENTS)
     assert "pitch_file_links" in _tables(pg_url)
+
+
+# --- Level 2 (per-revision): 5b2e9d14c7a3 drops the Received stage ------------
+
+_BEFORE_DROP_RECEIVED = "1ccc89086896"
+_DROP_RECEIVED = "5b2e9d14c7a3"
+
+_RECEIVED_PITCH = "00000000-0000-0000-0000-00000000c001"
+_OTHER_PITCH = "00000000-0000-0000-0000-00000000c002"
+_LEAD = "00000000-0000-0000-0000-00000000c0ff"
+
+# (history row id, from_stage, to_stage) seeded before the drop.
+_RECEIVED_HISTORY = {
+    "created": (None, "RECEIVED"),
+    "screened": ("RECEIVED", "INITIAL_SCREEN"),
+    "skipped_ahead": ("RECEIVED", "DISCOVERY_MEETING"),
+    "sent_back": ("DISCOVERY_MEETING", "RECEIVED"),
+    "returned": ("INITIAL_SCREEN", "RECEIVED"),
+    "repeated": ("RECEIVED", "RECEIVED"),
+    "parked_twice": ("PARKED", "PARKED"),
+}
+
+
+def _history_id(key: str) -> str:
+    return f"00000000-0000-0000-0000-0000000d{list(_RECEIVED_HISTORY).index(key):04d}"
+
+
+def _seed_received_pitches(url: str) -> None:
+    statements = [
+        (
+            "INSERT INTO users (id, email, display_name, role, is_active) "
+            "VALUES (:id, 'lead@example.com', 'Lead', 'ASSESSOR', true)",
+            {"id": _LEAD},
+        ),
+        (
+            "INSERT INTO pitches (id, title, current_stage, is_confidential, next_step) "
+            "VALUES (:id, 'Still received', 'RECEIVED', true, 'Call them')",
+            {"id": _RECEIVED_PITCH},
+        ),
+        (
+            "INSERT INTO pitches (id, title, current_stage, is_confidential) "
+            "VALUES (:id, 'Elsewhere', 'PARKED', false)",
+            {"id": _OTHER_PITCH},
+        ),
+    ]
+    for i, (key, (from_stage, to_stage)) in enumerate(_RECEIVED_HISTORY.items()):
+        statements.append(
+            (
+                "INSERT INTO pitch_stage_history "
+                "(id, pitch_id, from_stage, to_stage, changed_at, changed_by_id, note) "
+                "VALUES (:id, :pitch, :from_stage, :to_stage, :at, :by, :note)",
+                {
+                    "id": _history_id(key),
+                    "pitch": _OTHER_PITCH if key == "parked_twice" else _RECEIVED_PITCH,
+                    "from_stage": from_stage,
+                    "to_stage": to_stage,
+                    "at": dt.datetime(2026, 1, 1 + i, tzinfo=dt.UTC),
+                    "by": _LEAD,
+                    "note": f"note {key}",
+                },
+            )
+        )
+    _execute(url, statements)
+
+
+def _history(url: str) -> dict[str, tuple]:
+    rows = _rows(
+        url,
+        "SELECT id::text, from_stage::text, to_stage::text, changed_at, "
+        "changed_by_id::text, note FROM pitch_stage_history",
+    )
+    keys = {_history_id(key): key for key in _RECEIVED_HISTORY}
+    return {keys[row[0]]: row[1:] for row in rows}
+
+
+def test_dropping_received_moves_pitches_and_rewrites_history(alembic, clean_db, pg_url):
+    """Received pitches land in Initial Screen, history reads Initial Screen, and
+    only the rows that became a move to the same stage are deleted."""
+    alembic("upgrade", _BEFORE_DROP_RECEIVED)
+    _seed_received_pitches(pg_url)
+    before = _history(pg_url)
+
+    alembic("upgrade", _DROP_RECEIVED)
+
+    assert _rows(
+        pg_url,
+        "SELECT title, current_stage::text, is_confidential, next_step FROM pitches ORDER BY id",
+    ) == [
+        ("Still received", "INITIAL_SCREEN", True, "Call them"),
+        ("Elsewhere", "PARKED", False, None),
+    ]
+    after = _history(pg_url)
+    assert set(after) == {"created", "skipped_ahead", "sent_back", "parked_twice"}
+    assert after["created"][:2] == (None, "INITIAL_SCREEN")
+    assert after["skipped_ahead"][:2] == ("INITIAL_SCREEN", "DISCOVERY_MEETING")
+    assert after["sent_back"][:2] == ("DISCOVERY_MEETING", "INITIAL_SCREEN")
+    assert after["parked_twice"][:2] == ("PARKED", "PARKED")
+    for key, row in after.items():
+        assert row[2:] == before[key][2:], f"{key} lost its date, author or note"
+
+
+def test_dropping_received_is_lossy_on_downgrade(alembic, clean_db, pg_url):
+    """The downgrade brings the label back but not the data it held — asserted so
+    the lossiness stays a known property. Recovery is the pre-deploy backup."""
+    alembic("upgrade", _BEFORE_DROP_RECEIVED)
+    _seed_received_pitches(pg_url)
+    alembic("upgrade", _DROP_RECEIVED)
+
+    alembic("downgrade", _BEFORE_DROP_RECEIVED)
+
+    assert "RECEIVED" in [
+        label for (label,) in _rows(pg_url, "SELECT unnest(enum_range(NULL::pipelinestage))::text")
+    ]
+    assert _rows(
+        pg_url, f"SELECT current_stage::text FROM pitches WHERE id = '{_RECEIVED_PITCH}'"
+    ) == [("INITIAL_SCREEN",)]
+    assert set(_history(pg_url)) == {"created", "skipped_ahead", "sent_back", "parked_twice"}

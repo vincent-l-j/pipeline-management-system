@@ -12,7 +12,6 @@ from app.models.base import Base, TimestampMixin
 
 
 class PipelineStage(enum.StrEnum):
-    RECEIVED = "received"
     INITIAL_SCREEN = "initial_screen"
     DISCOVERY_MEETING = "discovery_meeting"
     DEEP_ASSESSMENT = "deep_assessment"
@@ -25,9 +24,7 @@ class PipelineStage(enum.StrEnum):
 
 
 # Still valid on existing pitches, but never accepted as a pitch's new stage.
-RETIRED_STAGES: frozenset[PipelineStage] = frozenset(
-    {PipelineStage.RECEIVED, PipelineStage.DEEP_ASSESSMENT}
-)
+RETIRED_STAGES: frozenset[PipelineStage] = frozenset({PipelineStage.DEEP_ASSESSMENT})
 
 
 class PitchSource(enum.StrEnum):

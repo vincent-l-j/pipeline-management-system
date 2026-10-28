@@ -1,5 +1,10 @@
 """Tests for /api/reports — pipeline summary, velocity metrics, and CSV exports."""
 
+from datetime import UTC, datetime, timedelta
+from uuid import UUID
+
+from app.models.pitch import PitchStageHistory
+
 
 def _create_pitch(client, title="Report Test Pitch"):
     return client.post("/api/pitches", json={"title": title}).json()
@@ -155,3 +160,24 @@ def test_export_assessments_csv(admin_client):
 def test_unauthenticated_cannot_access_reports(client):
     resp = client.get("/api/reports/pipeline-summary")
     assert resp.status_code == 403
+
+
+def _declined_long_ago(client, db_session, title: str) -> str:
+    """A pitch declined well past the Pipeline page's hiding threshold."""
+    pid = client.post("/api/pitches", json={"title": title}).json()["id"]
+    client.post(f"/api/pitches/{pid}/stage", json={"new_stage": "declined"})
+    db_session.query(PitchStageHistory).filter(PitchStageHistory.pitch_id == UUID(pid)).update(
+        {PitchStageHistory.changed_at: datetime.now(UTC) - timedelta(days=400)}
+    )
+    db_session.commit()
+    return pid
+
+
+def test_reports_still_include_a_pitch_declined_long_ago(admin_client, db_session):
+    _declined_long_ago(admin_client, db_session, "Declined Long Ago")
+
+    summary = admin_client.get("/api/reports/pipeline-summary").json()
+    export = admin_client.get("/api/reports/export/pitches").text
+
+    assert "Declined Long Ago" in [p["title"] for p in summary["pitches"]]
+    assert "Declined Long Ago" in export

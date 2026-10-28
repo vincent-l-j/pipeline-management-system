@@ -6,7 +6,7 @@ It records pitches from submission to final decision, logs meetings (with option
 
 ## Features
 
-- **Pipeline board** — drag-and-drop Kanban across 8 stages (Initial Screen → … → Completed), plus a list view with filters
+- **Pipeline board** — drag-and-drop Kanban across 8 stages (Initial Screen → … → Completed), plus a list view with filters. Pitches declined or completed more than 90 days ago leave the board, with a toggle to show them
 - **Pitches** — full records with source, funding pathway, domains, lead, confidentiality, attachments, and an activity timeline
 - **Organisations & Contacts** — external parties linked to pitches and meetings
 - **Meetings** — summaries, key points, action items, attendees, and an **AI Notetaker** that turns raw notes into structured records (Claude, with a basic-parser fallback; how it reads its key and builds its client is grandfathered under C2 in the [constitution](.specify/memory/constitution.md), and it has no eval set yet, A16)

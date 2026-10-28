@@ -995,6 +995,8 @@ def test_received_is_no_longer_a_stage(admin_client):
 
     assert create.status_code == 422
     assert move.status_code == 422
+    # Refused as an unknown value now, not as a retired one.
+    assert "retired" not in str(move.json()["detail"]).lower()
     assert "received" not in {stage.value for stage in PipelineStage}
 
 

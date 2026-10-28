@@ -10,10 +10,11 @@ is rewritten the same way. A history row that mentioned Received and would then
 record a move from a stage to the same stage is deleted, because it no longer
 records a change; a same-stage row that never mentioned Received is kept.
 
-The downgrade is lossy. It puts RECEIVED back into the type, but not the data:
-which pitches were in Received, and the deleted history rows, can't be recomputed.
-Recovering them means restoring the pre-deploy backup of the production database
-and redeploying the previous commit, which takes longer than a redeploy.
+**Rollback is lossy.** `downgrade()` puts RECEIVED back into the type, but not the
+data: which pitches were in Received, and the deleted history rows, can't be
+recomputed. To recover them, restore from the pre-migration backup / PITR window and
+redeploy the previous commit, which takes longer than the five minutes a redeploy
+does (production is on the backed-up HA tier — see `sop/instances/rozetta-pms.md`).
 """
 
 from collections.abc import Sequence

@@ -105,9 +105,9 @@ describe("DashboardPage", () => {
     expect(screen.getByText("30% of total")).toBeInTheDocument();
   });
 
-  // Every stage, not only the ones the report mentioned: a stage with no pitches
-  // still has to hold its place, or the breakdown silently shortens.
-  it("lists every pipeline stage, zeroing the ones with no pitches", async () => {
+  // Every active stage, not only the ones the report mentioned: a stage with no
+  // pitches still has to hold its place, or the breakdown silently shortens.
+  it("lists every active stage, zeroing the ones with no pitches", async () => {
     render(<DashboardPage />);
 
     expect(await screen.findByText("Deep Assessment")).toBeInTheDocument();
@@ -129,22 +129,33 @@ describe("DashboardPage", () => {
     expect(stages.getAllByText("0")).toHaveLength(7);
   });
 
-  // Received is retired: it holds its place only while pitches still sit there,
-  // so the breakdown keeps adding up to the total.
-  it("omits the retired Received stage once no pitch is in it", async () => {
-    apiMocks.get.mockResolvedValue({
-      data: {
-        ...VELOCITY,
-        stage_counts: { ...VELOCITY.stage_counts, received: 0 },
-      },
-    });
+  it("shows the retired Received stage with its count while pitches are in it", async () => {
     render(<DashboardPage />);
 
-    expect(await screen.findByText("Deep Assessment")).toBeInTheDocument();
-    const stages = within(cardFor("Pipeline by Stage"));
-    expect(stages.queryByText("Received")).not.toBeInTheDocument();
-    expect(stages.getByText("Initial Screen")).toBeInTheDocument();
+    await screen.findByText("Deep Assessment");
+    const tile = within(cardFor("Pipeline by Stage"))
+      .getByText("Received")
+      .closest("div.flex");
+    expect(tile).toHaveTextContent("4");
   });
+
+  it.each([
+    ["is zero", { ...VELOCITY.stage_counts, received: 0 }],
+    ["is missing", { deep_assessment: 2, completed: 1 }],
+  ])(
+    "omits the retired Received stage when its count %s",
+    async (_case, stageCounts) => {
+      apiMocks.get.mockResolvedValue({
+        data: { ...VELOCITY, stage_counts: stageCounts },
+      });
+      render(<DashboardPage />);
+
+      expect(await screen.findByText("Deep Assessment")).toBeInTheDocument();
+      const stages = within(cardFor("Pipeline by Stage"));
+      expect(stages.queryByText("Received")).not.toBeInTheDocument();
+      expect(stages.getByText("Initial Screen")).toBeInTheDocument();
+    },
+  );
 
   it("shows a count for each month the report returned", async () => {
     render(<DashboardPage />);

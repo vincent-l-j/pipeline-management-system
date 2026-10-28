@@ -24,8 +24,7 @@ class PipelineStage(enum.StrEnum):
     COMPLETED = "completed"
 
 
-# Retired stages still load and display on existing pitches, but a pitch can no
-# longer be created in or moved to one.
+# Still valid on existing pitches, but never accepted as a pitch's new stage.
 RETIRED_STAGES: frozenset[PipelineStage] = frozenset({PipelineStage.RECEIVED})
 
 

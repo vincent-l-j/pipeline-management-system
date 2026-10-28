@@ -116,3 +116,8 @@ disappears.
 
 MVP is US1 + US2 together, since US1 alone would hide existing Received pitches. Ship the
 retire release, observe it (T020), then implement and ship US3 from its own branch.
+
+## Phase 6: Convergence
+
+- [x] T028 [US2] In `frontend/src/pages/__tests__/DashboardPage.test.tsx` add the case where `stage_counts` has no `received` key at all (Received is omitted), assert the Received tile shows its count when it is above 0, and rename "lists every pipeline stage, zeroing the ones with no pitches" and its comment so they no longer claim every stage always holds its place per US2/AC6, FR-007 (partial)
+- [x] T029 Remove the comments that restate the retired-stage rule in `frontend/src/components/pipeline/KanbanBoard.tsx` (above `columns`) and `frontend/src/pages/DashboardPage.tsx` (inside the breakdown filter), which the code, tests and spec already carry per docs/best-practices/code-clarity.md (contradicts)

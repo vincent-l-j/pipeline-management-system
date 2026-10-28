@@ -203,7 +203,6 @@ export default function DashboardPage(): React.JSX.Element {
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {STAGE_CONFIG.filter(
-            // A retired stage holds its place only while pitches still sit in it.
             (s) => !isRetiredStage(s.key) || (stage_counts[s.key] ?? 0) > 0,
           ).map((s: StageConfig) => (
             <div

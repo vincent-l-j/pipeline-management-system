@@ -26,8 +26,6 @@ export default function KanbanBoard({
       (p) => p.current_stage === stage.key,
     );
   }
-  // A retired stage gets a column only while pitches are still in it, so they
-  // can be found and moved on.
   const columns = PIPELINE_STAGES.filter(
     (stage) => !stage.retired || pitchesByStage[stage.key].length > 0,
   );

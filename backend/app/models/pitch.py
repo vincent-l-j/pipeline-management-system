@@ -14,17 +14,12 @@ from app.models.base import Base, TimestampMixin
 class PipelineStage(enum.StrEnum):
     INITIAL_SCREEN = "initial_screen"
     DISCOVERY_MEETING = "discovery_meeting"
-    DEEP_ASSESSMENT = "deep_assessment"
     DUE_DILIGENCE = "due_diligence"
     DECISION_PENDING = "decision_pending"
     ACTIVE_SUPPORT = "active_support"
     PARKED = "parked"
     DECLINED = "declined"
     COMPLETED = "completed"
-
-
-# Still valid on existing pitches, but never accepted as a pitch's new stage.
-RETIRED_STAGES: frozenset[PipelineStage] = frozenset({PipelineStage.DEEP_ASSESSMENT})
 
 
 class PitchSource(enum.StrEnum):

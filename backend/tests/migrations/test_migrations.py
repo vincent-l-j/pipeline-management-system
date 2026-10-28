@@ -526,3 +526,130 @@ def test_dropping_received_is_lossy_on_downgrade(alembic, clean_db, pg_url):
         pg_url, f"SELECT current_stage::text FROM pitches WHERE id = '{_RECEIVED_PITCH}'"
     ) == [("INITIAL_SCREEN",)]
     assert set(_history(pg_url)) == {"created", "skipped_ahead", "sent_back", "parked_twice"}
+
+
+# --- Level 2 (per-revision): 8c41f7a2d6e9 merges Deep Assessment into Due Diligence
+
+_MERGE_DEEP_ASSESSMENT = "8c41f7a2d6e9"
+
+_ASSESSED_PITCH = "00000000-0000-0000-0000-00000000e001"
+_ELSEWHERE_PITCH = "00000000-0000-0000-0000-00000000e002"
+
+_ASSESSMENT_HISTORY = {
+    "created": (None, "DEEP_ASSESSMENT"),
+    "deepened": ("DISCOVERY_MEETING", "DEEP_ASSESSMENT"),
+    "diligence": ("DEEP_ASSESSMENT", "DUE_DILIGENCE"),
+    "back_again": ("DUE_DILIGENCE", "DEEP_ASSESSMENT"),
+    "repeated": ("DEEP_ASSESSMENT", "DEEP_ASSESSMENT"),
+    "parked": ("DEEP_ASSESSMENT", "PARKED"),
+    "diligence_twice": ("DUE_DILIGENCE", "DUE_DILIGENCE"),
+}
+
+# The stages the "advanced to assessment" figure counts, before and after.
+_ADVANCED_BEFORE = (
+    "'DEEP_ASSESSMENT', 'DUE_DILIGENCE', 'DECISION_PENDING', 'ACTIVE_SUPPORT', 'COMPLETED'"
+)
+_ADVANCED_AFTER = "'DUE_DILIGENCE', 'DECISION_PENDING', 'ACTIVE_SUPPORT', 'COMPLETED'"
+
+
+def _assessment_history_id(key: str) -> str:
+    return f"00000000-0000-0000-0000-0000000f{list(_ASSESSMENT_HISTORY).index(key):04d}"
+
+
+def _seed_deep_assessment(url: str) -> None:
+    # Raw SQL: the models no longer know DEEP_ASSESSMENT at this revision.
+    statements = [
+        (
+            "INSERT INTO users (id, email, display_name, role, is_active) "
+            "VALUES (:id, 'lead@example.com', 'Lead', 'ASSESSOR', true)",
+            {"id": _LEAD},
+        ),
+        (
+            "INSERT INTO pitches (id, title, current_stage, is_confidential, next_step) "
+            "VALUES (:id, 'Mid assessment', 'DEEP_ASSESSMENT', true, 'Review the model')",
+            {"id": _ASSESSED_PITCH},
+        ),
+        (
+            "INSERT INTO pitches (id, title, current_stage, is_confidential) "
+            "VALUES (:id, 'Already diligent', 'DUE_DILIGENCE', false)",
+            {"id": _ELSEWHERE_PITCH},
+        ),
+    ]
+    for i, (key, (from_stage, to_stage)) in enumerate(_ASSESSMENT_HISTORY.items()):
+        statements.append(
+            (
+                "INSERT INTO pitch_stage_history "
+                "(id, pitch_id, from_stage, to_stage, changed_at, changed_by_id, note) "
+                "VALUES (:id, :pitch, :from_stage, :to_stage, :at, :by, :note)",
+                {
+                    "id": _assessment_history_id(key),
+                    "pitch": _ELSEWHERE_PITCH if key == "diligence_twice" else _ASSESSED_PITCH,
+                    "from_stage": from_stage,
+                    "to_stage": to_stage,
+                    "at": dt.datetime(2026, 2, 1 + i, tzinfo=dt.UTC),
+                    "by": _LEAD,
+                    "note": f"note {key}",
+                },
+            )
+        )
+    _execute(url, statements)
+
+
+def _assessment_history(url: str) -> dict[str, tuple]:
+    rows = _rows(
+        url,
+        "SELECT id::text, from_stage::text, to_stage::text, changed_at, "
+        "changed_by_id::text, note FROM pitch_stage_history",
+    )
+    keys = {_assessment_history_id(key): key for key in _ASSESSMENT_HISTORY}
+    return {keys[row[0]]: row[1:] for row in rows}
+
+
+def _advanced(url: str, stages: str) -> int:
+    return _rows(url, f"SELECT count(*) FROM pitches WHERE current_stage::text IN ({stages})")[0][0]
+
+
+def test_merging_deep_assessment_moves_pitches_and_rewrites_history(alembic, clean_db, pg_url):
+    """Deep Assessment pitches land in Due Diligence, history reads Due Diligence,
+    only the rows that became a move to the same stage are deleted, and the
+    "advanced to assessment" count is unchanged."""
+    alembic("upgrade", _DROP_RECEIVED)
+    _seed_deep_assessment(pg_url)
+    before = _assessment_history(pg_url)
+    advanced_before = _advanced(pg_url, _ADVANCED_BEFORE)
+
+    alembic("upgrade", _MERGE_DEEP_ASSESSMENT)
+
+    assert _rows(
+        pg_url,
+        "SELECT title, current_stage::text, is_confidential, next_step FROM pitches ORDER BY id",
+    ) == [
+        ("Mid assessment", "DUE_DILIGENCE", True, "Review the model"),
+        ("Already diligent", "DUE_DILIGENCE", False, None),
+    ]
+    assert _advanced(pg_url, _ADVANCED_AFTER) == advanced_before
+    after = _assessment_history(pg_url)
+    assert set(after) == {"created", "deepened", "parked", "diligence_twice"}
+    assert after["created"][:2] == (None, "DUE_DILIGENCE")
+    assert after["deepened"][:2] == ("DISCOVERY_MEETING", "DUE_DILIGENCE")
+    assert after["parked"][:2] == ("DUE_DILIGENCE", "PARKED")
+    assert after["diligence_twice"][:2] == ("DUE_DILIGENCE", "DUE_DILIGENCE")
+    for key, row in after.items():
+        assert row[2:] == before[key][2:], f"{key} lost its date, author or note"
+
+
+def test_merging_deep_assessment_is_lossy_on_downgrade(alembic, clean_db, pg_url):
+    """The downgrade brings the label back but not the data it held."""
+    alembic("upgrade", _DROP_RECEIVED)
+    _seed_deep_assessment(pg_url)
+    alembic("upgrade", _MERGE_DEEP_ASSESSMENT)
+
+    alembic("downgrade", _DROP_RECEIVED)
+
+    assert "DEEP_ASSESSMENT" in [
+        label for (label,) in _rows(pg_url, "SELECT unnest(enum_range(NULL::pipelinestage))::text")
+    ]
+    assert _rows(
+        pg_url, f"SELECT current_stage::text FROM pitches WHERE id = '{_ASSESSED_PITCH}'"
+    ) == [("DUE_DILIGENCE",)]
+    assert set(_assessment_history(pg_url)) == {"created", "deepened", "parked", "diligence_twice"}

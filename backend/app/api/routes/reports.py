@@ -88,7 +88,6 @@ def velocity_metrics(
     # --- Conversion: how many pitches have moved beyond initial stages ---
     total = db.query(Pitch).count()
     active_stages = [
-        PipelineStage.DEEP_ASSESSMENT,
         PipelineStage.DUE_DILIGENCE,
         PipelineStage.DECISION_PENDING,
         PipelineStage.ACTIVE_SUPPORT,

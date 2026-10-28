@@ -3,14 +3,10 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PipelineFilters from "../PipelineFilters";
 
-// Stages and sources are stubbed; DOMAIN_OPTIONS stays real so the domain
-// assertion below checks the shipped vocabulary rather than a fixture.
+// Sources are stubbed; stages and DOMAIN_OPTIONS stay real so the stage and
+// domain assertions below check the shipped vocabulary rather than a fixture.
 vi.mock("../PipelineConfig", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../PipelineConfig")>()),
-  PIPELINE_STAGES: [
-    { key: "received", label: "Received", color: "bg-blue-400" },
-    { key: "submitted", label: "Submitted", color: "bg-green-400" },
-  ],
   SOURCE_LABELS: { partner: "Partner", internal: "Internal" },
   FUNDING_LABELS: {},
 }));
@@ -70,10 +66,28 @@ describe("PipelineFilters", () => {
     );
 
     const stageSelect = screen.getByDisplayValue("All stages");
-    await user.selectOptions(stageSelect, "received");
+    await user.selectOptions(stageSelect, "initial_screen");
 
     expect(onChange).toHaveBeenCalledWith(
-      expect.objectContaining({ stage: "received" }),
+      expect.objectContaining({ stage: "initial_screen" }),
     );
+  });
+
+  it("does not offer the retired Received stage", () => {
+    render(
+      <PipelineFilters
+        filters={{ sort: "newest" }}
+        onChange={vi.fn()}
+        users={[]}
+      />,
+    );
+
+    const stageSelect = screen.getByDisplayValue("All stages");
+    const options = Array.from(stageSelect.querySelectorAll("option")).map(
+      (o) => o.textContent,
+    );
+
+    expect(options).toContain("Initial Screen");
+    expect(options).not.toContain("Received");
   });
 });

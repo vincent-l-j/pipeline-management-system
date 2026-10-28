@@ -36,10 +36,16 @@ in `services.yaml`, and the rules are in `docs/best-practices/`. A fresh session
 reads only what its job needs and can pick the work up from there.
 
 **Drain, don't grow.** No file is an append-only log. A file that only grows is
-accumulating a second copy of history git already holds, and it drifts. Finished
-work leaves through a commit, not a status flag: a spec directory records what a
-feature is, not how far along it got, and a rule that is now enforced by a check is
-deleted from prose (see [Automating a rule](#automating-a-rule)).
+accumulating a second copy of history git already holds, and it drifts. Progress
+lives in commits, not in a file that tracks it, and a rule that is now enforced by a
+check is deleted from prose (see [Automating a rule](#automating-a-rule)).
+
+**Specs are living documentation.** A `specs/<feature>/` directory stays in the repo
+after the feature ships, and it describes what the feature _is_, not a history of
+building it. When the feature changes later, its spec changes first, in the same PR
+as the code (rerun `/speckit-specify` or `/speckit-clarify` against it, then plan and
+tasks as needed), so the spec and the code never disagree on `main`. Reviewers and
+agents working on the feature read the spec before the code.
 
 **Learning from defects.** Every defect means some rule was missing or unread. The
 PR that fixes a defect also writes the rule that would have prevented it into
@@ -78,13 +84,27 @@ Each step is a Spec Kit command, and each writes into `specs/<feature>/`:
 9. **`/speckit-converge`** — checks the code against the spec, plan and tasks, and
    appends any unbuilt work as new tasks until it reports converged.
 
-A small change can skip clarify and checklist; analyze and converge are the
-correctness gates and always run. A bug fix starts with a
-test that reproduces it and fails (C3).
+A small feature can skip clarify and checklist; analyze and converge are the
+correctness gates and always run for anything with a spec.
+
+**A small bug fix needs no spec folder.** A small bug fix restores behaviour the code
+was meant to have, without adding a capability or changing behaviour a spec
+describes. It goes straight to a branch:
+
+1. A test that reproduces the bug and fails (C3).
+2. The fix, until that test passes.
+3. A PR whose body states how the change is reverted (C5) and what shows it working
+   in production (C6), since there's no plan to hold them. Review judges the PR
+   against the issue it fixes.
+
+If the fix turns out to change specified behaviour, it isn't small: update the
+feature's spec first. Anything larger than a small bug fix goes through Spec Kit.
 
 Branches, commits and PRs follow `AGENTS.md` ("Version control"); they aren't
 restated here. A change is done when it is deployed and the production signal its
-plan's Constitution Check named has been checked, not when it merges (C6).
+plan (or, for a small bug fix, its PR body) named has been checked, not when it
+merges (C6). Docs never deploy, so **a docs-only change is done when it merges to
+`main`**.
 
 ## Automating a rule
 

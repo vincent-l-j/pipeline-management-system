@@ -213,14 +213,14 @@ the repo spec). CI is the single deploy path:
 
 Each workflow runs `digitalocean/app_action/deploy@v2`, which applies **both** the spec and the
 code together — so a field that drifts from reality in the committed spec gets pushed onto the
-live app on the next deploy. Keep the spec mirroring the deployed app. Branch flow:
-PRs → `develop` (staging/UAT) → `main` (prod). Managed Postgres data persists across deploys and
-is backed up by the platform when `production: true` is set on the DB.
+live app on the next deploy. Keep the spec mirroring the deployed app. Which branch a PR targets,
+and when to push to `develop`, is in `AGENTS.md` ("Version control"). Managed Postgres data
+persists across deploys and is backed up by the platform when `production: true` is set on the DB.
 
 ### Staging / UAT environment
 
-A persistent **`staging`** app (spec: [`.do/staging.yaml`](./.do/staging.yaml)) deployed from the
-`develop` branch gives a stable URL for user-acceptance testing before anything reaches prod. It
+A persistent **`staging`** app (spec: [`.do/staging.yaml`](./.do/staging.yaml), branch: see the
+table above) gives a stable URL for user-acceptance testing before anything reaches prod. It
 mirrors the prod spec with two deliberate differences: its database is a **dev-tier** DB
 (`production: false` — cheaper, no HA/backups, adequate for throwaway test data), and it carries
 its own secrets. It is _persistent_ (not an ephemeral per-PR preview) precisely so its callback
@@ -246,8 +246,8 @@ Bringing staging up (one-time):
 4. Seed the staging dev DB with test data (e.g. `pg_dump --data-only` from local dev).
 5. Ensure the `UAT_DO_ACCESS_TOKEN` GitHub secret exists (used by `deploy-staging.yml`).
 
-Thereafter, every push to `develop` redeploys staging; the dev DB and its secrets persist across
-deploys.
+Thereafter, `deploy-staging.yml` redeploys staging on every push to its branch; the dev DB and its
+secrets persist across deploys.
 
 ### SECRET_KEY lifecycle
 

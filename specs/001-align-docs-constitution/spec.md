@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-25
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: User description: "correct the docs to match the constitution"
 
@@ -43,6 +43,24 @@
   gates, and a PR reviewer (human or agent) judges the change against the spec and cites
   constitution rules by id. The implementer never signs off on their own work. Done means
   deployed and observed (C6), not merged.
+- Follow-up decisions after the first rollout (from the cold read on `main`):
+  - PRs target `main`. `develop` only deploys the staging (UAT) app.
+  - A small bug fix doesn't need a spec folder.
+  - A docs-only change is done when it merges to `main`.
+  - Specs are living documentation: kept in the repo and updated first, before the code,
+    whenever the feature changes.
+  - `AGENTS.md` references Spec Kit's branch naming instead of restating a convention of
+    its own.
+
+### Session 2026-10-28
+
+- Q: The follow-up decisions were each written into three to five documents, in drifting
+  wordings. Should a fact be restated wherever it's relevant? → A: No. Each fact is declared
+  once, in the document that owns it, and other documents link to the owner (rule 3 of
+  `docs/best-practices/README.md`). The requirements that introduce a fact name its owner.
+- Q: Should "a docs-only change is done when it merges to `main`" become a constitution
+  amendment to C6? → A: No. It stays one line in `methodology.md` that cites C6, and no other
+  document repeats it.
 
 ## User Scenarios & Testing _(mandatory)_
 
@@ -100,12 +118,13 @@ the Spec Kit commands. This is a pointer, not new content, so it's cheap once Us
 has made the docs consistent.
 
 **Independent Test**: Starting from the root guide alone, a reader reaches the constitution
-in one hop and can say which document wins when principles conflict.
+in one hop, and within one more link can say which document wins when principles conflict.
 
 **Acceptance Scenarios**:
 
 1. **Given** the root contributor guide, **When** a reader looks for project principles,
-   **Then** it links to the constitution and says the constitution governs principles.
+   **Then** it links to the constitution, and to the agent conventions' statement of how the
+   constitution relates to the other docs.
 2. **Given** the best-practices index's rules for keeping docs in sync, **When** a doc and
    the constitution disagree on a principle, **Then** the index says the doc is corrected
    (or a constitution amendment is proposed) and the conflict isn't left standing.
@@ -137,9 +156,10 @@ per-change obligation appears there or is linked by rule id.
 2. **Given** the Definition of Done, **When** it is compared with C6, **Then** it says a
    change is done once deployed and its production signal has been checked, not at merge.
 3. **Given** the Definition of Done, **When** a contributor asks who confirms the change is
-   correct, **Then** it names the spec's acceptance scenarios as the measure, the
-   `/speckit-analyze` and `/speckit-converge` gates, and a PR review against the spec and
-   constitution. The implementer's own judgement is never enough.
+   correct, **Then** it links to the methodology, which names the spec's acceptance
+   scenarios as the measure, the `/speckit-analyze` and `/speckit-converge` gates, and a PR
+   review against the spec and constitution. The implementer's own judgement is never
+   enough.
 
 ---
 
@@ -230,8 +250,9 @@ artifact they name exists, or is created by a Spec Kit command they name.
   constitution. That covers the abstraction-extraction threshold (C1), the required view
   states, timeout and retry (A5), migration shape (C5), and test doubles for owned code (C3).
 - **FR-004**: The root contributor guide and the agent conventions MUST link to the
-  constitution, say that it governs principles, and say that tooling, versions, style and
-  workflow stay in the existing docs.
+  constitution. The agent conventions own the statement that it governs principles and
+  that tooling, versions, style and workflow stay in the existing docs. The root guide links
+  to that statement rather than restating it.
 - **FR-005**: The best-practices index's doc-sync rules MUST say what happens when a doc
   conflicts with the constitution: the doc is corrected, or an amendment is proposed.
 - **FR-006**: Where in-scope guidance would otherwise restate a constitution rule, it MUST
@@ -269,20 +290,42 @@ artifact they name exists, or is created by a Spec Kit command they name.
   and the PR description states each outcome.
 - **FR-017**: After FR-015 and FR-016, `mission/` MUST be deleted, and no in-scope document
   may refer to it or its subfolders as a place to put work.
-- **FR-018**: The methodology and the agent conventions MUST state the new homes: lessons
-  go into best-practices in the PR that fixes the defect, and proposals for automated
-  checks go to the GitHub issue tracker.
+- **FR-018**: `methodology.md` owns the new homes: lessons go into best-practices in the PR
+  that fixes the defect, and proposals for automated checks go to the GitHub issue
+  tracker. The agent conventions and the root guide MUST link to it rather than restate it.
 - **FR-019**: ADRs MUST be corrected only by appending a dated note below the original
   text. The note says what changed (for example, the cited contract was retired), whether
   the decision still stands, and what now guards the behaviour. Text above the note MUST
   NOT be changed.
-- **FR-020**: The root guide's golden rules, the agent conventions' TDD section and
-  Definition of Done, and the methodology MUST say that correctness is judged against the
-  feature spec's acceptance scenarios, through the `/speckit-analyze` and
-  `/speckit-converge` gates and a PR review that cites constitution rules by id, never by
-  the implementer alone. They MUST say that done means deployed and observed (C6). No
-  in-scope document may name an independent validator judging against a validation
-  contract as the arbiter.
+- **FR-020**: `methodology.md` owns how correctness is judged: against the feature spec's
+  acceptance scenarios, through the `/speckit-analyze` and `/speckit-converge` gates and a
+  PR review that cites constitution rules by id, never by the implementer alone. It also
+  owns how C6 applies here, including one line, citing C6, saying a docs-only change is done
+  when it merges to `main`. The root guide's golden rules and the agent conventions' TDD
+  section and Definition of Done MUST cite C6 for done and link to the methodology for the
+  rest, not restate either. No in-scope document may name an independent validator judging
+  against a validation contract as the arbiter.
+- **FR-021**: `AGENTS.md` ("Version control") owns the rule that PRs target `main` and when
+  to push to `develop`. The README's deployment table owns which branch deploys to which
+  app (`main` to production, `develop` to staging/UAT). Every other in-scope document that
+  touches branch flow or deployment MUST link to these owners rather than restate them.
+- **FR-022**: `methodology.md` MUST give a small bug fix a path with no spec folder. A small
+  bug fix restores behaviour the code was meant to have, without adding a capability or
+  changing specified behaviour. Its path: a failing reproduction test first (C3), then the
+  fix, then a PR whose body states the revert path (C5) and the production signal (C6),
+  reviewed against the issue it fixes. Anything larger goes through Spec Kit.
+- **FR-023**: `methodology.md` MUST say specs are living documentation: a `specs/<feature>/`
+  directory is kept after the feature ships, and a later change to the feature updates its
+  spec first, in the same PR as the code.
+- **FR-024**: `AGENTS.md` MUST reference Spec Kit for how a specified feature's branch is
+  named, not restate a naming scheme. Only branches for changes without a spec keep the
+  `<type>/<short-slug>` convention.
+- **FR-025**: Each fact in the in-scope documents MUST be stated in exactly one owner
+  document, per rule 3 of `docs/best-practices/README.md`. A constitution rule's owner is the
+  constitution, cited by id (FR-006). Any other document that needs the fact links to its
+  owner. It may name the topic in a line, but doesn't repeat its conditions, thresholds or
+  exceptions. The owners of this feature's workflow facts are named in FR-004, FR-018 and
+  FR-020 to FR-023.
 
 ### Key Entities
 
@@ -322,6 +365,9 @@ artifact they name exists, or is created by a Spec Kit command they name.
 - **SC-007**: `mission/` no longer exists, all 9 existing lessons have a stated outcome,
   the assertion-target lint
   proposal is an open GitHub issue, and the declined queue-id grep proposal has none.
+- **SC-008**: For each fact with a named owner (FR-025), searching the in-scope documents
+  finds its conditions and exceptions stated only in the owner; every other mention is a
+  link.
 
 ## Assumptions
 

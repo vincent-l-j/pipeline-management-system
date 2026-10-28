@@ -10,11 +10,9 @@ pitches. FastAPI + PostgreSQL backend, React + Vite + Tailwind frontend, deploye
 on DigitalOcean App Platform. See `README.md` for the product overview and
 `docs/architecture.md` for how the stack fits together.
 
-The [constitution](.specify/memory/constitution.md) governs principles, and the
-Spec Kit commands check every plan against it. This file, `AGENTS.md` and
-`docs/best-practices/` hold tool names, versions, style and workflow. Where one of
-them seems to contradict the constitution, the constitution wins until it is
-amended.
+The project's principles are in the [constitution](.specify/memory/constitution.md).
+How it ranks against this file and the other docs is at the top of
+[`AGENTS.md`](AGENTS.md).
 
 ## Commands
 
@@ -66,8 +64,8 @@ Features are specified and built with Spec Kit, following **`methodology.md`**. 
 artifacts are:
 
 - **`specs/<feature>/spec.md`** — the feature's user stories and acceptance
-  scenarios. Those scenarios are the source of truth for "correct"; "done" is
-  deployed and observed (C6).
+  scenarios. How a spec is kept up to date, and how correctness is judged against
+  it, is in `methodology.md` ("Design principles").
 - **`specs/<feature>/plan.md`, `tasks.md`** — the design, its Constitution Check,
   and the dependency-ordered tasks, each story with its independent test.
 - **`AGENTS.md`** — boundaries + coding conventions. Read before editing.
@@ -76,13 +74,11 @@ artifacts are:
   (`db-bootstrap.md`), schema changes (`db-change.md`), and tooling (`bin/db.sh`).
   See `sop/instances/rozetta-pms.md` for app-specific values.
 
-To implement a feature: run the Spec Kit steps in `methodology.md` (specify →
-clarify → plan → tasks → analyze → implement → converge). Implementing means reading
-the spec's acceptance scenarios → the plan → `AGENTS.md` → the relevant
-best-practices doc → **write tests first** → implement → run the story's
-independent test from `tasks.md`. A defect found along the way becomes a rule in
-`docs/best-practices/` in the PR that fixes it; an idea for an automated check
-becomes a `needs-triage` GitHub issue.
+To implement a feature, run the Spec Kit steps in `methodology.md`. Implementing
+means reading the spec's acceptance scenarios → the plan → `AGENTS.md` → the
+relevant best-practices doc → **write tests first** → implement → run the story's
+independent test from `tasks.md`. `methodology.md` also covers the path for a small
+bug fix, and what to do with a defect's lesson or an idea for an automated check.
 
 ## Reference docs
 
@@ -102,9 +98,8 @@ in the same change that alters the pattern it describes).
 ## Golden rules
 
 1. **Tests first (TDD).** Tests encode intended behaviour; write them before code.
-   Correctness is judged against the spec's acceptance scenarios via
-   `/speckit-analyze`, `/speckit-converge` and a PR review citing rule ids, never by
-   the implementer alone. Done means deployed and observed (C6), not merged.
+   You don't judge your own work correct, and done is C6. Who judges, and how done
+   applies to each kind of change, is in `methodology.md`.
 2. **The backend is the only security boundary.** Enforce authz server-side with
    `require_role`. Frontend role checks (`user.role`) are UX only — `localStorage`
    is client-controlled.

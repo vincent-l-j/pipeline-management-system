@@ -63,13 +63,11 @@ conflicts with the feature's spec.
   `docs/best-practices/frontend-react.md` for which seam takes what.
 - **Don't cite task ids in tests or comments.** Test names and docstrings describe
   the behaviour they check, not which task or spec item they came from.
-- You iterate until you believe the work is correct, then hand off. Correctness is
-  judged against the spec's acceptance scenarios via `/speckit-analyze`,
-  `/speckit-converge` and a PR review — never self-validated.
-- **Lessons and proposals** (see `methodology.md`): a lesson from a defect becomes a
-  rule in `docs/best-practices/` in the PR that fixes it, merged into an existing
-  rule where possible. An idea for an automated check is filed as a `needs-triage`
-  GitHub issue.
+- You iterate until you believe the work is correct, then hand off. Who judges it
+  is in `methodology.md` ("No self-validation").
+- **Lessons and proposals**: what to do with a lesson from a defect, or an idea for
+  an automated check, is in `methodology.md` ("Learning from defects", "Proposals
+  never block").
 
 ## Backend Conventions (Python 3.12, FastAPI, SQLAlchemy 2.0)
 
@@ -122,11 +120,18 @@ preferred.
   answer of unknown age. Before building on an earlier branch, check ancestry, not
   the diff: `git merge-base --is-ancestor <base> origin/main`. A "no" with an empty
   diff means the earlier branch was squash-merged, so base on `origin/main`.
+- **PRs target `main`.** `develop` is never a PR target. Push to it only to put a
+  change on the staging (UAT) app for user-acceptance testing. Which branch deploys
+  which app is in the table in `README.md` ("Shipping updates").
 - **One branch per PR, one concern per PR.** A spec (or issue) lands as one or more
-  PRs, each on its own branch (`<type>/<short-slug>`). Backend and frontend land as
-  separate, smaller PRs — don't combine them.
-- **Name the branch for what it does.** The prefix is the Conventional Commit
-  type of the work it carries, not a fixed `feat/` — `ci/lint-workflows`,
+  PRs, each on its own branch. Backend and frontend land as separate, smaller PRs —
+  don't combine them.
+- **A specified feature's branches start with its spec directory's name**, which
+  `/speckit-specify` numbers when it creates the directory under `specs/` — for example
+  `001-align-docs-constitution-decisions` for a later PR on
+  `specs/001-align-docs-constitution/`.
+- **A change without a spec names its branch for what it does.** The prefix is the
+  Conventional Commit type of the work it carries, not a fixed `feat/` — `ci/lint-workflows`,
   `refactor/clean-test-output`, `docs/frontend-typescript-best-practice`. Where
   the commits mix types, use the dominant one; a feature plus its docs is still
   `feat/`. A branch prefixed `feat/` whose commits are all `fix:` misleads the
@@ -162,17 +167,17 @@ preferred.
 ## Definition of Done (per feature)
 
 - Tests written first and passing (`services.yaml` → `test-backend` / `test-frontend`).
-  A bug fix starts with a test that reproduces it and failed before the fix (C3).
+  A bug fix's test follows C3.
 - Every acceptance scenario in the feature's spec is observably satisfied on the
   running stack — observed by using the app, not inferred from a passing test.
 - Server-side authorization verified for any restricted action (not just hidden UI).
 - No new lint/secret/boundary violations.
 - Any new repeatable command is added to `services.yaml`, and CI invokes that same
   command (C4).
-- The plan's Constitution Check states how the change is reverted, and the revert
-  takes under five minutes without a code change (C5).
-- Correctness is confirmed by `/speckit-analyze`, `/speckit-converge` and a PR
-  review against the spec (see the TDD section above), never by the implementer
-  alone.
-- **Done means deployed, not merged.** The change is in production and the signal
-  its plan's Constitution Check named has been checked (C6).
+- The plan's Constitution Check states how the change is reverted (C5).
+- Someone other than the implementer has confirmed it correct, as `methodology.md`
+  ("No self-validation") describes.
+- If the change alters a specified feature, its spec matches it (`methodology.md`,
+  "Specs are living documentation").
+- **Done means deployed and observed, not merged (C6).** How that applies to a
+  small bug fix or a docs-only change is in `methodology.md` ("How a feature runs").

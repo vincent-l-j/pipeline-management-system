@@ -1,9 +1,10 @@
 # Contract: precedence statement
 
-`CLAUDE.md` and `AGENTS.md` each carry a short statement near the top with this meaning. The
-best-practices README carries the conflict rule.
+`AGENTS.md` carries a short statement near the top with this meaning, and owns it. `CLAUDE.md`
+links to the constitution and to that statement, without restating it. The best-practices
+README carries the conflict rule.
 
-**Statement (`CLAUDE.md`, `AGENTS.md`)**: the constitution (`.specify/memory/constitution.md`,
+**Statement (`AGENTS.md`)**: the constitution (`.specify/memory/constitution.md`,
 linked) governs principles, and the Spec Kit commands check every plan against it. This file,
 `AGENTS.md` and `docs/best-practices/` hold tool names, versions, style and workflow. Where one
 of them seems to contradict the constitution, the constitution wins until it is amended.

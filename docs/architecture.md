@@ -5,19 +5,19 @@ with Microsoft Azure AD for auth and the Anthropic Claude API powering the AI No
 The **same application code** runs in both environments — only the way it's built, served,
 and wired together differs.
 
-| Concern        | Development                                                                       | Production                                                                                           |
-| -------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Orchestration  | `docker-compose.yml` (local)                                                      | DigitalOcean App Platform (`.do/app.yaml`)                                                           |
-| Frontend       | Vite dev server (hot reload)                                                      | Static site (buildpack: `npm run build` → `dist/`, served from the edge)                             |
-| Backend        | uvicorn `--reload`, `backend/Dockerfile` target `dev`                             | uvicorn (no reload), `backend/Dockerfile` final stage `prod`                                         |
-| Database       | `postgres:16` container + `pgdata` volume                                         | Managed PostgreSQL 16 (`DATABASE_URL` injected)                                                      |
-| Document store | MinIO sibling container (`objectstore` profile); unit tests use an in-memory fake | DigitalOcean Spaces (`syd1`), key pair from the DO control panel                                     |
-| `/api` routing | Vite proxy → `backend:8000`                                                       | Same-origin route (`/api` → backend service)                                                         |
-| TLS            | none (plain HTTP)                                                                 | Terminated by App Platform                                                                           |
-| Dev login      | enabled (`ENABLE_DEV_LOGIN=true`)                                                 | disabled; `dev.py` route stripped from the `prod` image                                              |
-| Logging        | JSON to stdout, `docker compose logs`                                             | JSON to stdout, collected by App Platform's runtime logs                                             |
-| Config source  | `.env` file                                                                       | `.do/app.yaml` + DO control panel (secrets)                                                          |
-| Deploy         | `docker compose up --build`                                                       | CI GitOps: push to `main` → `deploy-production.yml` applies `.do/app.yaml` (`deploy_on_push: false`) |
+| Concern        | Development                                                                       | Production                                                               |
+| -------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Orchestration  | `docker-compose.yml` (local)                                                      | DigitalOcean App Platform (`.do/app.yaml`)                               |
+| Frontend       | Vite dev server (hot reload)                                                      | Static site (buildpack: `npm run build` → `dist/`, served from the edge) |
+| Backend        | uvicorn `--reload`, `backend/Dockerfile` target `dev`                             | uvicorn (no reload), `backend/Dockerfile` final stage `prod`             |
+| Database       | `postgres:16` container + `pgdata` volume                                         | Managed PostgreSQL 16 (`DATABASE_URL` injected)                          |
+| Document store | MinIO sibling container (`objectstore` profile); unit tests use an in-memory fake | DigitalOcean Spaces (`syd1`), key pair from the DO control panel         |
+| `/api` routing | Vite proxy → `backend:8000`                                                       | Same-origin route (`/api` → backend service)                             |
+| TLS            | none (plain HTTP)                                                                 | Terminated by App Platform                                               |
+| Dev login      | enabled (`ENABLE_DEV_LOGIN=true`)                                                 | disabled; `dev.py` route stripped from the `prod` image                  |
+| Logging        | JSON to stdout, `docker compose logs`                                             | JSON to stdout, collected by App Platform's runtime logs                 |
+| Config source  | `.env` file                                                                       | `.do/app.yaml` + DO control panel (secrets)                              |
+| Deploy         | `docker compose up --build`                                                       | CI GitOps, one workflow per app (`README.md`, "Shipping updates")        |
 
 ---
 
@@ -88,8 +88,8 @@ Add `--profile objectstore` to that first command when you need attachments.
 
 DigitalOcean App Platform, declared as code in `.do/app.yaml` and deployed via CI (GitOps —
 see **Deploy** below). Fully managed — there is no server to provision, no Docker Compose, and
-no reverse proxy to run yourself. A parallel `staging` (UAT) app on the `develop` branch mirrors
-this from `.do/staging.yaml`. Platform primitives:
+no reverse proxy to run yourself. A parallel `staging` (UAT) app mirrors this from
+`.do/staging.yaml`. Platform primitives:
 
 ```
                     https://<app-url>   (HTTPS terminated by App Platform)
@@ -145,12 +145,10 @@ this from `.do/staging.yaml`. Platform primitives:
 - **Config** — non-secret values live in `.do/app.yaml`; secrets (`SECRET_KEY`,
   `AZURE_CLIENT_SECRET`, `ADMIN_EMAILS`, `ANTHROPIC_API_KEY`) are set in the DO control panel.
   `SECRET_KEY` is generated per environment with `openssl rand -hex 32`.
-- **Deploy (GitOps)** — every component sets `deploy_on_push: false`; CI is the single deploy
-  path. Push to `main` → `deploy-production.yml` applies `.do/app.yaml` to the `production` app; push to
-  `develop` → `deploy-staging.yml` applies `.do/staging.yaml` to the persistent `staging` (UAT)
-  app. `app_action/deploy@v2` applies spec **and** code together, so the committed spec must
-  mirror the live app. (App Platform builds `prod` directly and runs no tests — they gate at
-  the CI / merge layer; see below.)
+- **Deploy (GitOps)** — CI is the only deploy path, one workflow per app. Which branch deploys
+  which app, and why the committed spec must mirror the live app, is in
+  [`README.md`](../README.md#shipping-updates) ("Shipping updates"). App Platform builds `prod`
+  directly and runs no tests — they gate at the CI / merge layer; see below.
 
 ---
 

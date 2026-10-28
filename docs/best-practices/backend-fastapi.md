@@ -363,8 +363,7 @@ query string, status, duration, and the acting user when authenticated).
   surface as a failure, not be silently followed.
 
 **Write tests first (TDD).** For each endpoint cover the happy path, each role
-boundary, and the not-found case. A bug fix starts with a test that reproduces
-the bug and fails; the fix isn't done until it passes (C3):
+boundary, and the not-found case. A bug fix's first test follows C3:
 
 ```python
 def test_admin_can_delete_org(admin_client):
@@ -449,6 +448,6 @@ in client.headers` all pass against a gutted implementation — one of them is
 - [ ] Privileged actions gate on `require_role`.
 - [ ] `*Update` excludes fields that must not be client-settable.
 - [ ] Tests cover happy path + every role + 404, and pass via `cd backend && pytest`.
-- [ ] A bug fix has a reproducing test that failed before the fix (C3).
+- [ ] A bug fix's test follows C3.
 - [ ] A new operation logs a structured event with its fields named (A21), and the
       plan says which signal shows it working in production (C6).

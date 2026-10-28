@@ -135,9 +135,8 @@ CONFIRM]` before downgrading anything holding data.
   downgrade. Data already lost to a bad migration is not recovered by downgrading.
 - **The production revert path** is redeploying the previous commit. Because each step is
   expand-then-contract, the previous code still runs against the expanded schema, so the
-  revert takes under five minutes and needs no code change (C5). If the release being
-  reverted contracted the schema, the path is the migration docstring's downgrade or
-  restore, and its stated time applies instead.
+  revert meets C5. If the release being reverted contracted the schema, the path is the
+  migration docstring's downgrade or restore, and its stated time applies instead.
 
 ---
 

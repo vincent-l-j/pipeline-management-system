@@ -1,5 +1,9 @@
 """Tests for /api/reports — pipeline summary, velocity metrics, and CSV exports."""
 
+from uuid import UUID
+
+from app.models.pitch import PipelineStage, Pitch
+
 
 def _create_pitch(client, title="Report Test Pitch"):
     return client.post("/api/pitches", json={"title": title}).json()
@@ -66,6 +70,17 @@ def test_velocity_conversion_fields(admin_client):
     conversion = resp.json()["conversion"]
     for field in ("total_pitches", "advanced_to_assessment", "declined", "parked", "completed"):
         assert field in conversion
+
+
+def test_a_pitch_still_in_deep_assessment_counts_as_advanced(admin_client, db_session):
+    pid = _create_pitch(admin_client, "Mid assessment")["id"]
+    # Deep Assessment is retired, so put the pitch there the way older data has it.
+    db_session.get(Pitch, UUID(pid)).current_stage = PipelineStage.DEEP_ASSESSMENT
+    db_session.commit()
+
+    conversion = admin_client.get("/api/reports/velocity").json()["conversion"]
+
+    assert conversion["advanced_to_assessment"] == 1
 
 
 def test_velocity_recent_activity_fields(admin_client):

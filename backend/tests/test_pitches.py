@@ -932,50 +932,59 @@ def test_new_pitch_starts_at_initial_screen(admin_client):
     assert [(h["from_stage"], h["to_stage"]) for h in history] == [(None, "initial_screen")]
 
 
-def _says_received_is_retired(resp) -> bool:
+RETIRED = pytest.mark.parametrize("retired", ["received", "deep_assessment"])
+
+
+def _says_retired(resp, stage: str) -> bool:
     detail = str(resp.json()["detail"]).lower()
-    return "received" in detail and "retired" in detail
+    return stage in detail and "retired" in detail
 
 
-def test_creating_a_pitch_in_received_is_refused(admin_client):
-    resp = admin_client.post(
-        "/api/pitches", json={"title": "Too late", "current_stage": "received"}
-    )
+@RETIRED
+def test_creating_a_pitch_in_a_retired_stage_is_refused(admin_client, retired):
+    resp = admin_client.post("/api/pitches", json={"title": "Too late", "current_stage": retired})
 
     assert resp.status_code == 422
-    assert _says_received_is_retired(resp)
+    assert _says_retired(resp, retired)
     assert admin_client.get("/api/pitches").json() == []
 
 
-def test_moving_a_pitch_to_received_is_refused_and_changes_nothing(admin_client):
+@RETIRED
+def test_moving_a_pitch_to_a_retired_stage_is_refused_and_changes_nothing(admin_client, retired):
     pid = admin_client.post("/api/pitches", json={"title": "Stay put"}).json()["id"]
     history_before = admin_client.get(f"/api/pitches/{pid}/history").json()
 
-    resp = admin_client.post(f"/api/pitches/{pid}/stage", json={"new_stage": "received"})
+    resp = admin_client.post(f"/api/pitches/{pid}/stage", json={"new_stage": retired})
 
     assert resp.status_code == 422
-    assert _says_received_is_retired(resp)
+    assert _says_retired(resp, retired)
     assert admin_client.get(f"/api/pitches/{pid}").json()["current_stage"] == "initial_screen"
     assert admin_client.get(f"/api/pitches/{pid}/history").json() == history_before
 
 
-def test_a_pitch_already_in_received_still_loads_and_can_move_on(admin_client, db_session):
+@pytest.mark.parametrize(
+    ("retired", "successor"),
+    [("received", "initial_screen"), ("deep_assessment", "due_diligence")],
+)
+def test_a_pitch_already_in_a_retired_stage_still_loads_and_can_move_on(
+    admin_client, db_session, retired, successor
+):
     pid = admin_client.post("/api/pitches", json={"title": "Left behind"}).json()["id"]
-    # The API refuses Received now, so put the pitch there the way older data has it.
+    # The API refuses retired stages, so put the pitch there the way older data has it.
     pitch = db_session.get(Pitch, UUID(pid))
-    pitch.current_stage = PipelineStage.RECEIVED
+    pitch.current_stage = PipelineStage(retired)
     db_session.commit()
 
-    assert admin_client.get(f"/api/pitches/{pid}").json()["current_stage"] == "received"
+    assert admin_client.get(f"/api/pitches/{pid}").json()["current_stage"] == retired
     listed = [p for p in admin_client.get("/api/pitches").json() if p["id"] == pid]
-    assert listed[0]["current_stage"] == "received"
+    assert listed[0]["current_stage"] == retired
 
-    resp = admin_client.post(f"/api/pitches/{pid}/stage", json={"new_stage": "initial_screen"})
+    resp = admin_client.post(f"/api/pitches/{pid}/stage", json={"new_stage": successor})
 
     assert resp.status_code == 200
-    assert resp.json()["current_stage"] == "initial_screen"
+    assert resp.json()["current_stage"] == successor
     last = admin_client.get(f"/api/pitches/{pid}/history").json()[-1]
-    assert (last["from_stage"], last["to_stage"]) == ("received", "initial_screen")
+    assert (last["from_stage"], last["to_stage"]) == (retired, successor)
 
 
 def test_invalid_new_stage_returns_422(admin_client):

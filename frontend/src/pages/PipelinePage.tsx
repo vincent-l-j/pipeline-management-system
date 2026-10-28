@@ -198,9 +198,7 @@ export default function PipelinePage(): React.JSX.Element {
             onClick={toggleClosed}
             className="mb-5 text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 hover:border-navy-400 focus:outline-none focus:ring-2 focus:ring-navy-300"
           >
-            {showClosed
-              ? `Hide closed over ${String(CLOSED_PITCH_HIDE_AFTER_DAYS)} days`
-              : `Show ${String(hiddenCount)} hidden`}
+            {`Show closed over ${String(CLOSED_PITCH_HIDE_AFTER_DAYS)} days (${String(hiddenCount)})`}
           </button>
         )}
       </div>

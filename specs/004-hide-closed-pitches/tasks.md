@@ -20,7 +20,7 @@ No setup.
 - [x] T001 In `backend/tests/test_pitches.py` (write first): a new pitch's `stage_entered_at` equals its creation history row's `changed_at`; after a stage change it equals the new row's `changed_at`; after `PATCH` it is unchanged; for a pitch moved Declined → Parked → Declined it is the latest move into Declined; with the pitch's history rows deleted directly in the database it falls back to `created_at`; in `GET /api/pitches` each pitch carries its own value; a viewer can read it; sending it in `PATCH` doesn't change it. Backdate rows with direct database writes where a known time is needed
 - [x] T002 Add `stage_entered_at: datetime | None = None` to `PitchOut` in `backend/app/schemas/pitch.py` as a read-only derived field, declared like `decline_reason` (filled in by `_as_out` after `model_validate`, so it can't be required), and absent from `PitchCreate`/`PitchUpdate`; T001 asserts it is never null in any response
 - [x] T003 In `backend/app/api/routes/pitches.py` add `_stage_entered_at(db, pitches) -> dict[UUID, datetime]` (one grouped query over `pitch_stage_history` joined to `pitches` on `to_stage = current_stage`), and have `_as_out` set `stage_entered_at` (falling back to `created_at`) in every route that returns a `PitchOut`, using one lookup for the whole list
-- [x] T004 [P] Add `stage_entered_at: string` to `Pitch` in `frontend/src/types.ts`, and add it to the typed fixtures that then fail typecheck: `KanbanBoard.test.tsx`, `KanbanBoard.retired.test.tsx`, `PitchCard.test.tsx`, `PitchCard.stageMenu.test.tsx`, `KanbanColumn.test.tsx`, `KanbanColumn.retired.test.tsx` and `PipelineListView.test.tsx` in `frontend/src/components/pipeline/__tests__/`, plus the untyped `PITCH` in `frontend/src/pages/__tests__/ListPages.browser.test.tsx`, which renders the Pipeline page
+- [x] T004 [P] Add `stage_entered_at: string` to `Pitch` in `frontend/src/types.ts`, and add it to the typed fixtures that then fail typecheck: `KanbanBoard.test.tsx`, `PitchCard.test.tsx`, `PitchCard.stageMenu.test.tsx`, `KanbanColumn.test.tsx` and `PipelineListView.test.tsx` in `frontend/src/components/pipeline/__tests__/`, plus the untyped `PITCH` in `frontend/src/pages/__tests__/ListPages.browser.test.tsx`, which renders the Pipeline page
 
 **Checkpoint**: T001 passes; typecheck clean.
 
@@ -43,12 +43,12 @@ the recent ones, and the header count matches.
 
 ## Phase 4: User Story 2 - Hidden pitches stay reachable (P1)
 
-**Independent Test**: the page offers "Show N hidden"; showing them puts them back; the choice
+**Independent Test**: the page offers "Show closed over 90 days (N)"; showing them puts them back; the choice
 survives a reload via the URL; other views are unchanged.
 
 ### Tests (write first, see them fail)
 
-- [x] T009 [US2] In `frontend/src/pages/__tests__/PipelinePage.test.tsx`: with two hidden pitches a button "Show 2 hidden" with `aria-pressed="false"` shows; pressing it shows them on the board, sets `?closed=show`, the header count includes them, and the button now reads "Hide closed over 90 days" (built from the threshold) with `aria-pressed="true"`; rendering at `/pipeline?closed=show` shows them from the start; with nothing hidden there is no button; with every pitch hidden the page still shows the button and its count
+- [x] T009 [US2] In `frontend/src/pages/__tests__/PipelinePage.test.tsx`: with two hidden pitches a button "Show closed over 90 days (2)" with `aria-pressed="false"` shows; pressing it shows them on the board, sets `?closed=show`, the header count includes them, and the same button (one label, built from the threshold) now has `aria-pressed="true"`; rendering at `/pipeline?closed=show` shows them from the start; with nothing hidden there is no button; with every pitch hidden the page still shows the button and its count
 - [x] T010 [US2] In `frontend/src/pages/__tests__/PipelinePage.test.tsx`: a failed or timed-out pitches request shows an error message and a "Try again" button instead of an empty board, and pressing it refetches and renders the board (A5)
 - [x] T011 [P] [US2] In `backend/tests/test_search.py` and `backend/tests/test_reports.py`: a pitch declined more than 90 days ago (backdated in the database) is still returned by search, the pipeline summary and the pitches CSV export, pinning FR-003 (pass before and after)
 
@@ -76,3 +76,7 @@ survives a reload via the URL; other views are unchanged.
 
 One release: Phase 2, then US1, then US2, then polish. After deploy, check the plan's C6
 signal.
+
+## Phase 6: Convergence
+
+- [x] T018 In `frontend/src/pages/__tests__/PipelinePage.test.tsx`, make the "hide again" step assert the URL actually loses `closed=show` (e.g. `expect(screen.getByTestId("search").textContent).toBe("")`); `toHaveTextContent("")` matches any text, so the removal of the param is currently unpinned per FR-005 (partial)

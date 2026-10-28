@@ -126,7 +126,9 @@ describe("PipelinePage hides long-closed pitches", () => {
     renderPage();
     await screen.findByText("Recently declined");
 
-    const toggle = screen.getByRole("button", { name: "Show 2 hidden" });
+    const toggle = screen.getByRole("button", {
+      name: "Show closed over 90 days (2)",
+    });
     expect(toggle).toHaveAttribute("aria-pressed", "false");
     await user.click(toggle);
 
@@ -136,15 +138,13 @@ describe("PipelinePage hides long-closed pitches", () => {
       screen.getByText("4 initiatives in the pipeline"),
     ).toBeInTheDocument();
     expect(screen.getByTestId("search")).toHaveTextContent("?closed=show");
-    const hide = screen.getByRole("button", {
-      name: "Hide closed over 90 days",
-    });
-    expect(hide).toHaveAttribute("aria-pressed", "true");
+    // One label in both states; aria-pressed carries which state it is in.
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
 
-    await user.click(hide);
+    await user.click(toggle);
 
     expect(screen.queryByText("Long declined")).not.toBeInTheDocument();
-    expect(screen.getByTestId("search")).toHaveTextContent("");
+    expect(screen.getByTestId("search").textContent).toBe("");
   });
 
   it("shows the hidden pitches from the start when the URL asks for them", async () => {
@@ -159,7 +159,7 @@ describe("PipelinePage hides long-closed pitches", () => {
     await screen.findByText("Recently declined");
 
     expect(
-      screen.queryByRole("button", { name: /hidden|Hide closed/ }),
+      screen.queryByRole("button", { name: /closed over/ }),
     ).not.toBeInTheDocument();
   });
 
@@ -168,7 +168,9 @@ describe("PipelinePage hides long-closed pitches", () => {
     renderPage();
 
     expect(
-      await screen.findByRole("button", { name: "Show 2 hidden" }),
+      await screen.findByRole("button", {
+        name: "Show closed over 90 days (2)",
+      }),
     ).toBeInTheDocument();
     expect(
       screen.getByText("0 initiatives in the pipeline"),
@@ -188,7 +190,7 @@ describe("PipelinePage hides long-closed pitches", () => {
       }),
     );
     await user.click(
-      screen.getByRole("button", { name: "Hide closed over 90 days" }),
+      screen.getByRole("button", { name: /Show closed over 90 days/ }),
     );
 
     expect(screen.getByText("Long completed")).toBeInTheDocument();

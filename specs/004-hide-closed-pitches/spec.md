@@ -156,7 +156,7 @@ counts, the reports and the CSV export.
   pitch; this feature leaves them as they are.
 - The per-user threshold, and where it's stored, is the separate follow-up feature in the
   issue. This feature only makes it a plain input to the hiding rule.
-- The Pipeline page's "Show N hidden" toggle (User Story 2, scenarios 1–4; FR-004, FR-005)
+- The Pipeline page's "Show closed over 90 days (N)" toggle (User Story 2, scenarios 1–4; FR-004, FR-005)
   is the implementer's proposal: the issue asks for a toggle only if other views stopped
   listing hidden pitches, and they don't. The maintainer confirms it or cuts it in review.
   Cutting it leaves scenario 5 and FR-003 as User Story 2.

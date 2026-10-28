@@ -19,7 +19,7 @@ pitch_id = '<id>' AND to_stage = '<STAGE>'`). Backdate the third pitch's `create
    old (contract).
 3. Open `/pipeline`: the first two are on neither the board nor the list view, and the third
    and the Parked one are shown (US1-1 to US1-5). The header count matches what's shown
-   (US1-7). A "Show 2 hidden" button is there (US2-1).
+   (US1-7). A "Show closed over 90 days (2)" button is there (US2-1).
 4. Press it: both appear, the URL has `?closed=show`, and a reload keeps them (US2-3, US2-4).
    Press it again to hide them.
 5. Search for a hidden pitch's title, open it by its link, and check `/pitches`, the dashboard

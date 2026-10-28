@@ -45,8 +45,9 @@ stage_entered_at > thresholdDays` days.
 ## R4. The toggle
 
 - **Decision**: A native `button` with `aria-pressed`, shown only when at least one pitch is
-  hidden or hidden pitches are being shown. It reads "Show N hidden" when hiding, and "Hide
-  closed over 90 days" when showing. Its state is `?closed=show` in the URL via
+  hidden or hidden pitches are being shown. It has one label, "Show closed over 90 days (N)",
+  in both states, and `aria-pressed` says which state it is in, so a screen reader announces
+  a stable name with its pressed state rather than a name that flips. Its state is `?closed=show` in the URL via
   `useSearchParams`; absent means hide.
 - **Rationale**: FR-004, FR-005, A4 and A7. A default of "hide" keeps the default URL clean.
   The label is built from the threshold argument, not a literal 90 (FR-007).

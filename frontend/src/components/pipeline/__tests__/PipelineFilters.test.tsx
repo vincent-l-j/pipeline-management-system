@@ -73,7 +73,7 @@ describe("PipelineFilters", () => {
     );
   });
 
-  it("does not offer the retired Received stage", () => {
+  it("does not offer a retired stage", () => {
     render(
       <PipelineFilters
         filters={{ sort: "newest" }}
@@ -89,5 +89,6 @@ describe("PipelineFilters", () => {
 
     expect(options).toContain("Initial Screen");
     expect(options).not.toContain("Received");
+    expect(options).not.toContain("Deep Assessment");
   });
 });

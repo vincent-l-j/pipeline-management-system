@@ -42,20 +42,25 @@ describe("PIPELINE_STAGES", () => {
 });
 
 describe("retired stages", () => {
+  const RETIRED = ["received", "deep_assessment"];
+
   it("offers every stage but the retired ones, in board order", () => {
     expect(ACTIVE_STAGES.map((s) => s.key)).toEqual(
-      PIPELINE_STAGES.map((s) => s.key).filter((key) => key !== "received"),
+      PIPELINE_STAGES.map((s) => s.key).filter((key) => !RETIRED.includes(key)),
     );
   });
 
-  it("knows Received is retired and the others are not", () => {
+  it("knows Received and Deep Assessment are retired and the others are not", () => {
     expect(isRetiredStage("received")).toBe(true);
+    expect(isRetiredStage("deep_assessment")).toBe(true);
     expect(isRetiredStage("initial_screen")).toBe(false);
+    expect(isRetiredStage("due_diligence")).toBe(false);
   });
 
   // Pitches still sitting in a retired stage keep their label everywhere.
   it("still labels a retired stage", () => {
     expect(STAGE_MAP.received.label).toBe("Received");
+    expect(STAGE_MAP.deep_assessment.label).toBe("Deep Assessment");
   });
 });
 

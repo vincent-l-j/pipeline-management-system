@@ -68,7 +68,8 @@ def test_velocity_conversion_fields(admin_client):
 
 def test_a_pitch_in_due_diligence_counts_as_advanced(admin_client):
     pid = _create_pitch(admin_client, "In diligence")["id"]
-    admin_client.post(f"/api/pitches/{pid}/stage", json={"new_stage": "due_diligence"})
+    moved = admin_client.post(f"/api/pitches/{pid}/stage", json={"new_stage": "due_diligence"})
+    assert moved.status_code == 200
 
     conversion = admin_client.get("/api/reports/velocity").json()["conversion"]
 

@@ -13,6 +13,7 @@ import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import api from "../services/api";
+import { isRetiredStage } from "../components/pipeline/PipelineConfig";
 
 interface StageConfig {
   key: string;
@@ -201,7 +202,10 @@ export default function DashboardPage(): React.JSX.Element {
           Pipeline by Stage
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {STAGE_CONFIG.map((s: StageConfig) => (
+          {STAGE_CONFIG.filter(
+            // A retired stage holds its place only while pitches still sit in it.
+            (s) => !isRetiredStage(s.key) || (stage_counts[s.key] ?? 0) > 0,
+          ).map((s: StageConfig) => (
             <div
               key={s.key}
               className="flex items-center gap-3 p-3 rounded-lg bg-navy-50/50"

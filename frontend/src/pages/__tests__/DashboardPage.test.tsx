@@ -129,6 +129,23 @@ describe("DashboardPage", () => {
     expect(stages.getAllByText("0")).toHaveLength(7);
   });
 
+  // Received is retired: it holds its place only while pitches still sit there,
+  // so the breakdown keeps adding up to the total.
+  it("omits the retired Received stage once no pitch is in it", async () => {
+    apiMocks.get.mockResolvedValue({
+      data: {
+        ...VELOCITY,
+        stage_counts: { ...VELOCITY.stage_counts, received: 0 },
+      },
+    });
+    render(<DashboardPage />);
+
+    expect(await screen.findByText("Deep Assessment")).toBeInTheDocument();
+    const stages = within(cardFor("Pipeline by Stage"));
+    expect(stages.queryByText("Received")).not.toBeInTheDocument();
+    expect(stages.getByText("Initial Screen")).toBeInTheDocument();
+  });
+
   it("shows a count for each month the report returned", async () => {
     render(<DashboardPage />);
     await screen.findByText("Pitches Received per Month");

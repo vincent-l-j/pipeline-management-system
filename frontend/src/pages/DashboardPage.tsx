@@ -13,7 +13,6 @@ import { Link } from "react-router-dom";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import api from "../services/api";
-import { isRetiredStage } from "../components/pipeline/PipelineConfig";
 
 interface StageConfig {
   key: string;
@@ -83,7 +82,6 @@ function monthRange(months: PitchMonth[]): string {
 const STAGE_CONFIG: StageConfig[] = [
   { key: "initial_screen", label: "Initial Screen", color: "bg-sky-500" },
   { key: "discovery_meeting", label: "Discovery", color: "bg-cyan-500" },
-  { key: "deep_assessment", label: "Deep Assessment", color: "bg-teal-500" },
   { key: "due_diligence", label: "Due Diligence", color: "bg-amber-500" },
   {
     key: "decision_pending",
@@ -201,9 +199,7 @@ export default function DashboardPage(): React.JSX.Element {
           Pipeline by Stage
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {STAGE_CONFIG.filter(
-            (s) => !isRetiredStage(s.key) || (stage_counts[s.key] ?? 0) > 0,
-          ).map((s: StageConfig) => (
+          {STAGE_CONFIG.map((s: StageConfig) => (
             <div
               key={s.key}
               className="flex items-center gap-3 p-3 rounded-lg bg-navy-50/50"

@@ -10,7 +10,6 @@ import type { Pitch } from "../types";
 const stageLabels: Record<string, string> = {
   initial_screen: "Initial Screen",
   discovery_meeting: "Discovery Meeting",
-  deep_assessment: "Deep Assessment",
   due_diligence: "Due Diligence",
   decision_pending: "Decision Pending",
   active_support: "Active Support",
@@ -22,7 +21,6 @@ const stageLabels: Record<string, string> = {
 const stageBadgeColors: Record<string, string> = {
   initial_screen: "bg-sky-100 text-sky-700",
   discovery_meeting: "bg-cyan-100 text-cyan-700",
-  deep_assessment: "bg-teal-100 text-teal-700",
   due_diligence: "bg-amber-100 text-amber-700",
   decision_pending: "bg-orange-100 text-orange-700",
   active_support: "bg-green-100 text-green-700",

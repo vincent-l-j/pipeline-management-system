@@ -11,7 +11,6 @@ import { useState, useEffect } from "react";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import TableScroll from "../components/ui/TableScroll";
-import { isRetiredStage } from "../components/pipeline/PipelineConfig";
 import api from "../services/api";
 
 interface PitchSummary {
@@ -55,7 +54,6 @@ interface CSVExport {
 const STAGE_BADGE: Record<string, string> = {
   initial_screen: "bg-sky-100 text-sky-700",
   discovery_meeting: "bg-cyan-100 text-cyan-700",
-  deep_assessment: "bg-teal-100 text-teal-700",
   due_diligence: "bg-amber-100 text-amber-700",
   decision_pending: "bg-orange-100 text-orange-700",
   active_support: "bg-green-100 text-green-700",
@@ -240,7 +238,6 @@ export default function ReportsPage(): React.JSX.Element {
           >
             <option value="">All stages ({summary.total})</option>
             {Object.entries(STAGE_BADGE).map(([key]) => {
-              if (isRetiredStage(key)) return null;
               const count = summary.pitches.filter(
                 (p: PitchSummary) => p.current_stage === key,
               ).length;

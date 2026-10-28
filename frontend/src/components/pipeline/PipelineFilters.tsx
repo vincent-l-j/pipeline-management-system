@@ -5,7 +5,11 @@
  */
 
 import { ChangeEvent } from "react";
-import { ACTIVE_STAGES, SOURCE_LABELS, DOMAIN_OPTIONS } from "./PipelineConfig";
+import {
+  PIPELINE_STAGES,
+  SOURCE_LABELS,
+  DOMAIN_OPTIONS,
+} from "./PipelineConfig";
 import { User } from "../../types";
 
 interface SortOption {
@@ -54,7 +58,7 @@ export default function PipelineFilters({
         className="text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-300"
       >
         <option value="">All stages</option>
-        {ACTIVE_STAGES.map((s) => (
+        {PIPELINE_STAGES.map((s) => (
           <option key={s.key} value={s.key}>
             {s.label}
           </option>

@@ -25,7 +25,7 @@ export default function KanbanColumn({
       <div className="px-3 py-3 flex items-center gap-2 border-b border-navy-100">
         <div className={`w-2 h-2 rounded-full ${stage.color}`} />
         <h3 className="text-xs font-semibold text-navy-700 uppercase tracking-wide">
-          {stage.retired ? `${stage.label} (retired)` : stage.label}
+          {stage.label}
         </h3>
         <span className="ml-auto text-xs font-medium text-navy-400 bg-navy-100 px-1.5 py-0.5 rounded-full">
           {pitches.length}
@@ -33,10 +33,7 @@ export default function KanbanColumn({
       </div>
 
       {/* Droppable area */}
-      <Droppable
-        droppableId={stage.key}
-        isDropDisabled={stage.retired === true}
-      >
+      <Droppable droppableId={stage.key}>
         {(provided, snapshot) => (
           <div
             ref={provided.innerRef}

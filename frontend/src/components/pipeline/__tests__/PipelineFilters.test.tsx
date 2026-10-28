@@ -72,22 +72,4 @@ describe("PipelineFilters", () => {
       expect.objectContaining({ stage: "initial_screen" }),
     );
   });
-
-  it("does not offer a retired stage", () => {
-    render(
-      <PipelineFilters
-        filters={{ sort: "newest" }}
-        onChange={vi.fn()}
-        users={[]}
-      />,
-    );
-
-    const stageSelect = screen.getByDisplayValue("All stages");
-    const options = Array.from(stageSelect.querySelectorAll("option")).map(
-      (o) => o.textContent,
-    );
-
-    expect(options).toContain("Initial Screen");
-    expect(options).not.toContain("Deep Assessment");
-  });
 });

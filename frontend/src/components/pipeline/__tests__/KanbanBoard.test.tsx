@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import KanbanBoard from "../KanbanBoard";
-import { ACTIVE_STAGES } from "../PipelineConfig";
+import { PIPELINE_STAGES } from "../PipelineConfig";
 import { createApiMocks } from "../../../test/mocks/api";
 import type { Pitch } from "../../../types";
 
@@ -59,9 +59,11 @@ const pitches: Pitch[] = [
 ];
 
 describe("KanbanBoard", () => {
-  it("renders one column per active stage when no pitch is in a retired one", () => {
+  it("renders one column per pipeline stage", () => {
     render(<KanbanBoard pitches={[]} onPitchMoved={vi.fn()} />);
-    expect(screen.getAllByTestId("column")).toHaveLength(ACTIVE_STAGES.length);
+    expect(screen.getAllByTestId("column")).toHaveLength(
+      PIPELINE_STAGES.length,
+    );
   });
 
   it("renders columns in the configured stage order", () => {
@@ -69,7 +71,7 @@ describe("KanbanBoard", () => {
     const order = screen
       .getAllByTestId("column")
       .map((c) => c.getAttribute("data-stage"));
-    expect(order).toEqual(ACTIVE_STAGES.map((s) => s.key));
+    expect(order).toEqual(PIPELINE_STAGES.map((s) => s.key));
   });
 
   it("groups each pitch into the column matching its current_stage", () => {
@@ -99,7 +101,9 @@ describe("KanbanBoard", () => {
         onPitchMoved={vi.fn()}
       />,
     );
-    expect(screen.getAllByTestId("column")).toHaveLength(ACTIVE_STAGES.length);
+    expect(screen.getAllByTestId("column")).toHaveLength(
+      PIPELINE_STAGES.length,
+    );
     expect(screen.queryByText("Orphan")).not.toBeInTheDocument();
   });
 

@@ -122,7 +122,7 @@ const PITCH_MONTHS = [
 ].map((month, i) => ({ month, count: (i % 5) + 1 }));
 
 const VELOCITY = {
-  stage_counts: { received: 4, deep_assessment: 2, completed: 1 },
+  stage_counts: { initial_screen: 4, deep_assessment: 2, completed: 1 },
   pitches_per_month: PITCH_MONTHS,
   conversion: {
     total_pitches: 7,

@@ -43,7 +43,7 @@ vi.mock("../KanbanColumn", () => ({
       <button
         data-testid={`select-${stage.key}`}
         onClick={() => {
-          onStageSelect("a", "received", stage.key);
+          onStageSelect("a", "initial_screen", stage.key);
         }}
       >
         select {stage.label}
@@ -53,8 +53,8 @@ vi.mock("../KanbanColumn", () => ({
 }));
 
 const pitches: Pitch[] = [
-  { id: "a", title: "Alpha", current_stage: "received" },
-  { id: "b", title: "Beta", current_stage: "received" },
+  { id: "a", title: "Alpha", current_stage: "initial_screen" },
+  { id: "b", title: "Beta", current_stage: "initial_screen" },
   { id: "c", title: "Gamma", current_stage: "due_diligence" },
 ];
 
@@ -75,7 +75,7 @@ describe("KanbanBoard", () => {
   it("groups each pitch into the column matching its current_stage", () => {
     render(<KanbanBoard pitches={pitches} onPitchMoved={vi.fn()} />);
     expect(
-      screen.getAllByTestId("pitch-received").map((n) => n.textContent),
+      screen.getAllByTestId("pitch-initial_screen").map((n) => n.textContent),
     ).toEqual(["Alpha", "Beta"]);
     expect(
       screen.getAllByTestId("pitch-due_diligence").map((n) => n.textContent),
@@ -128,7 +128,7 @@ describe("KanbanBoard", () => {
 
     expect(onPitchMoved).toHaveBeenCalledWith("a", "due_diligence"); // optimistic move
     await waitFor(() => {
-      expect(onPitchMoved).toHaveBeenCalledWith("a", "received");
+      expect(onPitchMoved).toHaveBeenCalledWith("a", "initial_screen");
     }); // revert
   });
 });

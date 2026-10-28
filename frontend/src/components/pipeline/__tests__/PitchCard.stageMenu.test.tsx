@@ -46,7 +46,6 @@ describe("PitchCard stage menu", () => {
 
     const menu = within(openMenu("Alpha"));
 
-    expect(menu.queryByText("Received")).not.toBeInTheDocument();
     expect(menu.queryByText("Deep Assessment")).not.toBeInTheDocument();
     expect(menu.getByText("Due Diligence")).toBeInTheDocument();
     for (const stage of ACTIVE_STAGES) {
@@ -54,7 +53,7 @@ describe("PitchCard stage menu", () => {
     }
   });
 
-  it.each(["received", "deep_assessment"])(
+  it.each(["deep_assessment"])(
     "offers every active stage to a pitch still in %s",
     (stage) => {
       renderCard({ id: "p2", title: "Beta", current_stage: stage });

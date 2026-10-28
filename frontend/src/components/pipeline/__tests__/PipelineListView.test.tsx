@@ -42,7 +42,9 @@ describe("PipelineListView", () => {
   it("marks nothing on a pitch with no decline reason", () => {
     render(
       <PipelineListView
-        pitches={[{ id: "p2", title: "Open Pitch", current_stage: "received" }]}
+        pitches={[
+          { id: "p2", title: "Open Pitch", current_stage: "initial_screen" },
+        ]}
       />,
     );
     expect(

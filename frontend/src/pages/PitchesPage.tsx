@@ -8,7 +8,6 @@ import api from "../services/api";
 import type { Pitch } from "../types";
 
 const stageLabels: Record<string, string> = {
-  received: "Received",
   initial_screen: "Initial Screen",
   discovery_meeting: "Discovery Meeting",
   deep_assessment: "Deep Assessment",
@@ -21,7 +20,6 @@ const stageLabels: Record<string, string> = {
 };
 
 const stageBadgeColors: Record<string, string> = {
-  received: "bg-blue-100 text-blue-700",
   initial_screen: "bg-sky-100 text-sky-700",
   discovery_meeting: "bg-cyan-100 text-cyan-700",
   deep_assessment: "bg-teal-100 text-teal-700",

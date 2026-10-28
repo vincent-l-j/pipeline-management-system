@@ -88,7 +88,6 @@ describe("PipelineFilters", () => {
     );
 
     expect(options).toContain("Initial Screen");
-    expect(options).not.toContain("Received");
     expect(options).not.toContain("Deep Assessment");
   });
 });

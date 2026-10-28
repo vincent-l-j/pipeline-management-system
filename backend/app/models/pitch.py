@@ -24,6 +24,11 @@ class PipelineStage(enum.StrEnum):
     COMPLETED = "completed"
 
 
+# Retired stages still load and display on existing pitches, but a pitch can no
+# longer be created in or moved to one.
+RETIRED_STAGES: frozenset[PipelineStage] = frozenset({PipelineStage.RECEIVED})
+
+
 class PitchSource(enum.StrEnum):
     REFERRAL = "referral"
     WEBSITE = "website"
@@ -76,7 +81,7 @@ class Pitch(Base, TimestampMixin):
     # Optional: the ask is often not settled when a pitch is first logged.
     request_type: Mapped[RequestType | None] = mapped_column(SAEnum(RequestType))
     current_stage: Mapped[PipelineStage] = mapped_column(
-        SAEnum(PipelineStage), default=PipelineStage.RECEIVED
+        SAEnum(PipelineStage), default=PipelineStage.INITIAL_SCREEN
     )
     # Free text, comma-separated, e.g. "Health,Semiconductors". Deliberately not an
     # enum: the domain vocabulary is set by the frontend (DOMAIN_OPTIONS) and changes

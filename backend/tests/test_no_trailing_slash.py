@@ -48,4 +48,4 @@ def test_create_pitch_succeeds(admin_client):
     assert resp.status_code == 200, resp.text
     body = resp.json()
     assert body["title"] == "Soil Sensor Initiative"
-    assert body["current_stage"] == "received"
+    assert body["current_stage"] == "initial_screen"

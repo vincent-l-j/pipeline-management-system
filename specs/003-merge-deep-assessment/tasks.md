@@ -29,14 +29,14 @@ stage menu or filter offers it.
 
 ### Tests (write first, see them fail)
 
-- [ ] T001 [P] [US1] In `backend/tests/test_pitches.py`: `POST /api/pitches` with `current_stage: "deep_assessment"` → 422 whose detail mentions `deep_assessment` and `retired`, with no pitch created; `POST /api/pitches/{id}/stage` with `new_stage: "deep_assessment"` → 422 with the same message, and the stage and history unchanged
-- [ ] T002 [P] [US1] In `frontend/src/components/pipeline/__tests__/PipelineConfig.test.ts`: `ACTIVE_STAGES` excludes `deep_assessment` as well as `received`, `isRetiredStage("deep_assessment")` is true, and `STAGE_MAP.deep_assessment.label` is still "Deep Assessment"
-- [ ] T003 [P] [US1] In `frontend/src/components/pipeline/__tests__/PitchCard.stageMenu.test.tsx`, `PipelineFilters.test.tsx` and `frontend/src/pages/__tests__/ReportsPage.test.tsx`: the stage menu offers Due Diligence and no "Deep Assessment"; the pipeline filter offers no "Deep Assessment"; the reports filter offers no Deep Assessment even with a pitch in it, while the summary table still shows that pitch with a "Deep Assessment" badge (add a `deep_assessment` row to the summary fixture, and update its `total` and the existing "All stages (2)" assertion to match)
+- [x] T001 [P] [US1] In `backend/tests/test_pitches.py`: `POST /api/pitches` with `current_stage: "deep_assessment"` → 422 whose detail mentions `deep_assessment` and `retired`, with no pitch created; `POST /api/pitches/{id}/stage` with `new_stage: "deep_assessment"` → 422 with the same message, and the stage and history unchanged
+- [x] T002 [P] [US1] In `frontend/src/components/pipeline/__tests__/PipelineConfig.test.ts`: `ACTIVE_STAGES` excludes `deep_assessment` as well as `received`, `isRetiredStage("deep_assessment")` is true, and `STAGE_MAP.deep_assessment.label` is still "Deep Assessment"
+- [x] T003 [P] [US1] In `frontend/src/components/pipeline/__tests__/PitchCard.stageMenu.test.tsx`, `PipelineFilters.test.tsx` and `frontend/src/pages/__tests__/ReportsPage.test.tsx`: the stage menu offers Due Diligence and no "Deep Assessment"; the pipeline filter offers no "Deep Assessment"; the reports filter offers no Deep Assessment even with a pitch in it, while the summary table still shows that pitch with a "Deep Assessment" badge (add a `deep_assessment` row to the summary fixture, and update its `total` and the existing "All stages (2)" assertion to match)
 
 ### Implementation
 
-- [ ] T004 [US1] Add `PipelineStage.DEEP_ASSESSMENT` to `RETIRED_STAGES` in `backend/app/models/pitch.py`
-- [ ] T005 [US1] Set `retired: true` on the `deep_assessment` entry in `frontend/src/components/pipeline/PipelineConfig.ts`
+- [x] T004 [US1] Add `PipelineStage.DEEP_ASSESSMENT` to `RETIRED_STAGES` in `backend/app/models/pitch.py`
+- [x] T005 [US1] Set `retired: true` on the `deep_assessment` entry in `frontend/src/components/pipeline/PipelineConfig.ts`
 
 **Checkpoint**: T001–T003 pass.
 
@@ -48,20 +48,20 @@ once it moves, the column disappears.
 
 ### Tests (write first, see them fail where behaviour is new)
 
-- [ ] T006 [P] [US2] In `backend/tests/test_pitches.py`: a pitch set to `DEEP_ASSESSMENT` directly in the database still loads in the detail and the list, and moves to `due_diligence` with a history row `deep_assessment → due_diligence`
-- [ ] T007 [P] [US2] In `backend/tests/test_reports.py`: a pitch in `DEEP_ASSESSMENT` (set directly in the database) is counted in `conversion.advanced_to_assessment` (passes before and after; pins FR-006 against the drop release's edit)
-- [ ] T008 [P] [US2] In `frontend/src/components/pipeline/__tests__/KanbanColumn.retired.test.tsx`: the Deep Assessment stage's heading reads "Deep Assessment (retired)" and its drop area is drop-disabled
-- [ ] T009 [P] [US2] In `frontend/src/components/pipeline/__tests__/KanbanBoard.retired.test.tsx`: with no pitch in `deep_assessment` there is no "Deep Assessment (retired)" heading and Discovery Meeting is followed by Due Diligence; with one there is, between them, holding that pitch; with pitches in both retired stages both retired columns show, each in place
-- [ ] T010 [P] [US2] In `frontend/src/pages/__tests__/DashboardPage.test.tsx`: the breakdown omits Deep Assessment when its count is 0 and lists it when it isn't (the fixture's `deep_assessment: 2` covers the second)
+- [x] T006 [P] [US2] In `backend/tests/test_pitches.py`: a pitch set to `DEEP_ASSESSMENT` directly in the database still loads in the detail and the list, and moves to `due_diligence` with a history row `deep_assessment → due_diligence`
+- [x] T007 [P] [US2] In `backend/tests/test_reports.py`: a pitch in `DEEP_ASSESSMENT` (set directly in the database) is counted in `conversion.advanced_to_assessment` (passes before and after; pins FR-006 against the drop release's edit)
+- [x] T008 [P] [US2] In `frontend/src/components/pipeline/__tests__/KanbanColumn.retired.test.tsx`: the Deep Assessment stage's heading reads "Deep Assessment (retired)" and its drop area is drop-disabled
+- [x] T009 [P] [US2] In `frontend/src/components/pipeline/__tests__/KanbanBoard.retired.test.tsx`: with no pitch in `deep_assessment` there is no "Deep Assessment (retired)" heading and Discovery Meeting is followed by Due Diligence; with one there is, between them, holding that pitch; with pitches in both retired stages both retired columns show, each in place
+- [x] T010 [P] [US2] In `frontend/src/pages/__tests__/DashboardPage.test.tsx`: the breakdown omits Deep Assessment when its count is 0 and lists it when it isn't (the fixture's `deep_assessment: 2` covers the second)
 
 ### Implementation
 
-- [ ] T011 [US2] No production change beyond T004/T005 is expected; confirm T006–T010 pass, and that the pitches list, list view, detail page and reports table keep the Deep Assessment label
+- [x] T011 [US2] No production change beyond T004/T005 is expected; confirm T006–T010 pass, and that the pitches list, list view, detail page and reports table keep the Deep Assessment label
 
 ### Retire release polish and gate
 
-- [ ] T012 [P] Update `README.md`'s pipeline board line to eight stages
-- [ ] T013 Run lint, typecheck, format check, the backend, frontend and browser suites, then drive the app per `quickstart.md` ("Retire release")
+- [x] T012 [P] Update `README.md`'s pipeline board line to eight stages
+- [x] T013 Run lint, typecheck, format check, the backend, frontend and browser suites, then drive the app per `quickstart.md` ("Retire release")
 - [ ] T014 Gate (after deploy, maintainer): check the retire release's C6 signal in production (plan.md): zero history rows entering `DEEP_ASSESSMENT` since the deploy, the board loading, and "advanced to assessment" unchanged across the deploy. Only then may the drop branch merge
 
 ## Phase 5: User Story 3 - Deep Assessment is merged away for good (P2), drop release

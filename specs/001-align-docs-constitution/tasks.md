@@ -472,35 +472,35 @@ US4 drain:        T031–T037 (seven different files), then T038 → T039 → T0
 
 ## Phase 8: Convergence
 
-- [ ] T046 In `CLAUDE.md` golden rule 1 and `AGENTS.md`'s TDD section and Definition of Done,
+- [x] T046 In `CLAUDE.md` golden rule 1 and `AGENTS.md`'s TDD section and Definition of Done,
       replace the restated correctness gates, small-bug-fix review and docs-only exception
       with "done per C6" and a link to `methodology.md` per FR-020, FR-025 (contradicts)
-- [ ] T047 Move "push to `develop` only to put a change on staging (UAT)" from `README.md`
+- [x] T047 Move "push to `develop` only to put a change on staging (UAT)" from `README.md`
       ("Shipping updates") into `AGENTS.md` ("Version control"), and replace the branch-to-app
       restatements in `README.md` ("Staging / UAT environment") and `docs/architecture.md`
       ("Production", "Deploy") with links to the README deployment table per FR-021, FR-025
       (contradicts)
-- [ ] T048 Replace `CLAUDE.md`'s copy of the precedence paragraph with a link to the
+- [x] T048 Replace `CLAUDE.md`'s copy of the precedence paragraph with a link to the
       constitution and to `AGENTS.md`'s statement per FR-004, FR-025 (contradicts)
-- [ ] T049 Replace the restated lessons-and-proposals homes in `AGENTS.md` (TDD section) and
+- [x] T049 Replace the restated lessons-and-proposals homes in `AGENTS.md` (TDD section) and
       `CLAUDE.md` ("How work is organized") with a link to `methodology.md` per FR-018, FR-025
       (contradicts)
-- [ ] T050 Replace the restated living-specs rule (`CLAUDE.md` `spec.md` bullet, `AGENTS.md`
+- [x] T050 Replace the restated living-specs rule (`CLAUDE.md` `spec.md` bullet, `AGENTS.md`
       Definition of Done) and small-bug-fix path (`CLAUDE.md` "How work is organized") with
       links to `methodology.md` per FR-023, FR-022, FR-025 (contradicts)
-- [ ] T051 In `AGENTS.md`'s Definition of Done, cite C3 and C5 by id without restating their
+- [x] T051 In `AGENTS.md`'s Definition of Done, cite C3 and C5 by id without restating their
       conditions or the five-minute threshold per FR-006, FR-007 (partial)
-- [ ] T052 In `AGENTS.md` ("Version control"), point the specified-feature branch naming at
+- [x] T052 In `AGENTS.md` ("Version control"), point the specified-feature branch naming at
       Spec Kit's `/speckit-specify` step instead of `methodology.md`, which doesn't describe it,
       per FR-024 (partial)
-- [ ] T053 Update `contracts/precedence-statement.md` and [quickstart.md](quickstart.md)
+- [x] T053 Update `contracts/precedence-statement.md` and [quickstart.md](quickstart.md)
       check 3 so the precedence statement is expected only in `AGENTS.md`, with `CLAUDE.md`
       linking to it, per FR-004 (contradicts)
-- [ ] T054 Add a [quickstart.md](quickstart.md) check that greps the in-scope docs for each
+- [x] T054 Add a [quickstart.md](quickstart.md) check that greps the in-scope docs for each
       owned fact (PR target, `develop` push rule, branch-to-app mapping, docs-only done,
       small bug fix, living specs, lessons and proposals, precedence, C5 threshold) and
       expects its conditions only in the owner per SC-008 (missing)
-- [ ] T055 Run quickstart checks 2, 3 and the new SC-008 check plus
+- [x] T055 Run quickstart checks 2, 3 and the new SC-008 check plus
       `npm run format:prettier:check`, and do a cold read from `CLAUDE.md` confirming every
       replaced restatement is still reachable in one link per SC-008, US2/AC1, US3/AC3
       (missing)

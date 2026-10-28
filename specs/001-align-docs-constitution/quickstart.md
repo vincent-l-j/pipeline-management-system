@@ -40,8 +40,9 @@ done
 grep -n 'constitution' CLAUDE.md AGENTS.md docs/best-practices/README.md
 ```
 
-**Expected**: `CLAUDE.md` and `AGENTS.md` each link to `.specify/memory/constitution.md`, and
-the README carries the conflict rule ([contracts/precedence-statement.md](contracts/precedence-statement.md)).
+**Expected**: `CLAUDE.md` and `AGENTS.md` each link to `.specify/memory/constitution.md`. Only
+`AGENTS.md` says the constitution wins, and `CLAUDE.md` links to it. The README carries the
+conflict rule ([contracts/precedence-statement.md](contracts/precedence-statement.md)).
 
 ## 4. Known conflicts are resolved (SC-001, SC-002, SC-004)
 
@@ -95,3 +96,29 @@ opening it. After all PRs merge there is nothing left to diff.
 Open `CLAUDE.md` in a fresh session and follow its workflow pointers to the end. Every
 artifact named either exists or is created by a named `/speckit-*` command, and the
 constitution is one link away.
+
+## 9. Each workflow fact has one owner (SC-008, FR-025)
+
+```sh
+bash <<'SH'
+docs="CLAUDE.md AGENTS.md README.md methodology.md docs sop services.yaml"
+check() { # name, owner file ("-" for the constitution), pattern
+  echo "## $1 (owner: $2)"
+  grep -rnEi "$3" $docs | grep -v "^$2:" | grep -v '^docs/adr/' | grep -vE 'methodology\.md|\("|"\)'
+}
+check precedence    AGENTS.md      'constitution wins'
+check develop-rule  AGENTS.md      'not a PR target|never a PR target|push to it only'
+check branch-to-app README.md      '`develop`.*(staging|UAT)|(staging|UAT).*`develop`|push to `develop`|`main` →'
+check docs-only     methodology.md 'done when it merges'
+check small-bug-fix methodology.md 'reproduc(es|ing) (the bug|test)|against (its|the) issue'
+check living-specs  methodology.md 'updated first|changes first|after the feature ships'
+check lessons       methodology.md 'in the PR that fixes|never block'
+check correctness   methodology.md 'self-validat|implementer alone|speckit-analyze.*speckit-converge'
+check c5-threshold  -              'five minutes|5 minutes'
+SH
+```
+
+**Expected**: every heading is followed by no lines. A hit outside the owner is a restatement:
+replace it with a link to the owner (or, for a constitution rule, its id). Lines that name
+`methodology.md`, or quote a section title in `("…")`, are links and are filtered out. Specs and ADRs are records, not owners,
+so they're outside the search.

@@ -35,6 +35,7 @@ const PITCH = {
   funding_pathway: "crc_project",
   domain_tags: "agriculture, remote sensing, carbon",
   current_stage: "due_diligence",
+  stage_entered_at: "2026-03-14T00:00:00Z",
   submission_date: "2026-03-14",
   lead_id: "u1",
 };

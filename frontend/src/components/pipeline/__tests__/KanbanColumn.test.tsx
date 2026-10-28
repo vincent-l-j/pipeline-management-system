@@ -102,7 +102,12 @@ describe("KanbanColumn", () => {
       lightColor: "bg-blue-100 text-blue-700",
     };
     const pitches = [
-      { id: "p1", title: "Test Pitch", current_stage: "initial_screen" },
+      {
+        id: "p1",
+        title: "Test Pitch",
+        current_stage: "initial_screen",
+        stage_entered_at: "2026-01-01T00:00:00Z",
+      },
     ];
     render(<KanbanColumn stage={stage} pitches={pitches} />);
     expect(screen.getByText("Test Pitch")).toBeInTheDocument();

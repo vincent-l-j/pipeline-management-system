@@ -47,6 +47,8 @@ export interface Pitch {
    * pitch is in the declined stage. Not settable through the pitch API.
    */
   decline_reason?: DeclineReason | null;
+  /** Read-only and derived: when the pitch last moved into its current stage. */
+  stage_entered_at: string;
 }
 
 export type Recommendation = "proceed" | "park" | "decline";

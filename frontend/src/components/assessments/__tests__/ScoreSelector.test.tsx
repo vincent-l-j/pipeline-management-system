@@ -58,6 +58,17 @@ describe("ScoreSelector", () => {
     expect(screen.queryByText(/\/5/)).not.toBeInTheDocument();
   });
 
+  // The new-assessment form starts every criterion at 0, meaning unscored.
+  it("prints nothing beside the criterion while it is unscored", () => {
+    render(
+      <ScoreSelector criterion={criterion} value={0} onChange={vi.fn()} />,
+    );
+    const heading = screen.getByRole("heading", { name: "Team Capability" });
+    expect(heading.parentElement?.parentElement).toHaveTextContent(
+      /^Team CapabilityTrack record, expertise, and execution capacity$/,
+    );
+  });
+
   it("calls onChange with the clicked score", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

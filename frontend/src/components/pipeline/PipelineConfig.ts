@@ -17,6 +17,11 @@ export interface PipelineStage {
   color: string;
   /** Tailwind CSS class for the light background color with text color */
   lightColor: string;
+  /**
+   * A retired stage still labels the pitches already in it, but is never offered
+   * as a choice, and the board shows its column only while it holds pitches.
+   */
+  retired?: true;
 }
 
 /**
@@ -29,6 +34,7 @@ export const PIPELINE_STAGES: readonly PipelineStage[] = [
     label: "Received",
     color: "bg-blue-500",
     lightColor: "bg-blue-100 text-blue-700",
+    retired: true,
   },
   {
     key: "initial_screen",
@@ -86,12 +92,21 @@ export const PIPELINE_STAGES: readonly PipelineStage[] = [
   },
 ] as const;
 
+/** The stages a user can choose: every stage that isn't retired, in order. */
+export const ACTIVE_STAGES: readonly PipelineStage[] = PIPELINE_STAGES.filter(
+  (s) => !s.retired,
+);
+
 /**
  * Map of stage keys to stage objects for efficient O(1) lookup.
  */
 export const STAGE_MAP: Record<string, PipelineStage> = Object.fromEntries(
   PIPELINE_STAGES.map((s: PipelineStage) => [s.key, s]),
 );
+
+export function isRetiredStage(key: string): boolean {
+  return PIPELINE_STAGES.some((s) => s.key === key && s.retired);
+}
 
 /** Labels for pitch source options. */
 export const SOURCE_LABELS: Record<string, string> = {

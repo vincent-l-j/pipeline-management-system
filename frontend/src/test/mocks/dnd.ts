@@ -16,15 +16,18 @@ interface DroppableProps {
     snapshot: DroppableSnapshot,
   ) => ReactNode;
   droppableId: string;
+  isDropDisabled?: boolean;
 }
 
-export const Droppable = ({ children }: DroppableProps) =>
+// isDropDisabled comes back as an attribute on the drop area, so a test can see
+// which columns refuse drops without performing a drag.
+export const Droppable = ({ children, isDropDisabled }: DroppableProps) =>
   children(
     {
       innerRef: (element: HTMLElement | null) => {
         void element;
       },
-      droppableProps: {},
+      droppableProps: { "data-drop-disabled": isDropDisabled === true },
       placeholder: null,
     },
     { isDraggingOver: false },

@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
+  ACTIVE_STAGES,
   PIPELINE_STAGES,
   STAGE_MAP,
+  isRetiredStage,
   SOURCE_LABELS,
   FUNDING_LABELS,
   REQUEST_TYPE_LABELS,
@@ -37,6 +39,24 @@ describe("PIPELINE_STAGES", () => {
       expect(stage.lightColor).toBeTruthy();
     },
   );
+});
+
+describe("retired stages", () => {
+  it("offers every stage but the retired ones, in board order", () => {
+    expect(ACTIVE_STAGES.map((s) => s.key)).toEqual(
+      PIPELINE_STAGES.map((s) => s.key).filter((key) => key !== "received"),
+    );
+  });
+
+  it("knows Received is retired and the others are not", () => {
+    expect(isRetiredStage("received")).toBe(true);
+    expect(isRetiredStage("initial_screen")).toBe(false);
+  });
+
+  // Pitches still sitting in a retired stage keep their label everywhere.
+  it("still labels a retired stage", () => {
+    expect(STAGE_MAP.received.label).toBe("Received");
+  });
 });
 
 describe("STAGE_MAP", () => {

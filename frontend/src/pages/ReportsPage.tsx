@@ -11,6 +11,7 @@ import { useState, useEffect } from "react";
 import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import TableScroll from "../components/ui/TableScroll";
+import { isRetiredStage } from "../components/pipeline/PipelineConfig";
 import api from "../services/api";
 
 interface PitchSummary {
@@ -240,6 +241,7 @@ export default function ReportsPage(): React.JSX.Element {
           >
             <option value="">All stages ({summary.total})</option>
             {Object.entries(STAGE_BADGE).map(([key]) => {
+              if (isRetiredStage(key)) return null;
               const count = summary.pitches.filter(
                 (p: PitchSummary) => p.current_stage === key,
               ).length;

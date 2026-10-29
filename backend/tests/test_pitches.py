@@ -4,7 +4,7 @@ from uuid import UUID
 
 import pytest
 
-from app.models.pitch import PitchSource, RequestType
+from app.models.pitch import PipelineStage, Pitch, PitchSource, RequestType
 from tests.constants import UNKNOWN_ID
 
 PITCH_PAYLOAD = {"title": "Green Hydrogen Initiative"}
@@ -18,7 +18,7 @@ def test_create_pitch(admin_client):
     assert resp.status_code == 200
     body = resp.json()
     assert body["title"] == "Green Hydrogen Initiative"
-    assert body["current_stage"] == "received"
+    assert body["current_stage"] == "initial_screen"
     assert "id" in body
 
 
@@ -109,7 +109,7 @@ def test_patch_stage_immutable_leaves_stage_and_writes_no_history(admin_client):
     )
     assert resp.status_code == 200
     assert resp.json()["title"] == "Edited"
-    assert resp.json()["current_stage"] == "received"  # stage unchanged
+    assert resp.json()["current_stage"] == "initial_screen"  # stage unchanged
 
     history_after = admin_client.get(f"/api/pitches/{pid}/history").json()
     assert len(history_after) == len(history_before)  # no new stage-history row
@@ -176,7 +176,7 @@ def test_delete_pitch_removes_dependent_rows(admin_client, db_session):
             "assessment_date": "2026-06-10",
         },
     )
-    admin_client.post(f"/api/pitches/{pitch_id}/stage", json={"new_stage": "initial_screen"})
+    admin_client.post(f"/api/pitches/{pitch_id}/stage", json={"new_stage": "discovery_meeting"})
 
     # PitchContact has no create endpoint — insert the join row directly.
     db_session.add(PitchContact(pitch_id=UUID(pitch_id), contact_id=UUID(contact_id)))
@@ -859,10 +859,10 @@ def test_stage_transition(admin_client):
 
     resp = admin_client.post(
         f"/api/pitches/{pitch_id}/stage",
-        json={"new_stage": "initial_screen", "note": "Passed initial review"},
+        json={"new_stage": "discovery_meeting", "note": "Passed initial review"},
     )
     assert resp.status_code == 200
-    assert resp.json()["current_stage"] == "initial_screen"
+    assert resp.json()["current_stage"] == "discovery_meeting"
 
 
 def test_stage_history_recorded(admin_client):
@@ -880,7 +880,7 @@ def test_stage_history_recorded(admin_client):
     # At least two entries: initial creation + the transition
     assert len(history) >= 2
     stages = [h["to_stage"] for h in history]
-    assert "received" in stages
+    assert "initial_screen" in stages
     assert "discovery_meeting" in stages
 
 
@@ -903,13 +903,13 @@ def test_stage_change_records_from_to_and_actor(admin_client):
 
     resp = admin_client.post(
         f"/api/pitches/{pid}/stage",
-        json={"new_stage": "initial_screen", "note": "passed screen"},
+        json={"new_stage": "discovery_meeting", "note": "passed screen"},
     )
     assert resp.status_code == 200
 
     history = admin_client.get(f"/api/pitches/{pid}/history").json()
-    transition = [h for h in history if h["to_stage"] == "initial_screen"][0]
-    assert transition["from_stage"] == "received"
+    transition = [h for h in history if h["to_stage"] == "discovery_meeting"][0]
+    assert transition["from_stage"] == "initial_screen"
     assert transition["changed_by_id"] == actor
     assert transition["note"] == "passed screen"
 
@@ -917,9 +917,65 @@ def test_stage_change_records_from_to_and_actor(admin_client):
 def test_assessor_can_change_stage(assessor_client):
     create = assessor_client.post("/api/pitches", json={"title": "Assessor Stage"}).json()
     pid = create["id"]
-    resp = assessor_client.post(f"/api/pitches/{pid}/stage", json={"new_stage": "initial_screen"})
+    resp = assessor_client.post(
+        f"/api/pitches/{pid}/stage", json={"new_stage": "discovery_meeting"}
+    )
+    assert resp.status_code == 200
+    assert resp.json()["current_stage"] == "discovery_meeting"
+
+
+def test_new_pitch_starts_at_initial_screen(admin_client):
+    pid = admin_client.post("/api/pitches", json={"title": "Fresh"}).json()["id"]
+
+    assert admin_client.get(f"/api/pitches/{pid}").json()["current_stage"] == "initial_screen"
+    history = admin_client.get(f"/api/pitches/{pid}/history").json()
+    assert [(h["from_stage"], h["to_stage"]) for h in history] == [(None, "initial_screen")]
+
+
+def _says_received_is_retired(resp) -> bool:
+    detail = str(resp.json()["detail"]).lower()
+    return "received" in detail and "retired" in detail
+
+
+def test_creating_a_pitch_in_received_is_refused(admin_client):
+    resp = admin_client.post(
+        "/api/pitches", json={"title": "Too late", "current_stage": "received"}
+    )
+
+    assert resp.status_code == 422
+    assert _says_received_is_retired(resp)
+    assert admin_client.get("/api/pitches").json() == []
+
+
+def test_moving_a_pitch_to_received_is_refused_and_changes_nothing(admin_client):
+    pid = admin_client.post("/api/pitches", json={"title": "Stay put"}).json()["id"]
+    history_before = admin_client.get(f"/api/pitches/{pid}/history").json()
+
+    resp = admin_client.post(f"/api/pitches/{pid}/stage", json={"new_stage": "received"})
+
+    assert resp.status_code == 422
+    assert _says_received_is_retired(resp)
+    assert admin_client.get(f"/api/pitches/{pid}").json()["current_stage"] == "initial_screen"
+    assert admin_client.get(f"/api/pitches/{pid}/history").json() == history_before
+
+
+def test_a_pitch_already_in_received_still_loads_and_can_move_on(admin_client, db_session):
+    pid = admin_client.post("/api/pitches", json={"title": "Left behind"}).json()["id"]
+    # The API refuses Received now, so put the pitch there the way older data has it.
+    pitch = db_session.get(Pitch, UUID(pid))
+    pitch.current_stage = PipelineStage.RECEIVED
+    db_session.commit()
+
+    assert admin_client.get(f"/api/pitches/{pid}").json()["current_stage"] == "received"
+    listed = [p for p in admin_client.get("/api/pitches").json() if p["id"] == pid]
+    assert listed[0]["current_stage"] == "received"
+
+    resp = admin_client.post(f"/api/pitches/{pid}/stage", json={"new_stage": "initial_screen"})
+
     assert resp.status_code == 200
     assert resp.json()["current_stage"] == "initial_screen"
+    last = admin_client.get(f"/api/pitches/{pid}/history").json()[-1]
+    assert (last["from_stage"], last["to_stage"]) == ("received", "initial_screen")
 
 
 def test_invalid_new_stage_returns_422(admin_client):

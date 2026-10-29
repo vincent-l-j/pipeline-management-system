@@ -81,7 +81,6 @@ function monthRange(months: PitchMonth[]): string {
 }
 
 const STAGE_CONFIG: StageConfig[] = [
-  { key: "received", label: "Received", color: "bg-blue-500" },
   { key: "initial_screen", label: "Initial Screen", color: "bg-sky-500" },
   { key: "discovery_meeting", label: "Discovery", color: "bg-cyan-500" },
   { key: "deep_assessment", label: "Deep Assessment", color: "bg-teal-500" },

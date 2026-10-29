@@ -109,7 +109,7 @@ const BASE_PITCH: Pitch = {
   id: "42",
   title: "Test Pitch",
   short_description: "A description",
-  current_stage: "received",
+  current_stage: "initial_screen",
   is_confidential: false,
   domain_tags: null,
   lead_id: null,
@@ -459,7 +459,7 @@ describe("PitchDetailPage", () => {
     ).toBeInTheDocument();
 
     // The callout comes before the stage badge, which opens the details card.
-    const badge = screen.getByText("Received");
+    const badge = screen.getByText("Initial Screen");
     expect(heading.compareDocumentPosition(badge)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );

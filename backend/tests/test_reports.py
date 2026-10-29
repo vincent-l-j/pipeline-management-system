@@ -50,7 +50,6 @@ def test_velocity_stage_counts_all_stages(admin_client):
     resp = admin_client.get("/api/reports/velocity")
     stage_counts = resp.json()["stage_counts"]
     expected_stages = [
-        "received",
         "initial_screen",
         "discovery_meeting",
         "deep_assessment",

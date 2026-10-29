@@ -932,7 +932,7 @@ def test_new_pitch_starts_at_initial_screen(admin_client):
     assert [(h["from_stage"], h["to_stage"]) for h in history] == [(None, "initial_screen")]
 
 
-RETIRED = pytest.mark.parametrize("retired", ["received", "deep_assessment"])
+RETIRED = pytest.mark.parametrize("retired", ["deep_assessment"])
 
 
 def _says_retired(resp, stage: str) -> bool:
@@ -964,7 +964,7 @@ def test_moving_a_pitch_to_a_retired_stage_is_refused_and_changes_nothing(admin_
 
 @pytest.mark.parametrize(
     ("retired", "successor"),
-    [("received", "initial_screen"), ("deep_assessment", "due_diligence")],
+    [("deep_assessment", "due_diligence")],
 )
 def test_a_pitch_already_in_a_retired_stage_still_loads_and_can_move_on(
     admin_client, db_session, retired, successor
@@ -985,6 +985,19 @@ def test_a_pitch_already_in_a_retired_stage_still_loads_and_can_move_on(
     assert resp.json()["current_stage"] == successor
     last = admin_client.get(f"/api/pitches/{pid}/history").json()[-1]
     assert (last["from_stage"], last["to_stage"]) == (retired, successor)
+
+
+def test_received_is_no_longer_a_stage(admin_client):
+    pid = admin_client.post("/api/pitches", json={"title": "Stay put"}).json()["id"]
+
+    create = admin_client.post("/api/pitches", json={"title": "x", "current_stage": "received"})
+    move = admin_client.post(f"/api/pitches/{pid}/stage", json={"new_stage": "received"})
+
+    assert create.status_code == 422
+    assert move.status_code == 422
+    # Refused as an unknown value now, not as a retired one.
+    assert "retired" not in str(move.json()["detail"]).lower()
+    assert "received" not in {stage.value for stage in PipelineStage}
 
 
 def test_invalid_new_stage_returns_422(admin_client):

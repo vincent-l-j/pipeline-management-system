@@ -16,7 +16,6 @@ describe("PIPELINE_STAGES", () => {
   // Pins the count, the order and the uniqueness of the keys in one assertion.
   it("defines the expected ordered set of stages", () => {
     expect(PIPELINE_STAGES.map((s) => s.key)).toEqual([
-      "received",
       "initial_screen",
       "discovery_meeting",
       "deep_assessment",
@@ -42,7 +41,7 @@ describe("PIPELINE_STAGES", () => {
 });
 
 describe("retired stages", () => {
-  const RETIRED = ["received", "deep_assessment"];
+  const RETIRED = ["deep_assessment"];
 
   it("offers every stage but the retired ones, in board order", () => {
     expect(ACTIVE_STAGES.map((s) => s.key)).toEqual(
@@ -50,8 +49,7 @@ describe("retired stages", () => {
     );
   });
 
-  it("knows Received and Deep Assessment are retired and the others are not", () => {
-    expect(isRetiredStage("received")).toBe(true);
+  it("knows Deep Assessment is retired and the others are not", () => {
     expect(isRetiredStage("deep_assessment")).toBe(true);
     expect(isRetiredStage("initial_screen")).toBe(false);
     expect(isRetiredStage("due_diligence")).toBe(false);
@@ -59,7 +57,6 @@ describe("retired stages", () => {
 
   // Pitches still sitting in a retired stage keep their label everywhere.
   it("still labels a retired stage", () => {
-    expect(STAGE_MAP.received.label).toBe("Received");
     expect(STAGE_MAP.deep_assessment.label).toBe("Deep Assessment");
   });
 });

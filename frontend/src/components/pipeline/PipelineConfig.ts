@@ -30,13 +30,6 @@ export interface PipelineStage {
  */
 export const PIPELINE_STAGES: readonly PipelineStage[] = [
   {
-    key: "received",
-    label: "Received",
-    color: "bg-blue-500",
-    lightColor: "bg-blue-100 text-blue-700",
-    retired: true,
-  },
-  {
     key: "initial_screen",
     label: "Initial Screen",
     color: "bg-sky-500",

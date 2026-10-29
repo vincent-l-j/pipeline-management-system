@@ -53,7 +53,6 @@ interface CSVExport {
 }
 
 const STAGE_BADGE: Record<string, string> = {
-  received: "bg-blue-100 text-blue-700",
   initial_screen: "bg-sky-100 text-sky-700",
   discovery_meeting: "bg-cyan-100 text-cyan-700",
   deep_assessment: "bg-teal-100 text-teal-700",

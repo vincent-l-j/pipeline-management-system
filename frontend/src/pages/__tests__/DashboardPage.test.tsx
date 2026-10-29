@@ -26,7 +26,7 @@ vi.mock("react-router-dom", async (importOriginal) => {
 // Counts are deliberately all different: each one is asserted by its own text,
 // and a repeat would match the wrong tile.
 const VELOCITY = {
-  stage_counts: { received: 4, deep_assessment: 2, completed: 1 },
+  stage_counts: { initial_screen: 4, deep_assessment: 2, completed: 1 },
   pitches_per_month: [
     { month: "2026-08", count: 3 },
     { month: "2026-09", count: 7 },
@@ -113,7 +113,6 @@ describe("DashboardPage", () => {
     expect(await screen.findByText("Deep Assessment")).toBeInTheDocument();
     const stages = within(cardFor("Pipeline by Stage"));
     for (const stage of [
-      "Received",
       "Initial Screen",
       "Discovery",
       "Due Diligence",
@@ -125,49 +124,37 @@ describe("DashboardPage", () => {
     ]) {
       expect(stages.getByText(stage)).toBeInTheDocument();
     }
-    // Seven of the ten carry no count in the fixture.
-    expect(stages.getAllByText("0")).toHaveLength(7);
+    // Six of the nine carry no count in the fixture.
+    expect(stages.getAllByText("0")).toHaveLength(6);
   });
 
-  it("shows the retired Received stage with its count while pitches are in it", async () => {
+  it("shows the retired Deep Assessment stage with its count while pitches are in it", async () => {
     render(<DashboardPage />);
 
     await screen.findByText("Deep Assessment");
     const tile = within(cardFor("Pipeline by Stage"))
-      .getByText("Received")
+      .getByText("Deep Assessment")
       .closest("div.flex");
-    expect(tile).toHaveTextContent("4");
+    expect(tile).toHaveTextContent("2");
   });
 
   it.each([
-    ["is zero", { ...VELOCITY.stage_counts, received: 0 }],
-    ["is missing", { deep_assessment: 2, completed: 1 }],
+    ["is zero", { ...VELOCITY.stage_counts, deep_assessment: 0 }],
+    ["is missing", { initial_screen: 4, completed: 1 }],
   ])(
-    "omits the retired Received stage when its count %s",
+    "omits the retired Deep Assessment stage when its count %s",
     async (_case, stageCounts) => {
       apiMocks.get.mockResolvedValue({
         data: { ...VELOCITY, stage_counts: stageCounts },
       });
       render(<DashboardPage />);
 
-      expect(await screen.findByText("Deep Assessment")).toBeInTheDocument();
+      expect(await screen.findByText("Initial Screen")).toBeInTheDocument();
       const stages = within(cardFor("Pipeline by Stage"));
-      expect(stages.queryByText("Received")).not.toBeInTheDocument();
-      expect(stages.getByText("Initial Screen")).toBeInTheDocument();
+      expect(stages.queryByText("Deep Assessment")).not.toBeInTheDocument();
+      expect(stages.getByText("Due Diligence")).toBeInTheDocument();
     },
   );
-
-  it("omits the retired Deep Assessment stage when no pitch is in it", async () => {
-    apiMocks.get.mockResolvedValue({
-      data: { ...VELOCITY, stage_counts: { received: 4, completed: 1 } },
-    });
-    render(<DashboardPage />);
-
-    expect(await screen.findByText("Initial Screen")).toBeInTheDocument();
-    const stages = within(cardFor("Pipeline by Stage"));
-    expect(stages.queryByText("Deep Assessment")).not.toBeInTheDocument();
-    expect(stages.getByText("Due Diligence")).toBeInTheDocument();
-  });
 
   it("shows a count for each month the report returned", async () => {
     render(<DashboardPage />);

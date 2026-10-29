@@ -26,7 +26,7 @@ The frontend never talks to the database, and never constructs URLs beyond the
 - Changing an `*Out` schema is a breaking change for every component that reads
   it. When you add/rename/remove a field, update the consumers and their tests in
   the same feature.
-- Enum values cross the wire as their string value (`"received"`, `"admin"`).
+- Enum values cross the wire as their string value (`"initial_screen"`, `"admin"`).
   The frontend keeps its display labels in config modules (`PipelineConfig.ts`,
   `AssessmentConfig.ts`) keyed by those raw values — extend those maps, don't
   hardcode labels inline.

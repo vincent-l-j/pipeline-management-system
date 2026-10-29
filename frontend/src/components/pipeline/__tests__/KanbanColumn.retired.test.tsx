@@ -28,15 +28,17 @@ function dropArea(): HTMLElement {
 }
 
 describe("KanbanColumn for a retired stage", () => {
-  it.each([
-    ["received", "Received (retired)"],
-    ["deep_assessment", "Deep Assessment (retired)"],
-  ])("says %s is retired and refuses drops", (stage, heading) => {
-    renderColumn(stage);
+  it.each([["deep_assessment", "Deep Assessment (retired)"]])(
+    "says %s is retired and refuses drops",
+    (stage, heading) => {
+      renderColumn(stage);
 
-    expect(screen.getByRole("heading", { name: heading })).toBeInTheDocument();
-    expect(dropArea()).toHaveAttribute("data-drop-disabled", "true");
-  });
+      expect(
+        screen.getByRole("heading", { name: heading }),
+      ).toBeInTheDocument();
+      expect(dropArea()).toHaveAttribute("data-drop-disabled", "true");
+    },
+  );
 
   it("leaves an active stage's heading and drops alone", () => {
     renderColumn("initial_screen");

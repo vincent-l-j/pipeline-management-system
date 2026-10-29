@@ -12,7 +12,11 @@ import {
   DraggableProvidedDraggableProps,
   DraggableProvidedDragHandleProps,
 } from "@hello-pangea/dnd";
-import { SOURCE_LABELS, FUNDING_LABELS, ACTIVE_STAGES } from "./PipelineConfig";
+import {
+  SOURCE_LABELS,
+  FUNDING_LABELS,
+  PIPELINE_STAGES,
+} from "./PipelineConfig";
 import { DECLINE_REASON_LABELS } from "../assessments/AssessmentConfig";
 import { useAuth } from "../../contexts/AuthContext";
 import type { Pitch } from "../../types";
@@ -161,7 +165,7 @@ export default function PitchCard({
           <p className="px-3 py-1 text-[10px] font-semibold text-navy-400 uppercase tracking-wide">
             Move to stage
           </p>
-          {ACTIVE_STAGES.map((stage) =>
+          {PIPELINE_STAGES.map((stage) =>
             stage.key === pitch.current_stage ? (
               <div
                 key={stage.key}

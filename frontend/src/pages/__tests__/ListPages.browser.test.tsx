@@ -34,7 +34,7 @@ const PITCH = {
   source: "university",
   funding_pathway: "crc_project",
   domain_tags: "agriculture, remote sensing, carbon",
-  current_stage: "deep_assessment",
+  current_stage: "due_diligence",
   submission_date: "2026-03-14",
   lead_id: "u1",
 };
@@ -122,7 +122,7 @@ const PITCH_MONTHS = [
 ].map((month, i) => ({ month, count: (i % 5) + 1 }));
 
 const VELOCITY = {
-  stage_counts: { initial_screen: 4, deep_assessment: 2, completed: 1 },
+  stage_counts: { initial_screen: 4, due_diligence: 2, completed: 1 },
   pitches_per_month: PITCH_MONTHS,
   conversion: {
     total_pitches: 7,
@@ -147,8 +147,8 @@ const PIPELINE_SUMMARY = {
     {
       id: 1,
       title: PITCH.title,
-      current_stage: "deep_assessment",
-      stage_label: "Deep Assessment",
+      current_stage: "due_diligence",
+      stage_label: "Due Diligence",
       lead: "Alexandra McConnell-Fitzwilliam",
       organisation: ORGANISATION.name,
       source: "University",
@@ -177,7 +177,7 @@ const SEARCH_RESULTS = {
       type: "pitch",
       title: PITCH.title,
       subtitle: ORGANISATION.name,
-      badge: "Deep Assessment",
+      badge: "Due Diligence",
     },
   ],
   organisations: [],

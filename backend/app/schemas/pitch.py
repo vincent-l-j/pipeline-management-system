@@ -1,22 +1,10 @@
 from datetime import date, datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 from app.models.assessment import DeclineReason
-from app.models.pitch import (
-    RETIRED_STAGES,
-    FundingPathway,
-    PipelineStage,
-    PitchSource,
-    RequestType,
-)
-
-
-def _refuse_retired(stage: PipelineStage) -> PipelineStage:
-    if stage in RETIRED_STAGES:
-        raise ValueError(f"The {stage.value} stage is retired; choose another stage")
-    return stage
+from app.models.pitch import FundingPathway, PipelineStage, PitchSource, RequestType
 
 
 class PitchCreate(BaseModel):
@@ -34,8 +22,6 @@ class PitchCreate(BaseModel):
     organisation_id: UUID | None = None
     lead_id: UUID | None = None
     contact_ids: list[UUID] = Field(default_factory=list)
-
-    _current_stage_not_retired = field_validator("current_stage")(_refuse_retired)
 
 
 class PitchUpdate(BaseModel):
@@ -62,8 +48,6 @@ class PitchUpdate(BaseModel):
 class PitchStageUpdate(BaseModel):
     new_stage: PipelineStage
     note: str | None = None
-
-    _new_stage_not_retired = field_validator("new_stage")(_refuse_retired)
 
 
 class StageHistoryOut(BaseModel):

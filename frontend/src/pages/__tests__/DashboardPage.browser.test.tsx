@@ -18,7 +18,7 @@ vi.mock("../../contexts/AuthContext", () => ({
 }));
 
 const VELOCITY = {
-  stage_counts: { initial_screen: 4, deep_assessment: 2, completed: 1 },
+  stage_counts: { initial_screen: 4, due_diligence: 2, completed: 1 },
   pitches_per_month: [],
   conversion: {
     total_pitches: 7,

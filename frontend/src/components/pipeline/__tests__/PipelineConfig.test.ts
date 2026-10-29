@@ -1,9 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
-  ACTIVE_STAGES,
   PIPELINE_STAGES,
   STAGE_MAP,
-  isRetiredStage,
   SOURCE_LABELS,
   FUNDING_LABELS,
   REQUEST_TYPE_LABELS,
@@ -18,7 +16,6 @@ describe("PIPELINE_STAGES", () => {
     expect(PIPELINE_STAGES.map((s) => s.key)).toEqual([
       "initial_screen",
       "discovery_meeting",
-      "deep_assessment",
       "due_diligence",
       "decision_pending",
       "active_support",
@@ -38,27 +35,6 @@ describe("PIPELINE_STAGES", () => {
       expect(stage.lightColor).toBeTruthy();
     },
   );
-});
-
-describe("retired stages", () => {
-  const RETIRED = ["deep_assessment"];
-
-  it("offers every stage but the retired ones, in board order", () => {
-    expect(ACTIVE_STAGES.map((s) => s.key)).toEqual(
-      PIPELINE_STAGES.map((s) => s.key).filter((key) => !RETIRED.includes(key)),
-    );
-  });
-
-  it("knows Deep Assessment is retired and the others are not", () => {
-    expect(isRetiredStage("deep_assessment")).toBe(true);
-    expect(isRetiredStage("initial_screen")).toBe(false);
-    expect(isRetiredStage("due_diligence")).toBe(false);
-  });
-
-  // Pitches still sitting in a retired stage keep their label everywhere.
-  it("still labels a retired stage", () => {
-    expect(STAGE_MAP.deep_assessment.label).toBe("Deep Assessment");
-  });
 });
 
 describe("STAGE_MAP", () => {

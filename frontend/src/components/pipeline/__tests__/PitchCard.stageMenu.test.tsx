@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import PitchCard from "../PitchCard";
-import { ACTIVE_STAGES, STAGE_MAP } from "../PipelineConfig";
+import { PIPELINE_STAGES } from "../PipelineConfig";
 import { AuthProvider } from "../../../contexts/AuthContext";
 import type { Pitch } from "../../../types";
 
@@ -41,27 +41,17 @@ describe("PitchCard stage menu", () => {
     localStorage.clear();
   });
 
-  it("never offers a retired stage", () => {
+  it("offers every other stage and marks the current one", () => {
     renderCard({ id: "p1", title: "Alpha", current_stage: "initial_screen" });
 
     const menu = within(openMenu("Alpha"));
 
-    expect(menu.queryByText("Deep Assessment")).not.toBeInTheDocument();
-    expect(menu.getByText("Due Diligence")).toBeInTheDocument();
-    for (const stage of ACTIVE_STAGES) {
+    expect(menu.getAllByRole("button")).toHaveLength(
+      PIPELINE_STAGES.length - 1,
+    );
+    expect(menu.getByText("Current")).toBeInTheDocument();
+    for (const stage of PIPELINE_STAGES) {
       expect(menu.getByText(stage.label)).toBeInTheDocument();
     }
   });
-
-  it.each(["deep_assessment"])(
-    "offers every active stage to a pitch still in %s",
-    (stage) => {
-      renderCard({ id: "p2", title: "Beta", current_stage: stage });
-
-      const menu = within(openMenu("Beta"));
-
-      expect(menu.getAllByRole("button")).toHaveLength(ACTIVE_STAGES.length);
-      expect(menu.queryByText(STAGE_MAP[stage].label)).not.toBeInTheDocument();
-    },
-  );
 });

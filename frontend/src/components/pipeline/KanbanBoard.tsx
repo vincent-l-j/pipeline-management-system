@@ -26,9 +26,6 @@ export default function KanbanBoard({
       (p) => p.current_stage === stage.key,
     );
   }
-  const columns = PIPELINE_STAGES.filter(
-    (stage) => !stage.retired || pitchesByStage[stage.key].length > 0,
-  );
 
   // Shared optimistic-move path used by both drag-and-drop and the right-click
   // stage menu: move the card immediately, persist the change, revert on failure.
@@ -73,7 +70,7 @@ export default function KanbanBoard({
         className="flex gap-3 overflow-x-auto pb-4"
         style={{ minHeight: "500px" }}
       >
-        {columns.map((stage) => (
+        {PIPELINE_STAGES.map((stage) => (
           <KanbanColumn
             key={stage.key}
             stage={stage}

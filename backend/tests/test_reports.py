@@ -1,9 +1,5 @@
 """Tests for /api/reports — pipeline summary, velocity metrics, and CSV exports."""
 
-from uuid import UUID
-
-from app.models.pitch import PipelineStage, Pitch
-
 
 def _create_pitch(client, title="Report Test Pitch"):
     return client.post("/api/pitches", json={"title": title}).json()
@@ -52,7 +48,6 @@ def test_velocity_stage_counts_all_stages(admin_client):
     expected_stages = [
         "initial_screen",
         "discovery_meeting",
-        "deep_assessment",
         "due_diligence",
         "decision_pending",
         "active_support",
@@ -71,11 +66,10 @@ def test_velocity_conversion_fields(admin_client):
         assert field in conversion
 
 
-def test_a_pitch_still_in_deep_assessment_counts_as_advanced(admin_client, db_session):
-    pid = _create_pitch(admin_client, "Mid assessment")["id"]
-    # Deep Assessment is retired, so put the pitch there the way older data has it.
-    db_session.get(Pitch, UUID(pid)).current_stage = PipelineStage.DEEP_ASSESSMENT
-    db_session.commit()
+def test_a_pitch_in_due_diligence_counts_as_advanced(admin_client):
+    pid = _create_pitch(admin_client, "In diligence")["id"]
+    moved = admin_client.post(f"/api/pitches/{pid}/stage", json={"new_stage": "due_diligence"})
+    assert moved.status_code == 200
 
     conversion = admin_client.get("/api/reports/velocity").json()["conversion"]
 

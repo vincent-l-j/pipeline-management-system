@@ -31,10 +31,11 @@ function summaryRow(id: number, title: string, stage: string, label: string) {
 }
 
 const SUMMARY = {
-  total: 2,
+  total: 3,
   pitches: [
     summaryRow(1, "Left in Received", "received", "Received"),
     summaryRow(2, "Being screened", "initial_screen", "Initial Screen"),
+    summaryRow(3, "Mid assessment", "deep_assessment", "Deep Assessment"),
   ],
 };
 
@@ -58,23 +59,28 @@ beforeEach(() => {
   );
 });
 
-describe("ReportsPage and the retired Received stage", () => {
-  it("never offers Received as a stage filter, even while a pitch is in it", async () => {
+describe("ReportsPage and retired stages", () => {
+  it("never offers a retired stage as a filter, even while a pitch is in it", async () => {
     render(<ReportsPage />);
 
-    const filter = await screen.findByDisplayValue("All stages (2)");
+    const filter = await screen.findByDisplayValue("All stages (3)");
     const options = Array.from(filter.querySelectorAll("option")).map(
       (o) => o.textContent,
     );
 
     expect(options).toContain("Initial Screen (1)");
     expect(options.some((o) => o.startsWith("Received"))).toBe(false);
+    expect(options.some((o) => o.startsWith("Deep Assessment"))).toBe(false);
   });
 
-  it("still lists a Received pitch, labelled Received, under all stages", async () => {
+  it("still lists pitches in retired stages, with their labels, under all stages", async () => {
     render(<ReportsPage />);
 
     expect(await screen.findByText("Left in Received")).toBeInTheDocument();
+    expect(screen.getByText("Mid assessment")).toBeInTheDocument();
+    expect(
+      screen.getByText("Deep Assessment", { selector: "span" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("Received", { selector: "span" }),
     ).toBeInTheDocument();

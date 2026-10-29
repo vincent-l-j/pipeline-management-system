@@ -53,6 +53,7 @@ export const PIPELINE_STAGES: readonly PipelineStage[] = [
     label: "Deep Assessment",
     color: "bg-teal-500",
     lightColor: "bg-teal-100 text-teal-700",
+    retired: true,
   },
   {
     key: "due_diligence",

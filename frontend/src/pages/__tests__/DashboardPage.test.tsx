@@ -157,6 +157,18 @@ describe("DashboardPage", () => {
     },
   );
 
+  it("omits the retired Deep Assessment stage when no pitch is in it", async () => {
+    apiMocks.get.mockResolvedValue({
+      data: { ...VELOCITY, stage_counts: { received: 4, completed: 1 } },
+    });
+    render(<DashboardPage />);
+
+    expect(await screen.findByText("Initial Screen")).toBeInTheDocument();
+    const stages = within(cardFor("Pipeline by Stage"));
+    expect(stages.queryByText("Deep Assessment")).not.toBeInTheDocument();
+    expect(stages.getByText("Due Diligence")).toBeInTheDocument();
+  });
+
   it("shows a count for each month the report returned", async () => {
     render(<DashboardPage />);
     await screen.findByText("Pitches Received per Month");

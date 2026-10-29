@@ -28,12 +28,13 @@ function dropArea(): HTMLElement {
 }
 
 describe("KanbanColumn for a retired stage", () => {
-  it("says the stage is retired and refuses drops", () => {
-    renderColumn("received");
+  it.each([
+    ["received", "Received (retired)"],
+    ["deep_assessment", "Deep Assessment (retired)"],
+  ])("says %s is retired and refuses drops", (stage, heading) => {
+    renderColumn(stage);
 
-    expect(
-      screen.getByRole("heading", { name: "Received (retired)" }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: heading })).toBeInTheDocument();
     expect(dropArea()).toHaveAttribute("data-drop-disabled", "true");
   });
 

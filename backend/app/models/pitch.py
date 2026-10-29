@@ -25,7 +25,9 @@ class PipelineStage(enum.StrEnum):
 
 
 # Still valid on existing pitches, but never accepted as a pitch's new stage.
-RETIRED_STAGES: frozenset[PipelineStage] = frozenset({PipelineStage.RECEIVED})
+RETIRED_STAGES: frozenset[PipelineStage] = frozenset(
+    {PipelineStage.RECEIVED, PipelineStage.DEEP_ASSESSMENT}
+)
 
 
 class PitchSource(enum.StrEnum):

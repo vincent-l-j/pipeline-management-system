@@ -152,7 +152,7 @@ export default function AssessmentCreatePage(): React.JSX.Element {
         )}
 
         <div className="bg-white rounded-xl border border-navy-100 p-6">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <OptionSelect
               id="assessment-pitch"
               label="Pitch *"
@@ -166,10 +166,14 @@ export default function AssessmentCreatePage(): React.JSX.Element {
               }}
             />
             <div>
-              <label className="block text-sm font-medium text-navy-700 mb-1">
+              <label
+                htmlFor="assessment-date"
+                className="block text-sm font-medium text-navy-700 mb-1"
+              >
                 Assessment Date *
               </label>
               <input
+                id="assessment-date"
                 type="date"
                 required
                 value={form.assessment_date}

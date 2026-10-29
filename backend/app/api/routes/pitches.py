@@ -1,8 +1,10 @@
 """Pitch CRUD routes with stage transitions."""
 
+from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.database import get_db
@@ -64,10 +66,28 @@ def _set_contacts(pitch: Pitch, contact_ids: list[UUID], db: Session) -> None:
             pitch.contact_links.append(PitchContact(contact_id=contact_id))
 
 
-def _as_out(pitch: Pitch, reason: DeclineReason | None) -> PitchOut:
+def _as_out(pitch: Pitch, reason: DeclineReason | None, entered: dict[UUID, datetime]) -> PitchOut:
     out = PitchOut.model_validate(pitch)
     out.decline_reason = reason
+    # A pitch with no history row for its stage predates the history; its
+    # creation is the best record of when it got there.
+    out.stage_entered_at = entered.get(pitch.id, pitch.created_at)
     return out
+
+
+def _stage_entered_at(db: Session, pitches: list[Pitch]) -> dict[UUID, datetime]:
+    """When each pitch last moved into its current stage, in one query."""
+    rows = (
+        db.query(PitchStageHistory.pitch_id, func.max(PitchStageHistory.changed_at))
+        .join(Pitch, Pitch.id == PitchStageHistory.pitch_id)
+        .filter(
+            PitchStageHistory.to_stage == Pitch.current_stage,
+            PitchStageHistory.pitch_id.in_([pitch.id for pitch in pitches]),
+        )
+        .group_by(PitchStageHistory.pitch_id)
+        .all()
+    )
+    return dict(rows)
 
 
 def _decline_reason_for(db: Session, pitch: Pitch) -> DeclineReason | None:
@@ -110,12 +130,14 @@ def list_pitches(
         if any(p.current_stage == PipelineStage.DECLINED for p in pitches)
         else {}
     )
+    entered = _stage_entered_at(db, pitches)
     return [
         _as_out(
             pitch,
             latest[pitch.id].decline_reason
             if pitch.current_stage == PipelineStage.DECLINED and pitch.id in latest
             else None,
+            entered,
         )
         for pitch in pitches
     ]
@@ -130,7 +152,7 @@ def get_pitch(
     pitch = db.query(Pitch).filter(Pitch.id == pitch_id).first()
     if not pitch:
         raise HTTPException(status_code=404, detail="Pitch not found")
-    return _as_out(pitch, _decline_reason_for(db, pitch))
+    return _as_out(pitch, _decline_reason_for(db, pitch), _stage_entered_at(db, [pitch]))
 
 
 @router.post("", response_model=PitchOut)
@@ -158,7 +180,7 @@ def create_pitch(
     db.add(history)
     db.commit()
     db.refresh(pitch)
-    return _as_out(pitch, _decline_reason_for(db, pitch))
+    return _as_out(pitch, _decline_reason_for(db, pitch), _stage_entered_at(db, [pitch]))
 
 
 @router.patch("/{pitch_id}", response_model=PitchOut)
@@ -184,7 +206,7 @@ def update_pitch(
             raise
     db.commit()
     db.refresh(pitch)
-    return _as_out(pitch, _decline_reason_for(db, pitch))
+    return _as_out(pitch, _decline_reason_for(db, pitch), _stage_entered_at(db, [pitch]))
 
 
 @router.post("/{pitch_id}/stage", response_model=PitchOut)
@@ -212,7 +234,7 @@ def update_pitch_stage(
     db.add(history)
     db.commit()
     db.refresh(pitch)
-    return _as_out(pitch, _decline_reason_for(db, pitch))
+    return _as_out(pitch, _decline_reason_for(db, pitch), _stage_entered_at(db, [pitch]))
 
 
 @router.get("/{pitch_id}/history", response_model=list[StageHistoryOut])

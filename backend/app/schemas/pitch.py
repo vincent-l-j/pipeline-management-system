@@ -83,5 +83,9 @@ class PitchOut(BaseModel):
     # PitchCreate and PitchUpdate on purpose — a client cannot set it, so the
     # pitch and its assessments can never disagree about why it was declined.
     decline_reason: DeclineReason | None = None
+    # Read-only and derived, like decline_reason: when the pitch last moved into its
+    # current stage, from stage history. Declared optional only because it is
+    # filled in after validation; every response sets it.
+    stage_entered_at: datetime | None = None
 
     model_config = {"from_attributes": True}

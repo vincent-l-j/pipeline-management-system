@@ -1,10 +1,11 @@
 """Tests for /api/pitches CRUD, stage transitions, and RBAC."""
 
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import pytest
 
-from app.models.pitch import PipelineStage, PitchSource, RequestType
+from app.models.pitch import PipelineStage, Pitch, PitchSource, PitchStageHistory, RequestType
 from tests.constants import UNKNOWN_ID
 
 PITCH_PAYLOAD = {"title": "Green Hydrogen Initiative"}
@@ -1170,3 +1171,97 @@ def test_viewer_can_read_a_pitch_decline_reason(admin_client, viewer_client):
     _decline(admin_client, pitch_id)
 
     assert viewer_client.get(f"/api/pitches/{pitch_id}").json()["decline_reason"] == "other"
+
+
+# --- When a pitch entered its current stage ---
+
+
+def _entered(client, pid) -> datetime:
+    return datetime.fromisoformat(client.get(f"/api/pitches/{pid}").json()["stage_entered_at"])
+
+
+def _history_times(client, pid) -> list[datetime]:
+    return [
+        datetime.fromisoformat(h["changed_at"])
+        for h in client.get(f"/api/pitches/{pid}/history").json()
+    ]
+
+
+def test_a_new_pitch_entered_its_stage_when_it_was_created(admin_client):
+    created = admin_client.post("/api/pitches", json={"title": "Fresh"}).json()
+
+    assert created["stage_entered_at"] is not None
+    assert _entered(admin_client, created["id"]) == _history_times(admin_client, created["id"])[0]
+
+
+def test_a_stage_change_resets_when_the_pitch_entered_its_stage(admin_client):
+    pid = admin_client.post("/api/pitches", json={"title": "Moving"}).json()["id"]
+
+    moved = admin_client.post(f"/api/pitches/{pid}/stage", json={"new_stage": "declined"}).json()
+
+    entered = datetime.fromisoformat(moved["stage_entered_at"])
+    assert entered == _history_times(admin_client, pid)[-1]
+    assert _entered(admin_client, pid) == entered
+
+
+def test_editing_a_pitch_leaves_when_it_entered_its_stage(admin_client):
+    pid = admin_client.post("/api/pitches", json={"title": "Edited"}).json()["id"]
+    before = _entered(admin_client, pid)
+
+    patched = admin_client.patch(
+        f"/api/pitches/{pid}",
+        json={"title": "Edited again", "stage_entered_at": "2020-01-01T00:00:00Z"},
+    ).json()
+
+    assert datetime.fromisoformat(patched["stage_entered_at"]) == before
+    assert _entered(admin_client, pid) == before
+
+
+def test_returning_to_a_stage_counts_from_the_latest_entry(admin_client, db_session):
+    pid = admin_client.post("/api/pitches", json={"title": "Back and forth"}).json()["id"]
+    for stage in ("declined", "parked", "declined"):
+        admin_client.post(f"/api/pitches/{pid}/stage", json={"new_stage": stage})
+    # Spread the moves out so "latest" is unambiguous.
+    rows = (
+        db_session.query(PitchStageHistory)
+        .filter(PitchStageHistory.pitch_id == UUID(pid))
+        .order_by(PitchStageHistory.changed_at)
+        .all()
+    )
+    now = datetime.now(UTC)
+    for days_ago, row in zip((300, 200, 100, 10), rows, strict=True):
+        row.changed_at = now - timedelta(days=days_ago)
+    db_session.commit()
+
+    assert _entered(admin_client, pid) == now - timedelta(days=10)
+
+
+def test_a_pitch_with_no_history_entered_its_stage_when_created(admin_client, db_session):
+    pid = admin_client.post("/api/pitches", json={"title": "Old data"}).json()["id"]
+    # Data from before stage history was recorded has no row for its stage.
+    db_session.query(PitchStageHistory).filter(PitchStageHistory.pitch_id == UUID(pid)).delete()
+    db_session.commit()
+    created_at = db_session.get(Pitch, UUID(pid)).created_at
+
+    assert _entered(admin_client, pid) == created_at
+
+
+def test_the_pitch_list_reports_each_pitch_its_own_stage_entry(admin_client, db_session):
+    old = admin_client.post("/api/pitches", json={"title": "Old"}).json()["id"]
+    new = admin_client.post("/api/pitches", json={"title": "New"}).json()["id"]
+    long_ago = datetime.now(UTC) - timedelta(days=120)
+    db_session.query(PitchStageHistory).filter(PitchStageHistory.pitch_id == UUID(old)).update(
+        {PitchStageHistory.changed_at: long_ago}
+    )
+    db_session.commit()
+
+    listed = {p["id"]: p for p in admin_client.get("/api/pitches").json()}
+
+    assert datetime.fromisoformat(listed[old]["stage_entered_at"]) == long_ago
+    assert datetime.fromisoformat(listed[new]["stage_entered_at"]) > long_ago
+
+
+def test_a_viewer_can_read_when_a_pitch_entered_its_stage(admin_client, viewer_client):
+    pid = admin_client.post("/api/pitches", json={"title": "Visible"}).json()["id"]
+
+    assert viewer_client.get(f"/api/pitches/{pid}").json()["stage_entered_at"] is not None

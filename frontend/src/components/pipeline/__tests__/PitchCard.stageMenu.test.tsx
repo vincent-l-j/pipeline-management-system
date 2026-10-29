@@ -42,7 +42,12 @@ describe("PitchCard stage menu", () => {
   });
 
   it("offers every other stage and marks the current one", () => {
-    renderCard({ id: "p1", title: "Alpha", current_stage: "initial_screen" });
+    renderCard({
+      id: "p1",
+      title: "Alpha",
+      current_stage: "initial_screen",
+      stage_entered_at: "2026-01-01T00:00:00Z",
+    });
 
     const menu = within(openMenu("Alpha"));
 

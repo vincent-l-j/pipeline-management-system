@@ -1,5 +1,10 @@
 """Tests for /api/search full-text search across all record types."""
 
+from datetime import UTC, datetime, timedelta
+from uuid import UUID
+
+from app.models.pitch import PitchStageHistory
+
 
 def test_search_requires_auth(client):
     resp = client.get("/api/search?q=test")
@@ -130,3 +135,22 @@ def test_search_no_results_for_nonsense(admin_client):
     assert resp.status_code == 200
     body = resp.json()
     assert body["total"] == 0
+
+
+def _declined_long_ago(client, db_session, title: str) -> str:
+    """A pitch declined well past the Pipeline page's hiding threshold."""
+    pid = client.post("/api/pitches", json={"title": title}).json()["id"]
+    client.post(f"/api/pitches/{pid}/stage", json={"new_stage": "declined"})
+    db_session.query(PitchStageHistory).filter(PitchStageHistory.pitch_id == UUID(pid)).update(
+        {PitchStageHistory.changed_at: datetime.now(UTC) - timedelta(days=400)}
+    )
+    db_session.commit()
+    return pid
+
+
+def test_search_still_finds_a_pitch_declined_long_ago(admin_client, db_session):
+    _declined_long_ago(admin_client, db_session, "LongDeclinedSearchable")
+
+    titles = [p["title"] for p in admin_client.get("/api/search?q=LongDeclined").json()["pitches"]]
+
+    assert "LongDeclinedSearchable" in titles

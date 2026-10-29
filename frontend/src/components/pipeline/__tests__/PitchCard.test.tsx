@@ -35,6 +35,7 @@ describe("PitchCard", () => {
       id: "p1",
       title: "Test Pitch",
       current_stage: "initial_screen",
+      stage_entered_at: "2026-01-01T00:00:00Z",
       is_confidential: false,
     };
     render(
@@ -58,6 +59,7 @@ describe("PitchCard", () => {
       id: "p1",
       title: "Test Pitch",
       current_stage: "initial_screen",
+      stage_entered_at: "2026-01-01T00:00:00Z",
       is_confidential: true,
     };
     render(
@@ -97,6 +99,7 @@ describe("PitchCard", () => {
       id: "p1",
       title: "Declined Pitch",
       current_stage: "initial_screen",
+      stage_entered_at: "2026-01-01T00:00:00Z",
       is_confidential: false,
       decline_reason: "insufficient_scale",
     });
@@ -108,6 +111,7 @@ describe("PitchCard", () => {
       id: "p1",
       title: "Open Pitch",
       current_stage: "initial_screen",
+      stage_entered_at: "2026-01-01T00:00:00Z",
       is_confidential: false,
     });
     expect(screen.queryByText("Insufficient scale")).not.toBeInTheDocument();
@@ -118,6 +122,7 @@ describe("PitchCard", () => {
       id: "p1",
       title: "Odd Pitch",
       current_stage: "initial_screen",
+      stage_entered_at: "2026-01-01T00:00:00Z",
       is_confidential: false,
       decline_reason: "some_future_reason",
     });

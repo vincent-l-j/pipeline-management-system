@@ -19,6 +19,7 @@ describe("PipelineListView", () => {
     id: "p1",
     title: "Declined Pitch",
     current_stage: "declined",
+    stage_entered_at: "2026-01-01T00:00:00Z",
     decline_reason: "grant_funding_rejected",
   };
 
@@ -43,7 +44,12 @@ describe("PipelineListView", () => {
     render(
       <PipelineListView
         pitches={[
-          { id: "p2", title: "Open Pitch", current_stage: "initial_screen" },
+          {
+            id: "p2",
+            title: "Open Pitch",
+            current_stage: "initial_screen",
+            stage_entered_at: "2026-01-01T00:00:00Z",
+          },
         ]}
       />,
     );

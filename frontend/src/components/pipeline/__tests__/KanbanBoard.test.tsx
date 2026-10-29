@@ -53,9 +53,24 @@ vi.mock("../KanbanColumn", () => ({
 }));
 
 const pitches: Pitch[] = [
-  { id: "a", title: "Alpha", current_stage: "initial_screen" },
-  { id: "b", title: "Beta", current_stage: "initial_screen" },
-  { id: "c", title: "Gamma", current_stage: "due_diligence" },
+  {
+    id: "a",
+    title: "Alpha",
+    current_stage: "initial_screen",
+    stage_entered_at: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "b",
+    title: "Beta",
+    current_stage: "initial_screen",
+    stage_entered_at: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: "c",
+    title: "Gamma",
+    current_stage: "due_diligence",
+    stage_entered_at: "2026-01-01T00:00:00Z",
+  },
 ];
 
 describe("KanbanBoard", () => {
@@ -97,7 +112,14 @@ describe("KanbanBoard", () => {
   it("ignores pitches with an unknown stage (renders no extra columns)", () => {
     render(
       <KanbanBoard
-        pitches={[{ id: "x", title: "Orphan", current_stage: "nonexistent" }]}
+        pitches={[
+          {
+            id: "x",
+            title: "Orphan",
+            current_stage: "nonexistent",
+            stage_entered_at: "2026-01-01T00:00:00Z",
+          },
+        ]}
         onPitchMoved={vi.fn()}
       />,
     );

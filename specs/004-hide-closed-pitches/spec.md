@@ -23,6 +23,12 @@ constant later.
   pitch detail pages, the dashboard, reports and CSV exports, is unchanged and keeps showing
   them.
 
+### Session 2026-10-29
+
+- Q: What should the Pipeline page's toggle say? → A: "Show old pitches" while long-closed
+  pitches are hidden, and "Hide old pitches" while they are shown. This confirms the toggle,
+  which was the implementer's proposal, and drops the count from it.
+
 ## User Scenarios & Testing _(mandatory)_
 
 The users are Rozetta staff working the pipeline: admins and assessors who move pitches
@@ -63,14 +69,13 @@ with nothing deleted.
 
 ### User Story 2 - Hidden pitches stay reachable (Priority: P1)
 
-A user looking for an old declined pitch can still find it. The Pipeline page says how many
-pitches it is hiding and can show them on request. Every other view still lists them as
+A user looking for an old declined pitch can still find it. The Pipeline page offers to show
+the pitches it is hiding. Every other view still lists them as
 before.
 
 **Why this priority**: Hiding must not lose anything. The issue requires hidden pitches to
-stay reachable. The other views already keep them reachable, so the Pipeline page's own
-toggle is a proposal by the implementer, kept for discoverability and awaiting the
-maintainer's confirmation in review (see Assumptions).
+stay reachable. The other views already keep them reachable; the Pipeline page's own toggle
+keeps them discoverable from the page that hides them.
 
 **Independent Test**: With one long-closed pitch, check the Pipeline page offers to show it,
 that showing it puts it back on the board, that the setting survives a reload and a shared
@@ -80,11 +85,11 @@ counts, the reports and the CSV export.
 **Acceptance Scenarios**:
 
 1. **Given** at least one hidden pitch, **When** a user opens the Pipeline page, **Then** it
-   says how many pitches are hidden and offers a control to show them.
+   offers a "Show old pitches" control.
 2. **Given** no hidden pitch, **When** a user opens the Pipeline page, **Then** there is no
    such notice or control.
 3. **Given** hidden pitches, **When** the user chooses to show them, **Then** they appear on
-   the board and in the list view, and the control offers to hide them again.
+   the board and in the list view, and the control reads "Hide old pitches".
 4. **Given** the user has chosen to show hidden pitches, **When** they reload the page or
    share its link, **Then** the hidden pitches are still shown.
 5. **Given** a hidden pitch, **When** a user opens the Pitches list, searches for it, opens its
@@ -116,15 +121,16 @@ counts, the reports and the CSV export.
   into that stage, or the pitch's creation time if there is none.
 - **FR-003**: Hiding MUST NOT delete or change any pitch, and MUST NOT affect any view other
   than the Pipeline page.
-- **FR-004**: The Pipeline page MUST say how many pitches it is hiding, and MUST offer a
-  control to show them, which can then hide them again. The control is reachable by keyboard
-  and announced by a screen reader.
+- **FR-004**: While it hides any pitch, the Pipeline page MUST offer a control labelled "Show
+  old pitches", which shows them and then reads "Hide old pitches" until it hides them again.
+  The control is reachable by keyboard and announced by a screen reader.
 - **FR-005**: Whether hidden pitches are shown MUST be part of the page's address, so it
   survives a reload and a shared link.
 - **FR-006**: The Pipeline page's initiative count MUST exclude the pitches it is hiding, and
   include them while they are shown.
-- **FR-007**: The 90-day threshold MUST be a single value the hiding rule and the page's copy
-  take as an input, so a later per-user setting can supply it without changing either.
+- **FR-007**: The 90-day threshold MUST be a single value the hiding rule takes as an input, so
+  a later per-user setting can supply it without changing the rule. The toggle's copy doesn't
+  name the threshold, so it needs no change either.
 - **FR-009**: A pitch moved on the board MUST count as having just entered its new stage, so
   moving a shown long-closed pitch into the other closed stage doesn't hide it.
 - **FR-008**: The system MUST provide, for each pitch, the time it entered its current stage,
@@ -156,9 +162,5 @@ counts, the reports and the CSV export.
   pitch; this feature leaves them as they are.
 - The per-user threshold, and where it's stored, is the separate follow-up feature in the
   issue. This feature only makes it a plain input to the hiding rule.
-- The Pipeline page's "Show closed over 90 days (N)" toggle (User Story 2, scenarios 1–4; FR-004, FR-005)
-  is the implementer's proposal: the issue asks for a toggle only if other views stopped
-  listing hidden pitches, and they don't. The maintainer confirms it or cuts it in review.
-  Cutting it leaves scenario 5 and FR-003 as User Story 2.
 - The pipeline's other filters (stage, source, domain, lead, sort) keep their current
   behaviour. Moving them into the address is out of scope.

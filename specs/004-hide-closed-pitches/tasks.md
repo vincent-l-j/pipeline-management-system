@@ -43,12 +43,12 @@ the recent ones, and the header count matches.
 
 ## Phase 4: User Story 2 - Hidden pitches stay reachable (P1)
 
-**Independent Test**: the page offers "Show closed over 90 days (N)"; showing them puts them back; the choice
+**Independent Test**: the page offers "Show old pitches"; showing them puts them back; the choice
 survives a reload via the URL; other views are unchanged.
 
 ### Tests (write first, see them fail)
 
-- [x] T009 [US2] In `frontend/src/pages/__tests__/PipelinePage.test.tsx`: with two hidden pitches a button "Show closed over 90 days (2)" with `aria-pressed="false"` shows; pressing it shows them on the board, sets `?closed=show`, the header count includes them, and the same button (one label, built from the threshold) now has `aria-pressed="true"`; rendering at `/pipeline?closed=show` shows them from the start; with nothing hidden there is no button; with every pitch hidden the page still shows the button and its count
+- [x] T009 [US2] In `frontend/src/pages/__tests__/PipelinePage.test.tsx`: with two hidden pitches a "Show old pitches" button shows; pressing it shows them on the board, sets `?closed=show`, the header count includes them, and the button now reads "Hide old pitches"; pressing that hides them again and clears the parameter; rendering at `/pipeline?closed=show` shows them from the start; with nothing hidden there is no button; with every pitch hidden the page still shows the button and its count
 - [x] T010 [US2] In `frontend/src/pages/__tests__/PipelinePage.test.tsx`: a failed or timed-out pitches request shows an error message and a "Try again" button instead of an empty board, and pressing it refetches and renders the board (A5)
 - [x] T011 [P] [US2] In `backend/tests/test_search.py` and `backend/tests/test_reports.py`: a pitch declined more than 90 days ago (backdated in the database) is still returned by search, the pipeline summary and the pitches CSV export, pinning FR-003 (pass before and after)
 

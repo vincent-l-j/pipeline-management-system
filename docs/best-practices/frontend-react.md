@@ -207,7 +207,7 @@ whoever inserts the next test.
   - It has to be the form's last child, or it floats over whatever follows.
     `AssessmentCreatePage` ends with an explanatory `<p>` after its actions,
     which has to move above them before that form can adopt it.
-  - **Only `PitchCreatePage` uses it so far**; the edit, assessment and meeting
+  - **`PitchCreatePage` and `PitchEditPage` use it**; the assessment and meeting
     forms still carry bare action rows and are the ones to convert next.
 - **A field grid needs a single-column state.** Two columns at 360px leave each
   field about 156px, which no date input or select can use. Write

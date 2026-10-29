@@ -75,9 +75,9 @@ export default function PipelinePage(): React.JSX.Element {
   );
 
   const now = new Date();
-  const hiddenCount = pitches.filter((p) =>
+  const hidesSome = pitches.some((p) =>
     isLongClosed(p, now, CLOSED_PITCH_HIDE_AFTER_DAYS),
-  ).length;
+  );
   const shownPitches = showClosed
     ? pitches
     : pitches.filter(
@@ -191,14 +191,13 @@ export default function PipelinePage(): React.JSX.Element {
             users={users}
           />
         </div>
-        {(hiddenCount > 0 || showClosed) && (
+        {(hidesSome || showClosed) && (
           <button
             type="button"
-            aria-pressed={showClosed}
             onClick={toggleClosed}
             className="mb-5 text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 hover:border-navy-400 focus:outline-none focus:ring-2 focus:ring-navy-300"
           >
-            {`Show closed over ${String(CLOSED_PITCH_HIDE_AFTER_DAYS)} days (${String(hiddenCount)})`}
+            {showClosed ? "Hide old pitches" : "Show old pitches"}
           </button>
         )}
       </div>

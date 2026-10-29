@@ -126,11 +126,7 @@ describe("PipelinePage hides long-closed pitches", () => {
     renderPage();
     await screen.findByText("Recently declined");
 
-    const toggle = screen.getByRole("button", {
-      name: "Show closed over 90 days (2)",
-    });
-    expect(toggle).toHaveAttribute("aria-pressed", "false");
-    await user.click(toggle);
+    await user.click(screen.getByRole("button", { name: "Show old pitches" }));
 
     expect(screen.getByText("Long declined")).toBeInTheDocument();
     expect(screen.getByText("Long completed")).toBeInTheDocument();
@@ -138,12 +134,13 @@ describe("PipelinePage hides long-closed pitches", () => {
       screen.getByText("4 initiatives in the pipeline"),
     ).toBeInTheDocument();
     expect(screen.getByTestId("search")).toHaveTextContent("?closed=show");
-    // One label in both states; aria-pressed carries which state it is in.
-    expect(toggle).toHaveAttribute("aria-pressed", "true");
 
-    await user.click(toggle);
+    await user.click(screen.getByRole("button", { name: "Hide old pitches" }));
 
     expect(screen.queryByText("Long declined")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Show old pitches" }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("search").textContent).toBe("");
   });
 
@@ -159,7 +156,7 @@ describe("PipelinePage hides long-closed pitches", () => {
     await screen.findByText("Recently declined");
 
     expect(
-      screen.queryByRole("button", { name: /closed over/ }),
+      screen.queryByRole("button", { name: /old pitches/ }),
     ).not.toBeInTheDocument();
   });
 
@@ -168,9 +165,7 @@ describe("PipelinePage hides long-closed pitches", () => {
     renderPage();
 
     expect(
-      await screen.findByRole("button", {
-        name: "Show closed over 90 days (2)",
-      }),
+      await screen.findByRole("button", { name: "Show old pitches" }),
     ).toBeInTheDocument();
     expect(
       screen.getByText("0 initiatives in the pipeline"),
@@ -189,9 +184,7 @@ describe("PipelinePage hides long-closed pitches", () => {
         name: "Declined",
       }),
     );
-    await user.click(
-      screen.getByRole("button", { name: /Show closed over 90 days/ }),
-    );
+    await user.click(screen.getByRole("button", { name: "Hide old pitches" }));
 
     expect(screen.getByText("Long completed")).toBeInTheDocument();
     expect(screen.queryByText("Long declined")).not.toBeInTheDocument();

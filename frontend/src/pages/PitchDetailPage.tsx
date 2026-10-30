@@ -200,7 +200,7 @@ export default function PitchDetailPage(): React.JSX.Element {
         title={pitch.title}
         description={pitch.short_description ?? ""}
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {canEdit && (
               <>
                 <Link

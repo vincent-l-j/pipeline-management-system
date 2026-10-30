@@ -107,6 +107,29 @@ export default defineConfig({
             await page.mouse.wheel(by, 0);
           },
         ),
+        // What assistive technology is offered: the names of the test frame's
+        // nodes in Chromium's own accessibility tree. Neither Vitest's role
+        // queries nor Playwright's aria snapshot honour `inert`; this does.
+        accessibleNames: defineBrowserCommand<[]>(async (context) => {
+          const { page } = context;
+          const url = (await context.frame()).url();
+          const cdp = await page.context().newCDPSession(page);
+          const { frameTree } = await cdp.send("Page.getFrameTree");
+          const frames = [frameTree];
+          let frameId: string | undefined;
+          while (frames.length > 0 && frameId === undefined) {
+            const tree = frames.shift();
+            if (tree?.frame.url === url) frameId = tree.frame.id;
+            frames.push(...(tree?.childFrames ?? []));
+          }
+          const { nodes } = await cdp.send("Accessibility.getFullAXTree", {
+            frameId,
+          });
+          await cdp.detach();
+          return nodes
+            .filter((node) => !node.ignored && node.name?.value)
+            .map((node) => String(node.name?.value));
+        }),
       },
     },
   },

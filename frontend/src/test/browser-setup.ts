@@ -21,5 +21,6 @@ declare module "vitest/internal/browser" {
     tap: (selector: string) => Promise<void>;
     touchDrag: (from: Point, to: Point, steps?: number) => Promise<void>;
     scrollX: (selector: string, by: number) => Promise<void>;
+    accessibleNames: () => Promise<string[]>;
   }
 }

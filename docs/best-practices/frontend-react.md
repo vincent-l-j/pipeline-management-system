@@ -39,8 +39,9 @@ Tailwind 3, Vitest). Match the existing components.
 - Wrap page content in the shared `Layout` + `PageHeader`. `Layout` is the app
   shell: it owns the navigation drawer's open/closed state, the mobile app bar
   and the backdrop, and positions the sidebar. While the drawer is open the
-  shell also owns focus: it moves focus in, wraps Tab inside the drawer, and
-  hands focus back to the menu toggle on every close route. `Sidebar` is
+  shell also owns focus: it moves focus in, wraps Tab inside the drawer, makes
+  `<main>` `inert`, and hands focus back to the menu toggle on every close
+  route. `Sidebar` is
   presentational — it
   renders the nav items and user block, and takes an `onNavigate` callback the
   shell uses to close the drawer on a destination choice. Navigation behaviour
@@ -330,6 +331,7 @@ it depends on CSS — not by how important it is.
 | The assertion is about                                              | Seam                             |
 | ------------------------------------------------------------------- | -------------------------------- |
 | Rendered text, roles, accessible names, `aria-*` state              | jsdom (`npm test`)               |
+| What `inert` withholds — from focus, and from assistive technology  | browser                          |
 | What a handler did — navigation, a callback, a request payload      | jsdom                            |
 | Which items a list contains, and role-gated presence/absence        | jsdom                            |
 | Stacking order — whether a control is actually reachable by pointer | browser (`npm run test:browser`) |
@@ -365,6 +367,12 @@ it depends on CSS — not by how important it is.
   rect is on screen. `test/unobscured` checks both, probing with
   `elementFromPoint` inset from the edges — hit-testing honours `border-radius`,
   so a probe in a rounded corner lands on whatever is behind it.
+- **No role query honours `inert`** — not Testing Library's, not Vitest's
+  `page.getByRole`, not Playwright's aria snapshot — so asserting an inert control
+  is absent waits out the timeout and fails. Ask Chromium instead:
+  `commands.accessibleNames()` returns the names in the test frame's real
+  accessibility tree. Pair the absence with a case where the name is present,
+  so the command cannot pass by seeing nothing.
 - **Assert what renders, never how long it takes.** The setup file zeroes
   transition and animation durations; no test should wait one out. The
   exception is a transition that is itself behaviour: transitioning

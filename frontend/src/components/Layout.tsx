@@ -27,6 +27,7 @@ export default function Layout({ children }: LayoutProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
   // Memoised so the effects can depend on it without re-subscribing.
   const closeDrawer = useCallback(() => {
     setDrawerOpen(false);
@@ -34,9 +35,12 @@ export default function Layout({ children }: LayoutProps) {
 
   useEffect(() => {
     const drawer = drawerRef.current;
+    const main = mainRef.current;
     const toggle = toggleRef.current;
-    if (!drawerOpen || !drawer) return;
+    if (!drawerOpen || !drawer || !main) return;
 
+    // @types/react 18 has no `inert` prop, so it is set on the node instead.
+    main.inert = true;
     focusableIn(drawer)[0]?.focus();
 
     // Listen on the document so the keys work wherever focus sits.
@@ -66,6 +70,7 @@ export default function Layout({ children }: LayoutProps) {
     document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
+      main.inert = false;
       // Every close route passes through here. Above `md` the toggle is not
       // rendered and focus() is a no-op, which leaves focus in the sidebar.
       toggle?.focus();
@@ -145,7 +150,9 @@ export default function Layout({ children }: LayoutProps) {
         <Sidebar onNavigate={handleNavigate} />
       </div>
 
-      <main className="p-4 md:ml-64 md:p-8">{children}</main>
+      <main ref={mainRef} className="p-4 md:ml-64 md:p-8">
+        {children}
+      </main>
     </div>
   );
 }

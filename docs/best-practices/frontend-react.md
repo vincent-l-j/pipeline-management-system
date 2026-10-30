@@ -33,11 +33,9 @@ Tailwind 3, Vitest). Match the existing components.
   bookmark or reach with the back button (the selected record, filters, tab,
   search query) lives in the URL (A7).
 - A new dependency states its size cost in the plan (A6).
-- **A function an effect calls is wrapped in `useCallback` and listed in the
-  dependency array.** `useState` setters are identity-stable and need no entry;
-  every other function does. Don't bypass a named helper (calling the setter
-  directly) to keep the array short — that duplicates the behaviour the helper
-  owns. No `eslint-plugin-react-hooks` checks this yet, so it rests on review.
+- Don't bypass a named helper in an effect (calling the setter directly) to keep
+  its dependency array short — that duplicates the behaviour the helper owns.
+  The dependency array itself is checked by `react-hooks/exhaustive-deps`.
 - Wrap page content in the shared `Layout` + `PageHeader`. `Layout` is the app
   shell: it owns the navigation drawer's open/closed state, the mobile app bar
   and the backdrop, and positions the sidebar. `Sidebar` is presentational — it

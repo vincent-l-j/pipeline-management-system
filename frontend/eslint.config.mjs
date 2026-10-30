@@ -2,6 +2,7 @@
 
 import js from "@eslint/js";
 import { defineConfig } from "eslint/config";
+import reactHooks from "eslint-plugin-react-hooks";
 import tseslint from "typescript-eslint";
 
 export default defineConfig(
@@ -20,6 +21,14 @@ export default defineConfig(
           jsx: true,
         },
       },
+    },
+  },
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    plugins: { "react-hooks": { rules: reactHooks.rules } },
+    rules: {
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "error",
     },
   },
 );

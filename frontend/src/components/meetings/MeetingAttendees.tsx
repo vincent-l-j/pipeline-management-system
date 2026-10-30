@@ -3,7 +3,7 @@
  * Shows current attendees and allows adding internal (staff) or external (contacts).
  */
 
-import { useState, useEffect, ReactNode } from "react";
+import { useState, useEffect, useCallback, ReactNode } from "react";
 import api from "../../services/api";
 import { contactName } from "../contacts/contactName";
 import { useAuth } from "../../contexts/AuthContext";
@@ -48,6 +48,14 @@ export default function MeetingAttendees({
 
   const canEdit = user?.role === "admin" || user?.role === "assessor";
 
+  const loadAttendees = useCallback((): void => {
+    void api
+      .get(`/meetings/${meetingId}/attendees`)
+      .then(({ data }: { data: Attendee[] }) => {
+        setAttendees(data);
+      });
+  }, [meetingId]);
+
   useEffect(() => {
     loadAttendees();
     void api.get("/users/directory").then(({ data }: { data: User[] }) => {
@@ -56,15 +64,7 @@ export default function MeetingAttendees({
     void api.get("/contacts").then(({ data }: { data: Contact[] }) => {
       setContacts(data);
     });
-  }, [meetingId]);
-
-  function loadAttendees(): void {
-    void api
-      .get(`/meetings/${meetingId}/attendees`)
-      .then(({ data }: { data: Attendee[] }) => {
-        setAttendees(data);
-      });
-  }
+  }, [loadAttendees]);
 
   async function addAttendee(): Promise<void> {
     if (!selectedId) return;

@@ -144,7 +144,7 @@ function MeetingDetailPage(): React.JSX.Element {
         title={meeting.title}
         description={`${meeting.meeting_date} · ${meeting.platform ? (PLATFORM_LABELS[meeting.platform] ?? meeting.platform) : "Unknown platform"}`}
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {!editing && (
               <button
                 onClick={startEditing}

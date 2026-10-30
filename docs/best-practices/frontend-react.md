@@ -350,13 +350,6 @@ it depends on CSS — not by how important it is.
 - **Inside an `overflow-hidden` box, measure against the box.** It clips what
   runs past its edge, so the page still fits and a viewport check passes over
   text that is cut off. Compare against the clipping box's own rect.
-- **The suite renders the machine's fonts, not Inter.** The tester page never
-  loads `index.html`, so text falls back through the stack to whatever
-  `system-ui` resolves to. CI's runner ships DejaVu Sans; a devcontainer without
-  it falls back to a narrower font and can pass a layout CI fails. Before
-  trusting a close local measurement, install DejaVu 2.37 into
-  `~/.local/share/fonts` and run `fc-cache` — `fc-match system-ui` should then
-  print DejaVu Sans.
 - **Give a layout fixture more than one row.** Editing the only row of a table
   replaces every cell's text with inputs, the columns collapse to fit them, and
   the far side lands back inside the viewport — so an overflow assertion passes

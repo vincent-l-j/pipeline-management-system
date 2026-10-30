@@ -24,6 +24,15 @@ import { Pitch, User } from "../types";
 
 const REQUEST_TIMEOUT_MS = 15_000;
 
+type View = "kanban" | "list";
+
+// Below `md` there is no drag and no right-click, so a phone opens on the list,
+// where a stage can be changed by tap. Only the opening view: a reader who picks
+// the board keeps it.
+function openingView(): View {
+  return window.matchMedia("(max-width: 767px)").matches ? "list" : "kanban";
+}
+
 export default function PipelinePage(): React.JSX.Element {
   const { user } = useAuth();
   const canEdit = user?.role === "admin" || user?.role === "assessor";
@@ -33,7 +42,7 @@ export default function PipelinePage(): React.JSX.Element {
   const [failed, setFailed] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const showClosed = searchParams.get("closed") === "show";
-  const [view, setView] = useState<"kanban" | "list">("kanban");
+  const [view, setView] = useState<View>(openingView);
   const [filters, setFilters] = useState<PipelineFiltersState>({
     sort: "newest",
   });
@@ -155,6 +164,8 @@ export default function PipelinePage(): React.JSX.Element {
             )}
             <div className="flex items-center bg-navy-100 rounded-lg p-0.5">
               <button
+                type="button"
+                aria-pressed={view === "kanban"}
                 onClick={() => {
                   setView("kanban");
                 }}
@@ -167,6 +178,8 @@ export default function PipelinePage(): React.JSX.Element {
                 Board
               </button>
               <button
+                type="button"
+                aria-pressed={view === "list"}
                 onClick={() => {
                   setView("list");
                 }}

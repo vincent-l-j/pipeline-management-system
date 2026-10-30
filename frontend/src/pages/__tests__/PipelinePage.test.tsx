@@ -70,7 +70,25 @@ function renderPage(path = "/pipeline") {
   );
 }
 
+/**
+ * jsdom has no viewport, so `matchMedia` is missing; this answers width queries
+ * as a screen of the given width would.
+ */
+function onScreen(width: number) {
+  vi.stubGlobal("matchMedia", (query: string) => {
+    const [, bound, px] = /\((min|max)-width:\s*(\d+)px\)/.exec(query) ?? [];
+    const matches = bound === "min" ? width >= Number(px) : width <= Number(px);
+    return {
+      matches,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    };
+  });
+}
+
 beforeEach(() => {
+  onScreen(1280);
   localStorage.setItem("token", "t");
   localStorage.setItem(
     "user",
@@ -81,6 +99,7 @@ beforeEach(() => {
 
 afterEach(() => {
   localStorage.clear();
+  vi.unstubAllGlobals();
 });
 
 describe("PipelinePage hides long-closed pitches", () => {
@@ -235,5 +254,44 @@ describe("PipelinePage loading states", () => {
     expect(
       screen.queryByRole("button", { name: "Try again" }),
     ).not.toBeInTheDocument();
+  });
+});
+
+// A phone can neither drag a card nor right-click one, so it opens on the list,
+// where a stage can be changed by tap.
+describe("PipelinePage's opening view", () => {
+  it("opens on the list below the medium breakpoint", async () => {
+    onScreen(767);
+    renderPage();
+
+    expect(await screen.findByRole("table")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "List" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("opens on the board at the medium breakpoint", async () => {
+    onScreen(768);
+    renderPage();
+
+    await screen.findByText("Recently declined");
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Board" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("still offers the board on a phone", async () => {
+    onScreen(390);
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole("table");
+
+    await user.click(screen.getByRole("button", { name: "Board" }));
+
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getByText("Recently declined")).toBeInTheDocument();
   });
 });

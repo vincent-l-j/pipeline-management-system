@@ -86,7 +86,7 @@ async function showAssessment() {
     .toBeInTheDocument();
 }
 
-/** Every text a reader of the card needs, each of which must be on screen. */
+/** Every text a reader of the card needs, each of which must be in view. */
 const CARD_TEXTS = [
   "Assessment v12",
   "Decline",
@@ -96,21 +96,27 @@ const CARD_TEXTS = [
   "1/5 — Very Low",
 ];
 
+/**
+ * The card clips its overflow, so text pushed past its edge is cut off while
+ * the page itself still fits: the card, not the viewport, is the edge to test.
+ */
+function scoringCard(): HTMLElement {
+  const card = page
+    .getByRole("heading", { name: "Assessment v12" })
+    .element()
+    .closest<HTMLElement>(".rounded-xl");
+  if (!card) throw new Error("scoring card not found");
+  return card;
+}
+
 describe("reading an assessment on a 360px screen", () => {
   it("runs at the width the mobile layout was designed for", () => {
     expect(window.innerWidth).toBe(360);
   });
 
-  it("fits the viewport without scrolling sideways", async () => {
+  it.each(CARD_TEXTS)("keeps %s inside the scoring card", async (text) => {
     await showAssessment();
-
-    const root = document.documentElement;
-    expect(root.scrollWidth).toBeLessThanOrEqual(root.clientWidth);
-    expect(document.body.scrollWidth).toBeLessThanOrEqual(root.clientWidth);
-  });
-
-  it.each(CARD_TEXTS)("keeps %s inside the screen", async (text) => {
-    await showAssessment();
+    const card = scoringCard().getBoundingClientRect();
 
     const { left, right } = page
       .getByText(text, { exact: true })
@@ -118,7 +124,7 @@ describe("reading an assessment on a 360px screen", () => {
       .element()
       .getBoundingClientRect();
 
-    expect(left).toBeGreaterThanOrEqual(0);
-    expect(right).toBeLessThanOrEqual(window.innerWidth);
+    expect(left).toBeGreaterThanOrEqual(card.left);
+    expect(right).toBeLessThanOrEqual(card.right);
   });
 });

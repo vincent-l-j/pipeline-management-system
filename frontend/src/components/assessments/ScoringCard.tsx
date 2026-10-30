@@ -57,7 +57,7 @@ export default function ScoringCard({
       {/* Header */}
       <div className="px-6 py-4 bg-navy-50 border-b border-navy-100 flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <h3 className="text-sm font-semibold text-navy-900">
               Assessment v{assessment.version}
             </h3>

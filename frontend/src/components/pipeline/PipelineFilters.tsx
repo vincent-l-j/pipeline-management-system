@@ -55,7 +55,7 @@ export default function PipelineFilters({
       <select
         value={filters.stage ?? ""}
         onChange={handleSelectChange("stage")}
-        className="text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-300"
+        className="min-h-11 md:min-h-0 text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-300"
       >
         <option value="">All stages</option>
         {PIPELINE_STAGES.map((s) => (
@@ -69,7 +69,7 @@ export default function PipelineFilters({
       <select
         value={filters.source ?? ""}
         onChange={handleSelectChange("source")}
-        className="text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-300"
+        className="min-h-11 md:min-h-0 text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-300"
       >
         <option value="">All sources</option>
         {Object.entries(SOURCE_LABELS).map(([key, label]) => (
@@ -83,7 +83,7 @@ export default function PipelineFilters({
       <select
         value={filters.domain ?? ""}
         onChange={handleSelectChange("domain")}
-        className="text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-300"
+        className="min-h-11 md:min-h-0 text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-300"
       >
         <option value="">All domains</option>
         {DOMAIN_OPTIONS.map((d) => (
@@ -97,7 +97,7 @@ export default function PipelineFilters({
       <select
         value={filters.lead_id ?? ""}
         onChange={handleSelectChange("lead_id")}
-        className="text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-300"
+        className="min-h-11 md:min-h-0 text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-300"
       >
         <option value="">All leads</option>
         {users.map((u) => (
@@ -111,7 +111,7 @@ export default function PipelineFilters({
       <select
         value={filters.sort ?? "newest"}
         onChange={handleSelectChange("sort")}
-        className="text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-300"
+        className="min-h-11 md:min-h-0 text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-300"
       >
         {SORT_OPTIONS.map((s) => (
           <option key={s.key} value={s.key}>
@@ -129,7 +129,7 @@ export default function PipelineFilters({
           onClick={() => {
             onChange({ sort: filters.sort });
           }}
-          className="text-xs text-navy-500 hover:text-navy-700 underline"
+          className="min-h-11 md:min-h-0 text-xs text-navy-500 hover:text-navy-700 underline"
         >
           Clear filters
         </button>

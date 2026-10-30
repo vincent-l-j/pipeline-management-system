@@ -159,7 +159,7 @@ export default function PipelinePage(): React.JSX.Element {
             {canEdit && (
               <Link
                 to="/pitches/new"
-                className="bg-navy-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-navy-800 transition-colors"
+                className="inline-flex min-h-11 md:min-h-0 items-center bg-navy-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-navy-800 transition-colors"
               >
                 New Pitch
               </Link>
@@ -171,7 +171,7 @@ export default function PipelinePage(): React.JSX.Element {
                 onClick={() => {
                   setView("kanban");
                 }}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                className={`min-h-11 md:min-h-0 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   view === "kanban"
                     ? "bg-white text-navy-900 shadow-sm"
                     : "text-navy-500 hover:text-navy-700"
@@ -185,7 +185,7 @@ export default function PipelinePage(): React.JSX.Element {
                 onClick={() => {
                   setView("list");
                 }}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                className={`min-h-11 md:min-h-0 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   view === "list"
                     ? "bg-white text-navy-900 shadow-sm"
                     : "text-navy-500 hover:text-navy-700"
@@ -210,7 +210,7 @@ export default function PipelinePage(): React.JSX.Element {
           <button
             type="button"
             onClick={toggleClosed}
-            className="mb-5 text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 hover:border-navy-400 focus:outline-none focus:ring-2 focus:ring-navy-300"
+            className="mb-5 min-h-11 md:min-h-0 text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 hover:border-navy-400 focus:outline-none focus:ring-2 focus:ring-navy-300"
           >
             {showClosed ? "Hide old pitches" : "Show old pitches"}
           </button>

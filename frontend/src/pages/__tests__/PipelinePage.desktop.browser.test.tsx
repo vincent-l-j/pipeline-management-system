@@ -60,4 +60,25 @@ describe("the pipeline at and above the md breakpoint", () => {
       .toBeVisible();
     expect(page.getByRole("table").query()).toBeNull();
   });
+
+  // The phone's 44px touch sizing stops at md: the desktop toolbar stays compact.
+  it("keeps the filter and view controls at their desktop size", async () => {
+    render(
+      <MemoryRouter>
+        <AuthProvider>
+          <PipelinePage />
+        </AuthProvider>
+      </MemoryRouter>,
+    );
+    await expect.element(page.getByText(PITCH.title)).toBeVisible();
+
+    const controls = [
+      ...page.getByRole("combobox").elements(),
+      page.getByRole("button", { name: "Board" }).element(),
+      page.getByRole("button", { name: "List" }).element(),
+    ];
+    for (const control of controls) {
+      expect(control.getBoundingClientRect().height).toBeLessThan(44);
+    }
+  });
 });

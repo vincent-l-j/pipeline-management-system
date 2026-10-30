@@ -64,8 +64,9 @@ restrain a sibling container that shares its bind mounts. See
 - **Backend** — `backend/Dockerfile` target `dev`: installs `requirements-dev.txt` (test
   tooling), runs `uvicorn ... --reload`, and includes the dev-only routes (`dev.py`). The app
   does **not** create tables on startup and compose runs no migrate step, so apply the schema
-  to the dev DB by hand — `docker compose run --rm backend alembic upgrade head` — on first
-  bring-up and after any `docker compose down -v`.
+  to the dev DB by hand — the `migrate` command in `services.yaml`, or
+  `docker compose run --rm backend alembic upgrade head` from the host — on first bring-up and
+  after any `docker compose down -v`.
 - **Database** — stock `postgres:16` with a named `pgdata` volume. Credentials come from `.env`.
 - **Document store** — MinIO on `9000` (object browser on `9001`), behind the `objectstore`
   profile, its bucket created by the one-shot `minio-bucket`. It speaks the same S3 API and
@@ -77,8 +78,8 @@ restrain a sibling container that shares its bind mounts. See
   `VITE_ENABLE_DEV_LOGIN=true`) so you can sign in without Azure AD configured.
 - **Config** — everything is read from `.env` (copy from `.env.example`).
 
-Start it with `docker compose up --build`, then apply the schema once with
-`docker compose run --rm backend alembic upgrade head` (see **Backend** above — nothing
+Start it with `docker compose up --build`, then apply the schema once with `migrate` from
+`services.yaml`, or its container form above (see **Backend** — nothing
 creates tables automatically). Frontend on `:5173`, API on `:8000/api`, Swagger on `:8000/docs`.
 Add `--profile objectstore` to that first command when you need attachments.
 
@@ -171,9 +172,11 @@ frontend (running the jsdom suite in a build target rather than through `service
 [constitution](../.specify/memory/constitution.md)), and `--target dev` for the backend, on every pull request. The backend suite runs in
 a job of its own with a `postgres:16` service rather than inside a build stage — it needs a
 real database, which a build stage cannot reach — and the migration tests run in a second such
-job against a database of their own. Production builds don't re-run tests; instead both deploy
-workflows call `ci.yml` as a reusable workflow and their deploy job `needs:` it, so the checks
-run against the exact commit being released and a failure skips the deploy. That covers the
+job against a database of their own — `test-backend-app` and `test-migrations` in
+`services.yaml`. CI's other steps call `services.yaml` commands by name too, through
+`scripts/run-command.sh`, so a step cannot drift from the command a developer runs.
+Production builds don't re-run tests; instead both deploy workflows call `ci.yml` as a
+reusable workflow and their deploy job `needs:` it, so the checks run against the exact commit being released and a failure skips the deploy. That covers the
 direct push to a deploy branch, which branch protection cannot — protection blocks a merge, but
 the deploy fires on the push the merge produces.
 

@@ -7,6 +7,9 @@ on:
 permissions:
   contents: read
 
+# Steps run their commands by name from services.yaml through
+# scripts/run-command.sh, so CI runs exactly what a developer runs locally. Only
+# installs and setup stay inline.
 jobs:
   # A `paths-ignore:` here would skip the workflow, and a required check that
   # never reports leaves the PR pending forever. So the gate is a job-level `if:`.
@@ -64,8 +67,8 @@ jobs:
       - run: npm ci
       - run: pip install -r requirements-dev.txt
         working-directory: backend
-      - run: npm run format:prettier:check
-      - run: npm run format:ruff:check
+      - run: scripts/run-command.sh format-check-prettier
+      - run: scripts/run-command.sh format-check-ruff
         if: always()
 
   typecheck:
@@ -82,7 +85,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
         working-directory: frontend
-      - run: npm run typecheck
+      - run: scripts/run-command.sh typecheck
 
   lint-frontend:
     name: Lint (frontend)
@@ -98,7 +101,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
         working-directory: frontend
-      - run: npm run lint:frontend
+      - run: scripts/run-command.sh lint-frontend
 
   lint-backend:
     name: Lint (backend)
@@ -113,7 +116,7 @@ jobs:
           cache: pip
       - run: pip install -r requirements-dev.txt
         working-directory: backend
-      - run: npm run lint:backend
+      - run: scripts/run-command.sh lint-backend
 
   checks:
     name: ${{ matrix.name }}
@@ -161,8 +164,7 @@ jobs:
       # and the hook would fetch all three browsers when the suite drives one.
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
-      - run: npm run test:browser
-        working-directory: frontend
+      - run: scripts/run-command.sh test-frontend-browser
 
   # The backend suite runs against a real Postgres, built by the migrations. It
   # used to run inside `docker build --target test` on in-memory SQLite, which
@@ -198,8 +200,7 @@ jobs:
       - run: pip install -r requirements.txt -r requirements-dev.txt
         working-directory: backend
       # tests/migrations runs in its own job, against its own database.
-      - run: pytest --ignore=tests/migrations
-        working-directory: backend
+      - run: scripts/run-command.sh test-backend-app
         env:
           APP_TEST_DATABASE_URL: postgresql://pms:pms@localhost:5432/pms_app_test
 
@@ -235,10 +236,6 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt -r requirements-dev.txt
         working-directory: backend
-      # Scoped by path, not by `-m migrations`: the marker is applied module-wide
-      # and selects the same tests, so the flag only added a string that silently
-      # empties the selection when it is misspelled.
-      - run: pytest tests/migrations
-        working-directory: backend
+      - run: scripts/run-command.sh test-migrations
         env:
           TEST_DATABASE_URL: postgresql://pms:pms@localhost:5432/pms_migrations_test

@@ -331,6 +331,27 @@ describe("editing a contact", () => {
   });
 });
 
+describe("adding a contact", () => {
+  // Wider than half the viewport is what an input cannot be while a second
+  // column sits beside it, which is the squeeze the collapse exists to undo.
+  it.each(["First name", "Last name"])(
+    "gives %s a column to itself",
+    async (placeholder) => {
+      await show(<ContactsPage />, CONTACT.email);
+      await userEvent.click(
+        page.getByRole("button", { name: "+ Add Contact" }),
+      );
+
+      const { width } = page
+        .getByPlaceholder(placeholder, { exact: true })
+        .element()
+        .getBoundingClientRect();
+
+      expect(width).toBeGreaterThan(window.innerWidth / 2);
+    },
+  );
+});
+
 describe("pages without a table, on a 360px screen", () => {
   it("the dashboard does not overflow the viewport", async () => {
     await show(<DashboardPage />, "Total in Pipeline");

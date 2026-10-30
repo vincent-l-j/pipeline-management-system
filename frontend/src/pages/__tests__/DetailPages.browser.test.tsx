@@ -1,4 +1,4 @@
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { cleanup, render } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import type { ReactElement } from "react";
@@ -162,6 +162,37 @@ describe("detail pages on a 360px screen", () => {
         expect(left, name).toBeGreaterThanOrEqual(0);
         expect(right, name).toBeLessThanOrEqual(window.innerWidth);
       }
+    },
+  );
+});
+
+/** The input in a label's cell: the edit form's labels name no control. */
+function inputUnder(label: string): HTMLInputElement {
+  const input = page
+    .getByText(label, { exact: true })
+    .element()
+    .parentElement?.querySelector("input");
+  if (!input) throw new Error(`no input under ${label}`);
+  return input;
+}
+
+describe("the meeting edit form on a 360px screen", () => {
+  // Wider than half the viewport is what a field cannot be while a second
+  // column sits beside it, which is the squeeze the collapse exists to undo.
+  it.each(["Follow-up Date", "Recording Link"])(
+    "gives %s a column to itself",
+    async (label) => {
+      await show(
+        "/meetings/m1",
+        "/meetings/:meetingId",
+        <MeetingDetailPage />,
+        MEETING.title,
+      );
+      await userEvent.click(page.getByRole("button", { name: "Edit Meeting" }));
+
+      expect(inputUnder(label).getBoundingClientRect().width).toBeGreaterThan(
+        window.innerWidth / 2,
+      );
     },
   );
 });

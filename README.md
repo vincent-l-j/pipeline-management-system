@@ -45,7 +45,7 @@ rozetta-pms/
                         + minio (9000 API / 9001 browser, `objectstore` profile)
 ```
 
-The frontend proxies `/api` requests to the backend (see `frontend/vite.config.ts`). The database schema is managed by Alembic — run `alembic upgrade head` to create/update tables (see [Database migrations](#database-migrations)).
+The frontend proxies `/api` requests to the backend (see `frontend/vite.config.ts`). The database schema is managed by Alembic — run the `migrate` command from `services.yaml` to create/update tables (see [Database migrations](#database-migrations)).
 
 For a fuller breakdown of how the dev and production stacks differ (containers, routing, build stages, and where tests run), see [`docs/architecture.md`](./docs/architecture.md).
 
@@ -125,12 +125,12 @@ npm run dev          # serves http://localhost:5173
 
 The schema is owned by **Alembic** (`backend/alembic.ini`); the app no longer creates tables
 on startup. Every environment applies migrations before release — in production/staging the
-`PRE_DEPLOY` `migrate` job runs `alembic upgrade head`; locally:
+`PRE_DEPLOY` `migrate` job runs `alembic upgrade head`; locally, the named commands in
+`services.yaml` are `generate-migration` and `migrate`:
 
 ```bash
-cd backend
-alembic revision --autogenerate -m "your message"   # after changing models
-alembic upgrade head
+scripts/run-command.sh generate-migration "your message"   # after changing models
+scripts/run-command.sh migrate
 ```
 
 See [`sop/db-change.md`](./sop/db-change.md) for the full schema-change runbook.
@@ -298,8 +298,8 @@ red check skips the deploy rather than being reported alongside it.
 
 The `db` service has to be up — `docker compose up -d db` if it isn't.
 
-The named command is `test-backend` in `services.yaml` (`cd backend && pytest`). Two ways to
-run it:
+The named command is `test-backend` in `services.yaml` (`cd backend && pytest`); CI runs it
+split in two, as `test-backend-app` and `test-migrations`. Two ways to run it:
 
 ```bash
 # In a container (parity with prod — recommended):
@@ -311,7 +311,7 @@ APP_TEST_DATABASE_URL=postgresql://rozetta:<password>@localhost:5432/pms_app_tes
 ```
 
 There is no `--target test` stage to build any more. The suite needs a database, and a
-Docker build stage has no route to one — CI runs `pytest` in a job with a Postgres service
+Docker build stage has no route to one — CI runs `test-backend-app` in a job with a Postgres service
 instead, and builds `--target dev` separately to prove the image still builds.
 
 The database named by `APP_TEST_DATABASE_URL` is **disposable**: its schema is dropped and
@@ -329,6 +329,9 @@ With the stack running:
 ```bash
 # Health check should return {"status": "ok", "app": "Rozetta PMS"}
 curl http://localhost:8000/api/health
+
+# Readiness also checks the database — the `readiness` command in services.yaml
+scripts/run-command.sh readiness
 
 # Explore and exercise endpoints interactively
 open http://localhost:8000/docs

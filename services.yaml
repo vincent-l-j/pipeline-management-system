@@ -1,4 +1,7 @@
 # Commands and services contributors and CI use to build, test, and run the system.
+# Run any command below by name with `scripts/run-command.sh <name> [args...]`;
+# CI calls its steps that way, so what is written here is what CI runs. Keep each
+# command one plain, unquoted line — that script reads them line by line.
 # The canonical local stack is Docker Compose (db + backend + frontend, plus minio
 # behind the `objectstore` profile). The command keys below also work on a host
 # with Python 3.12 + Node installed.
@@ -18,6 +21,15 @@ commands:
   # Granular test entry points (used by the checks in specs/*/tasks.md).
   test-backend: cd backend && pytest
   test-frontend: cd frontend && npm test
+
+  # The backend suite split the way CI runs it, as two jobs on two databases: the
+  # app suite, and the Alembic migration suite (which drops the schema between
+  # tests, so it gets its own database — see backend/tests/migrations/conftest.py).
+  test-backend-app: cd backend && pytest --ignore=tests/migrations
+  # Scoped by path, not by `-m migrations`: the marker is applied module-wide and
+  # selects the same tests, so the flag only added a string that silently empties
+  # the selection when it is misspelled.
+  test-migrations: cd backend && pytest tests/migrations
 
   # Use docs/best-practices/frontend-react.md to see which assertions belong here.
   test-frontend-browser: cd frontend && npm run test:browser
@@ -41,6 +53,21 @@ commands:
   # Format: prettier over the whole repo + ruff format over backend/.
   format: npm run format
   format-check: npm run format:check
+  # The two halves of format-check, so CI can report both even when one fails.
+  format-check-prettier: npm run format:prettier:check
+  format-check-ruff: npm run format:ruff:check
+
+  # Apply every pending Alembic migration to the database in DATABASE_URL. Nothing
+  # creates tables on startup, so run this on first bring-up and after any reset.
+  migrate: cd backend && alembic upgrade head
+  # Draft a migration from model changes; pass the message as the argument:
+  # `scripts/run-command.sh generate-migration "add pitch owner"`. Review the
+  # generated file before committing — see sop/db-change.md.
+  generate-migration: cd backend && alembic revision --autogenerate -m
+
+  # Readiness: unlike the backend healthcheck below, this also checks the database.
+  # Inside the devcontainer use http://backend:8000 (see the notes at the bottom).
+  readiness: curl -sf http://localhost:8000/api/health/ready
 
   # Redraws the committed PWA icons in frontend/public/icons. They are static
   # files, not build output, so this is only run when the mark itself changes.

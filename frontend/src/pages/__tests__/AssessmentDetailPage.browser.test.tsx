@@ -114,6 +114,14 @@ describe("reading an assessment on a 360px screen", () => {
     expect(window.innerWidth).toBe(360);
   });
 
+  it("fits the viewport without scrolling sideways", async () => {
+    await showAssessment();
+
+    const root = document.documentElement;
+    expect(root.scrollWidth).toBeLessThanOrEqual(root.clientWidth);
+    expect(document.body.scrollWidth).toBeLessThanOrEqual(root.clientWidth);
+  });
+
   it.each(CARD_TEXTS)("keeps %s inside the scoring card", async (text) => {
     await showAssessment();
     const card = scoringCard().getBoundingClientRect();

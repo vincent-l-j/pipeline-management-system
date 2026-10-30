@@ -129,6 +129,29 @@ describe("MeetingCreatePage", () => {
     );
   });
 
+  it("announces a failed save to assistive technology", async () => {
+    const user = userEvent.setup();
+    apiMocks.post.mockRejectedValue({
+      response: { status: 500, data: { detail: "Database unavailable" } },
+    });
+    await renderPage();
+    await user.type(
+      screen.getByRole("textbox", { name: "Meeting Title *" }),
+      "Discovery call",
+    );
+    await user.type(
+      screen.getByRole("combobox", { name: "Linked Pitch *" }),
+      "soil",
+    );
+    await user.click(screen.getByRole("option", { name: "Soil Sensors" }));
+
+    await user.click(screen.getByRole("button", { name: "Save Meeting" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Database unavailable",
+    );
+  });
+
   // No blank option: the platform always holds a real value, so offering an
   // empty one would let a meeting be logged with no platform at all.
   it("starts on a real platform and offers no blank option", async () => {

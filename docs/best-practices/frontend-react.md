@@ -13,8 +13,8 @@ Tailwind 3, Vitest). Match the existing components.
 - Pages live in `src/pages/`, reusable pieces in `src/components/` (grouped by
   area: `pipeline/`, `pitch/`, `meetings/`, `assessments/`), with the cross-area
   primitives — the `Combobox`, `OptionSelect` and `formStyles` fields share, the
-  `SaveBar` a form's actions sit in, and the `TableScroll` every list table sits
-  in — in `ui/`. A `ui/` primitive depends on nothing outside `ui/`; that's what
+  `SaveBar` a form's actions sit in, the `FormError` that reports a refused
+  submit, and the `TableScroll` every list table sits in — in `ui/`. A `ui/` primitive depends on nothing outside `ui/`; that's what
   keeps it reusable across areas.
 - **Name a control with `aria-label` on the control itself, not with a visually
   hidden `<label>`.** `sr-only` is `position: absolute`, and `overflow` clips a
@@ -96,6 +96,15 @@ Two handled paths, and they don't overlap:
 - **A failed API call** inside a component is expected. Catch it, turn it into
   text with `apiErrorMessage(error, fallback)` from `services/apiError`, and
   render it in the page's error state.
+  - **On a form submit, that state is `FormError`** (`useFormError` plus
+    `<FormError>` from `components/ui/FormError`), and so is the form's own
+    pre-submit check — not a hand-rolled banner. The banner sits above the
+    first field and on a phone the save is tapped screens below it, so a
+    message that only rendered there would be off-screen: the user taps save
+    and nothing happens. `FormError` carries `role="alert"` and scrolls itself
+    into view on every report, clear of the sticky app bar. Each report is a
+    fresh object, so the same message twice still scrolls the second time; a
+    `string` in `useState` cannot.
 - **An uncaught render error** is a bug. `ErrorBoundary`, mounted in `main.tsx`
   above the router and `AuthProvider`, replaces the blank page with a fallback
   and calls `reportClientError` to `POST /api/client-errors`, which _attempts_ to
@@ -341,6 +350,11 @@ it depends on CSS — not by how important it is.
   click is what fails when something is painted over the control — the dispatched
   kind flips the handler regardless and is why this class of bug shipped.
 - Query with `page.getByRole(...)`; use `expect.element(...)` so assertions retry.
+- **"Visible without scrolling" is two facts: inside the viewport, and not
+  painted over.** A sticky app bar or a pinned `SaveBar` covers a box whose
+  rect is on screen. `test/unobscured` checks both, probing with
+  `elementFromPoint` inset from the edges — hit-testing honours `border-radius`,
+  so a probe in a rounded corner lands on whatever is behind it.
 - **Assert what renders, never how long it takes.** The setup file zeroes
   transition and animation durations; no test should wait one out.
 - A `scrollWidth` assertion measures one box's scrollable overflow, so be sure it

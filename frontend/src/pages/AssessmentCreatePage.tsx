@@ -14,6 +14,7 @@ import {
 } from "../components/assessments/AssessmentConfig";
 import api from "../services/api";
 import type { Assessment, AssessmentScores, Pitch } from "../types";
+import FormError, { useFormError } from "../components/ui/FormError";
 
 interface CreateAssessmentResponse {
   id: string;
@@ -33,7 +34,7 @@ export default function AssessmentCreatePage(): React.JSX.Element {
   const amendFromId = searchParams.get("from");
   const [pitches, setPitches] = useState<Pitch[]>([]);
   const [saving, setSaving] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useFormError();
 
   const [form, setForm] = useState<FormState>({
     pitch_id: searchParams.get("pitch_id") ?? "",
@@ -145,11 +146,7 @@ export default function AssessmentCreatePage(): React.JSX.Element {
         }}
         className="max-w-3xl space-y-6"
       >
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
-            {error}
-          </div>
-        )}
+        <FormError error={error} />
 
         <div className="bg-white rounded-xl border border-navy-100 p-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

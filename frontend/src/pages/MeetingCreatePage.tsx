@@ -13,6 +13,7 @@ import api from "../services/api";
 import OptionSelect, { type SelectOption } from "../components/ui/OptionSelect";
 import Combobox from "../components/ui/Combobox";
 import SaveBar from "../components/ui/SaveBar";
+import FormError, { useFormError } from "../components/ui/FormError";
 
 interface Pitch {
   id: string;
@@ -54,7 +55,7 @@ export default function MeetingCreatePage(): React.JSX.Element {
   const [searchParams] = useSearchParams();
   const [pitches, setPitches] = useState<Pitch[]>([]);
   const [saving, setSaving] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useFormError();
 
   const [form, setForm] = useState<MeetingForm>({
     title: "",
@@ -125,11 +126,7 @@ export default function MeetingCreatePage(): React.JSX.Element {
         }}
         className="max-w-2xl space-y-5"
       >
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
-            {error}
-          </div>
-        )}
+        <FormError error={error} />
 
         {/* Title */}
         <div>

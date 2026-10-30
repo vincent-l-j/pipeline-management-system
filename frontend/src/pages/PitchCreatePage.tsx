@@ -21,6 +21,7 @@ import api from "../services/api";
 import { apiErrorMessage } from "../services/apiError";
 import { useAuth } from "../contexts/AuthContext";
 import { Contact, User, Organisation } from "../types";
+import FormError, { useFormError } from "../components/ui/FormError";
 
 interface PitchResponse {
   id: string;
@@ -45,7 +46,7 @@ export default function PitchCreatePage(): React.JSX.Element {
     null,
   );
   const [saving, setSaving] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useFormError();
 
   const [form, setForm] = useState<PitchFormValues>(newPitchForm);
 
@@ -136,11 +137,7 @@ export default function PitchCreatePage(): React.JSX.Element {
         }}
         className="max-w-2xl space-y-5"
       >
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-4 py-3">
-            {error}
-          </div>
-        )}
+        <FormError error={error} />
 
         <PitchFormFields
           values={form}

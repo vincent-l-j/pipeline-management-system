@@ -3,6 +3,7 @@ import { cleanup, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import AssessmentCreatePage from "../AssessmentCreatePage";
 import { createApiMocks } from "../../test/mocks/api";
+import { unobscured } from "../../test/unobscured";
 import { CRITERIA } from "../../components/assessments/AssessmentConfig";
 
 vi.mock("../../services/api", () => ({
@@ -170,5 +171,41 @@ describe("scoring an assessment on a 360px screen", () => {
 
     expect(left).toBeGreaterThanOrEqual(0);
     expect(right).toBeLessThanOrEqual(window.innerWidth);
+  });
+
+  // The submit button is at the foot of a form several screens long and the
+  // banner above the first field; the reason has to come to the user.
+  it("shows why a submission was refused without scrolling back up", async () => {
+    await showForm();
+    // Chosen, or the browser's own required-field check refuses it first.
+    await userEvent.selectOptions(page.getByLabelText("Pitch *"), PITCH.id);
+
+    await commands.tap('button[type="submit"]');
+
+    const alert = page.getByRole("alert");
+    await expect
+      .element(alert)
+      .toHaveTextContent("Please score all six criteria before submitting.");
+    expect(unobscured(alert.element())).toEqual({
+      inViewport: true,
+      onTop: true,
+    });
+  });
+
+  // The second refusal carries the same message as the first, so nothing
+  // about the text changes; the banner still has to come back on screen.
+  it("shows the reason again when the same submission is refused twice", async () => {
+    await showForm();
+    await userEvent.selectOptions(page.getByLabelText("Pitch *"), PITCH.id);
+    await commands.tap('button[type="submit"]');
+    const alert = page.getByRole("alert");
+    await expect.element(alert).toBeVisible();
+
+    window.scrollTo(0, document.documentElement.scrollHeight);
+    await commands.tap('button[type="submit"]');
+
+    await expect
+      .poll(() => unobscured(alert.element()))
+      .toEqual({ inViewport: true, onTop: true });
   });
 });

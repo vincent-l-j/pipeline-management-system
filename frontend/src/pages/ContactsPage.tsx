@@ -220,7 +220,7 @@ export default function ContactsPage(): React.JSX.Element {
 
       {showAdd && canAdd && (
         <div className="mb-4 p-4 bg-navy-50 rounded-lg space-y-2">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <input
               type="text"
               value={form.first_name}

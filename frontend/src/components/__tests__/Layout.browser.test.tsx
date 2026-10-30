@@ -14,6 +14,7 @@ function renderLayout() {
     <MemoryRouter>
       <Layout>
         <p>Page content</p>
+        <button type="button">Page action</button>
       </Layout>
     </MemoryRouter>,
   );
@@ -92,5 +93,20 @@ describe("Layout in a browser at the 360px design floor", () => {
         .filter((item) => item.getBoundingClientRect().height < 44)
         .map((item) => item.textContent),
     ).toEqual([]);
+  });
+
+  // The setup file zeroes transitions; the drawer's own is put back here,
+  // because a visibility transition is exactly what can refuse the focus.
+  it("moves focus into the drawer as it starts to slide in", async () => {
+    renderLayout();
+    document
+      .getElementById("app-navigation")
+      ?.style.setProperty("transition-duration", "150ms", "important");
+
+    await openDrawer();
+
+    await expect
+      .element(page.getByRole("link", { name: /Dashboard/ }))
+      .toHaveFocus();
   });
 });

@@ -38,12 +38,22 @@ Tailwind 3, Vitest). Match the existing components.
   The dependency array itself is checked by `react-hooks/exhaustive-deps`.
 - Wrap page content in the shared `Layout` + `PageHeader`. `Layout` is the app
   shell: it owns the navigation drawer's open/closed state, the mobile app bar
-  and the backdrop, and positions the sidebar. `Sidebar` is presentational — it
+  and the backdrop, and positions the sidebar. While the drawer is open the
+  shell also owns focus: it moves focus in, wraps Tab inside the drawer, and
+  hands focus back to the menu toggle on every close route. `Sidebar` is
+  presentational — it
   renders the nav items and user block, and takes an `onNavigate` callback the
   shell uses to close the drawer on a destination choice. Navigation behaviour
   is tested at the shell seam (`components/__tests__/Layout.test.tsx`, plus
   `Layout.browser.test.tsx` for what only a browser can see); page tests replace
   `Layout` with a plain wrapper, so they never see the drawer.
+- **Every page renders its own `Layout`, so navigating remounts the shell.**
+  Anything the shell holds — drawer state, the element that has focus — is gone
+  on the next page. A shell test that wraps fixed children in one `Layout`
+  never navigates away from it and passes over that; render two page
+  components on two routes, as `renderPages` in the shell test does. Two routes
+  whose elements are both a bare `<Layout>` do not remount either: React keeps
+  an element of the same type in place.
 
 ## Routing
 
@@ -356,7 +366,12 @@ it depends on CSS — not by how important it is.
   `elementFromPoint` inset from the edges — hit-testing honours `border-radius`,
   so a probe in a rounded corner lands on whatever is behind it.
 - **Assert what renders, never how long it takes.** The setup file zeroes
-  transition and animation durations; no test should wait one out.
+  transition and animation durations; no test should wait one out. The
+  exception is a transition that is itself behaviour: transitioning
+  `visibility` from `hidden` starts at `hidden`, so a focus moved in on the same
+  frame is refused — and with durations zeroed the test passes over it. Put the
+  duration back on that one element (`style.setProperty(...,"important")`) in
+  the test that covers it.
 - A `scrollWidth` assertion measures one box's scrollable overflow, so be sure it
   is the box that can grow. `fixed` boxes contribute to nothing, which is why it
   cannot catch an over-wide drawer or modal; an `absolute` box contributes to its

@@ -85,7 +85,10 @@ useEffect(load, [load]);
   grandfathered under A5). The error state offers a retry that calls `load`
   again, and the empty state has copy, not a blank frame.
 - For optimistic updates (e.g. moving a Kanban card), update local state first,
-  fire the request, and **revert on failure** — see `KanbanBoard.handleDragEnd`.
+  fire the request, and **revert on failure** — see `pipeline/moveStage.ts`,
+  the one path behind the board's drag and right-click menu and the list
+  view's stage select. A second way to make the same change reuses it rather
+  than growing its own copy.
 
 ## Errors
 

@@ -81,4 +81,29 @@ describe("the pipeline on a 360px screen", () => {
 
     await expect.element(page.getByRole("table")).toBeVisible();
   });
+
+  it("gives every row's stage a control a finger can hit", async () => {
+    await showPipeline();
+
+    const controls = page.getByRole("combobox", { name: /^Stage of / }).all();
+    expect(controls).toHaveLength(PITCHES.length);
+    for (const control of controls) {
+      expectTappable(control.element());
+    }
+  });
+
+  it("does not overflow the viewport", async () => {
+    await showPipeline();
+
+    const root = document.documentElement;
+    expect(root.scrollWidth).toBeLessThanOrEqual(root.clientWidth);
+  });
 });
+
+/** Tall enough for a finger, and the topmost thing at its own centre. */
+function expectTappable(control: Element) {
+  const { left, top, width, height } = control.getBoundingClientRect();
+  expect(height).toBeGreaterThanOrEqual(44);
+  const hit = document.elementFromPoint(left + width / 2, top + height / 2);
+  expect(control === hit || control.contains(hit)).toBe(true);
+}

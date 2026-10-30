@@ -1,7 +1,8 @@
 /**
  * Pipeline page — the main view for managing pitches through stages.
  * Toggle between Kanban board and list view. Filter and sort pitches.
- * Drag cards between columns to move pitches through the pipeline.
+ * Drag cards between columns, or pick a stage in the list, to move pitches
+ * through the pipeline.
  * Pitches closed long ago are left off unless the URL asks for them.
  */
 
@@ -18,6 +19,7 @@ import {
   CLOSED_PITCH_HIDE_AFTER_DAYS,
   isLongClosed,
 } from "../components/pipeline/closedPitches";
+import { moveStage } from "../components/pipeline/moveStage";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api";
 import { Pitch, User } from "../types";
@@ -236,7 +238,16 @@ export default function PipelinePage(): React.JSX.Element {
           onPitchMoved={handlePitchMoved}
         />
       ) : (
-        <PipelineListView pitches={filteredPitches} />
+        <PipelineListView
+          pitches={filteredPitches}
+          onStageChange={
+            canEdit
+              ? (pitchId, fromStage, toStage) => {
+                  void moveStage(pitchId, fromStage, toStage, handlePitchMoved);
+                }
+              : undefined
+          }
+        />
       )}
     </Layout>
   );

@@ -37,6 +37,11 @@ interface ComboboxProps {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  /**
+   * Holds back the surrounding form while nothing is chosen. Blur reverts
+   * unchosen text to the selected label, so typed text alone never satisfies it.
+   */
+  required?: boolean;
   className?: string;
   /** Supplying this adds a final row that creates a new option. */
   onCreate?: (query: string) => void;
@@ -52,6 +57,7 @@ export default function Combobox({
   onChange,
   placeholder,
   disabled = false,
+  required = false,
   className,
   onCreate,
   createLabel = (query) => (query ? `Add "${query}"` : "Add new"),
@@ -167,6 +173,7 @@ export default function Combobox({
         }
         autoComplete="off"
         disabled={disabled}
+        required={required}
         value={text}
         placeholder={placeholder}
         className={inputClass}

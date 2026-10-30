@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/base:ubuntu24.04@sha256:4bcb1b466771b1ba1ea110e2a27daea2f6093f9527fb75ee59703ec89b5561cb
+FROM mcr.microsoft.com/devcontainers/base:ubuntu26.04@sha256:b1e3b08610ae0b2599f57c3a492eebc93d1d26dbaefb4a0bad0caa7149e4ec95
 
 # --- Install basic development tools and iptables/ipset ---
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -15,10 +15,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   iptables \
   dnsutils \
   aggregate \
-  # for the venv below; the base image's python3 is the 3.12 the backend runs,
-  # and python3-venv is a separate package from python3 on Ubuntu
-  python3-venv \
+  # Use the same fonts as in CI
+  fonts-dejavu-core \
+  fonts-dejavu-extra \
+  fonts-dejavu-mono \
+  fonts-lato \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# The base image has no Python; uv supplies the version the backend runs.
+COPY --from=ghcr.io/astral-sh/uv:0.13.6@sha256:af22a52f5eafef3d78e551599d405c02df61919d18028f0cea8eda93bc9986d0 /uv /usr/local/bin/uv
 
 ARG USERNAME=vscode
 
@@ -93,13 +98,17 @@ USER $USERNAME
 # resolver active before any lifecycle hook. The image build is host-side, on the
 # ordinary network.
 #
-# A venv because Ubuntu's interpreter is PEP 668 externally-managed; in $HOME
-# because the bind mount would mask anything baked under /workspace.
+# The interpreter is uv's standalone CPython. PYTHON_VERSION
+# must match backend/Dockerfile and ci.yml; verify-deps.sh checks. The venv is
+# in $HOME because the bind mount would mask anything baked under /workspace,
+# and is seeded with pip so a terminal `pip install` works as it always has.
 #
 # Only the requirements files are copied, so application edits do not invalidate
 # this layer — and it is why the build context is the repo root.
+ARG PYTHON_VERSION=3.12
 COPY --chown=$USERNAME:$USERNAME backend/requirements.txt backend/requirements-dev.txt /tmp/requirements/
-RUN python3 -m venv /home/$USERNAME/.venv && \
+RUN uv venv --seed --python-preference only-managed --python "$PYTHON_VERSION" \
+  /home/$USERNAME/.venv && \
   /home/$USERNAME/.venv/bin/pip install --no-cache-dir -r /tmp/requirements/requirements-dev.txt && \
   rm -rf /tmp/requirements
 

@@ -39,6 +39,17 @@ else
     echo "        Check remoteEnv PATH in devcontainer.json."
 fi
 
+# The base image's own python3 is a different minor; only the venv's is pinned.
+venv_minor=$("$VENV/bin/python" -c 'import sys; print("%d.%d" % sys.version_info[:2])' 2>/dev/null)
+backend_minor=$(sed -n 's/^FROM python:\([0-9]*\.[0-9]*\).*/\1/p' /workspace/backend/Dockerfile | head -n 1)
+if [ -n "$venv_minor" ] && [ "$venv_minor" = "$backend_minor" ]; then
+    pass "venv python $venv_minor matches backend/Dockerfile (python:$backend_minor)"
+else
+    bad "venv python is '${venv_minor:-missing}', backend/Dockerfile expects '${backend_minor:-?}'"
+    echo "        Update PYTHON_VERSION in .devcontainer/Dockerfile (and"
+    echo "        python-version in .github/workflows/ci.yml), then rebuild."
+fi
+
 # Three files pin this major independently; nothing else makes them agree.
 node_major=$(node --version 2>/dev/null | sed 's/^v\([0-9]*\).*/\1/')
 frontend_major=$(sed -n 's/^FROM node:\([0-9]*\).*/\1/p' /workspace/frontend/Dockerfile | head -n 1)
@@ -76,6 +87,18 @@ else
     echo "        The browser is baked into the image, not downloaded here."
     echo "        Rebuild the dev container; if it still fails, the playwright"
     echo "        version in frontend/package.json moved and the image is stale."
+fi
+
+# The browser suite never loads Inter, so its layout assertions measure text in
+# whatever `system-ui` resolves to. CI's runner resolves it to DejaVu Sans; any
+# other font here can pass a layout CI fails, or fail one CI passes.
+system_ui=$(fc-match -f '%{family[0]}' system-ui 2>/dev/null || true)
+if [ "$system_ui" = "DejaVu Sans" ]; then
+    pass "system-ui renders in DejaVu Sans, as on CI"
+else
+    bad "system-ui renders in '${system_ui:-nothing}', not DejaVu Sans as on CI"
+    echo "        Browser-test measurements here will not match CI's."
+    echo "        The fonts are baked into the image: rebuild the dev container."
 fi
 
 # Identity is not a credential, but without it every commit fails at the point of

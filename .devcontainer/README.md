@@ -154,10 +154,12 @@ cd backend && alembic upgrade head
 ```
 
 Python tooling (`pytest`, `ruff`, `alembic`, `uvicorn`) is baked into the `app` image
-at build time and lands in `/home/vscode/.venv`, which is first on `PATH`. Ubuntu's
-own interpreter is PEP 668 "externally managed", so a `pip install` outside that venv
-is refused — if you see `error: externally-managed-environment`, your shell has lost
-the venv rather than needing `--break-system-packages`. Check with `which pip`.
+at build time and lands in `/home/vscode/.venv`, which is first on `PATH`. Its
+interpreter is Python 3.12, the version the backend runs, installed by
+[uv](https://docs.astral.sh/uv/) as a standalone CPython build. The base image has no
+Python of its own, so the venv is the only one there is — if `python`, `pip` or
+`pytest` is `command not found`, your shell has lost the venv from `PATH`. Check
+with `which pip`.
 
 Node itself **is** baked in, pinned to the major `frontend/Dockerfile` and CI use. The
 node tooling on top of it (`eslint`, `tsc`, `prettier`, `vitest`) is not, and cannot
@@ -168,8 +170,16 @@ to do by hand.
 
 There is no `features` block in `devcontainer.json`. Two reasons: a feature's default
 version is not a pin, and features are layered on _after_ the Dockerfile, so no image
-build step can use the node they provide. Python needed no replacement when its
-feature went — the base image already ships the 3.12 the backend runs on.
+build step can use the node they provide. Python's replacement is the
+`PYTHON_VERSION` build arg, which `verify-deps.sh` checks against
+`backend/Dockerfile`.
+
+The base image tracks the Ubuntu release CI's `ubuntu-latest` runner is on, and
+installs the fonts that runner ships. The browser suite never loads Inter, so its
+layout assertions measure text in whatever `system-ui` resolves to — DejaVu Sans on
+CI. Without the same fonts here, a test can pass in the container and fail on CI by
+a pixel. `verify-deps.sh` fails if `system-ui` resolves to anything else. When
+GitHub moves `ubuntu-latest` to a new release, move the base image with it.
 
 `node_modules` lives in the bind-mounted workspace, so it persists on your machine
 between rebuilds — but `npm ci` deletes and repopulates it on every rebuild by design,

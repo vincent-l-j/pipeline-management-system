@@ -38,14 +38,18 @@ export default function ScoreSelector({
           </h4>
           <p className="text-xs text-navy-400">{criterion.description}</p>
         </div>
-        {value && (
+        {value ? (
           <span className="text-xs font-medium text-navy-500 shrink-0 ml-4">
             {value}/5 — {SCORE_LABELS[value]}
           </span>
-        )}
+        ) : null}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div
+        role="group"
+        aria-label={criterion.label}
+        className="flex items-center gap-2"
+      >
         {scores.map((score) => (
           <button
             key={score}
@@ -55,7 +59,7 @@ export default function ScoreSelector({
               if (!readOnly) onChange?.(score);
             }}
             className={`
-              w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold
+              size-11 shrink-0 md:size-10 rounded-full flex items-center justify-center text-sm font-bold
               transition-all duration-150
               ${
                 value && value >= score
@@ -72,8 +76,11 @@ export default function ScoreSelector({
           </button>
         ))}
 
-        {/* Score bar visual */}
-        <div className="flex-1 ml-2 h-2 bg-navy-100 rounded-full overflow-hidden">
+        {/* Below md it would crowd the circles, and the score is printed above. */}
+        <div
+          data-testid="score-bar"
+          className="hidden md:block flex-1 ml-2 h-2 bg-navy-100 rounded-full overflow-hidden"
+        >
           <div
             className={`h-full rounded-full transition-all duration-300 ${value ? getScoreColor(value) : ""}`}
             style={{ width: value ? `${String((value / 5) * 100)}%` : "0%" }}

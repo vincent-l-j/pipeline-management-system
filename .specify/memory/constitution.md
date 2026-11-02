@@ -73,8 +73,9 @@ command listed in one place and runnable with no hidden arguments. The command a
 runs locally is the same command CI runs. If a new contributor cannot list every command in
 30 seconds, the interface is broken.
 
-**How To Apply**: `services.yaml` is the one place. A plan that adds a repeatable action adds
-its command there, and CI invokes that same command rather than an inline shell equivalent.
+**How To Apply**: The project keeps one command registry, named in `AGENTS.md`. A plan that
+adds a repeatable action adds its command there, and CI invokes that same command rather than
+an inline shell equivalent.
 Grandfathered: CI runs the frontend unit suite inside a container build target while the
 local command runs it directly; closing that gap is the paydown.
 
@@ -292,4 +293,4 @@ signal that never pages usefully is deleted rather than muted.
   it is paid down, or clarifying wording, is PATCH.
 - Amendments land in a focused PR that states the motivation.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-23 | **Last Amended**: 2026-10-23
+**Version**: 1.0.1 | **Ratified**: 2026-10-23 | **Last Amended**: 2026-11-02

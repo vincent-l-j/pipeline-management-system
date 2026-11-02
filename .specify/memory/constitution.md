@@ -273,9 +273,9 @@ user-visible symptom teaches people to ignore alerts, including the one that mat
 **Rule**: Every alert corresponds to a user-visible symptom and a runbook. Dashboards are saved
 queries, not decoration. Delete signals that have not fired a useful page in 90 days.
 
-**How To Apply**: A plan that adds an alert names the user-visible symptom and adds its runbook
-under `sop/`. Routine signals such as health probes stay out of the default log level. A
-signal that never pages usefully is deleted rather than muted.
+**How To Apply**: A plan that adds an alert names the user-visible symptom and adds its runbook.
+Routine signals such as health probes stay out of the default log level. A signal that never
+pages usefully is deleted rather than muted.
 
 ## Governance
 
@@ -293,4 +293,4 @@ signal that never pages usefully is deleted rather than muted.
   it is paid down, or clarifying wording, is PATCH.
 - Amendments land in a focused PR that states the motivation.
 
-**Version**: 1.0.1 | **Ratified**: 2026-10-23 | **Last Amended**: 2026-11-02
+**Version**: 1.0.2 | **Ratified**: 2026-10-23 | **Last Amended**: 2026-11-02

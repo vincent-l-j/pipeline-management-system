@@ -162,7 +162,6 @@ jobs:
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
       - run: npm run test:browser
-        working-directory: frontend
 
   # The backend suite runs against a real Postgres, built by the migrations. It
   # used to run inside `docker build --target test` on in-memory SQLite, which
@@ -198,8 +197,7 @@ jobs:
       - run: pip install -r requirements.txt -r requirements-dev.txt
         working-directory: backend
       # tests/migrations runs in its own job, against its own database.
-      - run: pytest --ignore=tests/migrations
-        working-directory: backend
+      - run: npm run test:backend:app
         env:
           APP_TEST_DATABASE_URL: postgresql://pms:pms@localhost:5432/pms_app_test
 
@@ -238,7 +236,6 @@ jobs:
       # Scoped by path, not by `-m migrations`: the marker is applied module-wide
       # and selects the same tests, so the flag only added a string that silently
       # empties the selection when it is misspelled.
-      - run: pytest tests/migrations
-        working-directory: backend
+      - run: npm run test:migrations
         env:
           TEST_DATABASE_URL: postgresql://pms:pms@localhost:5432/pms_migrations_test

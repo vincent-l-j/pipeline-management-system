@@ -1,4 +1,4 @@
-// Regenerates the PWA icons in frontend/public/icons (services.yaml: generate-icons).
+// Regenerates the PWA icons in frontend/public/icons (`npm run generate:icons`).
 // The mark is drawn from its geometry rather than cropped out of the Rozetta
 // wordmark: the only copy of the wordmark is 191px across, and an upscale to
 // 512 would be visibly soft. This reproduces 99.6% of the original's pixels.

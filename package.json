@@ -4,6 +4,18 @@
     "prettier": "3.9.6"
   },
   "scripts": {
+    "setup": "npm install && (cd backend && pip install -r requirements-dev.txt) && npm install --prefix frontend",
+    "build": "npm run build --prefix frontend",
+    "test": "npm run test:backend && npm run test:frontend && npm run test:browser",
+    "test:backend": "cd backend && pytest",
+    "test:backend:app": "cd backend && pytest --ignore=tests/migrations",
+    "test:migrations": "cd backend && pytest tests/migrations",
+    "test:frontend": "npm test --prefix frontend",
+    "test:browser": "npm run test:browser --prefix frontend",
+    "migrate": "cd backend && alembic upgrade head",
+    "generate:migration": "cd backend && alembic revision --autogenerate -m",
+    "generate:icons": "node scripts/generate-icons.mjs",
+    "readiness": "curl -sf http://localhost:8000/api/health/ready",
     "format": "npm run format:prettier && npm run format:ruff",
     "format:check": "npm run format:prettier:check && npm run format:ruff:check",
     "format:prettier": "prettier --write .",

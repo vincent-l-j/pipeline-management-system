@@ -250,6 +250,11 @@ image build downloads it host-side, reading the version from `frontend/package.j
 so the two cannot drift. Bumping `playwright` there therefore needs a rebuild, and
 `verify-deps.sh` fails postCreate if the browser will not launch.
 
+`gh` comes from Ubuntu's archive, and the `gh stack` extension
+([github/gh-stack](https://github.com/github/gh-stack)) is baked in on top of it,
+pinned by `GH_STACK_VERSION` and per-arch digests in the Dockerfile. Because it is
+pinned, `gh extension upgrade stack` refuses; bump the build args and rebuild instead.
+
 `npm ci` rather than `npm install` in postCreate, deliberately: it installs exactly the
 lockfile and fails when the lockfile and `package.json` disagree, instead of quietly
 resolving something neither of them pinned. It also runs package install hooks, which

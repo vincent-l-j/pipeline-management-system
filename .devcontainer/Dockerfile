@@ -112,6 +112,29 @@ RUN uv venv --seed --python-preference only-managed --python "$PYTHON_VERSION" \
   /home/$USERNAME/.venv/bin/pip install --no-cache-dir -r /tmp/requirements/requirements-dev.txt && \
   rm -rf /tmp/requirements
 
+# --- gh-stack, the `gh stack` extension ----------------------------------
+# Not bundled with gh, and `gh extension install` needs a token the build does
+# not have, so this places the release binary and the manifest gh would write.
+# Pinned, which also keeps gh-stack's update notifier quiet: bump the tag and
+# both digests (the release API's asset `digest`) to upgrade.
+ARG GH_STACK_VERSION=v0.3.0
+ARG GH_STACK_SHA256_AMD64=957e822cfa7e435cd84a297cd96c419b58e51e3ac58be249762c24bd9e45099b
+ARG GH_STACK_SHA256_ARM64=803ec91eeba9b2ac38827e299a79830fe75ca7284f0c28d60e6a2704bb34ed13
+RUN case "$(dpkg --print-architecture)" in \
+  amd64) GH_STACK_ARCH=amd64 GH_STACK_SHA256="$GH_STACK_SHA256_AMD64" ;; \
+  arm64) GH_STACK_ARCH=arm64 GH_STACK_SHA256="$GH_STACK_SHA256_ARM64" ;; \
+  *) echo "unsupported architecture: $(dpkg --print-architecture)" >&2; exit 1 ;; \
+  esac && \
+  GH_STACK_DIR="/home/$USERNAME/.local/share/gh/extensions/gh-stack" && \
+  mkdir -p "$GH_STACK_DIR" && \
+  curl -fsSL -o "$GH_STACK_DIR/gh-stack" \
+  "https://github.com/github/gh-stack/releases/download/$GH_STACK_VERSION/linux-$GH_STACK_ARCH" && \
+  echo "$GH_STACK_SHA256  $GH_STACK_DIR/gh-stack" | sha256sum -c - && \
+  chmod +x "$GH_STACK_DIR/gh-stack" && \
+  printf 'owner: github\nname: gh-stack\nhost: github.com\ntag: %s\nispinned: true\npath: %s\n' \
+  "$GH_STACK_VERSION" "$GH_STACK_DIR/gh-stack" > "$GH_STACK_DIR/manifest.yml" && \
+  gh stack --version
+
 # --- Chromium for the frontend's real-browser test suite -----------------
 # The Playwright version is read from frontend/package.json
 USER root

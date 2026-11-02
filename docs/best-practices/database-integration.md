@@ -101,7 +101,7 @@ The frontend never talks to the database, and never constructs URLs beyond the
   keep mock payloads faithful to the real `*Out` schema — a drifted mock hides
   integration breaks.
 - **End-to-end**: the feature spec's acceptance scenarios are verified on the
-  running stack (`services.yaml` brings it up; health at
+  running stack (`docker compose up --build` brings it up; health at
   `/api/health`). That's the layer that catches proxy/CORS/field-name mismatches
   the unit tests can't.
 

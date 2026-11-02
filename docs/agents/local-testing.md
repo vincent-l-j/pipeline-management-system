@@ -65,8 +65,11 @@ the admin nav — silently disappears. That looks exactly like an authorization 
 
 ## The browser
 
-The image bakes in a Chromium for `npm run test:browser` — `services.yaml` has the
-why and the rebuild caveat. Drive that same one through
+The image bakes in a Chromium for `npm run test:browser`, because `cdn.playwright.dev`
+isn't allowlisted and `playwright install` can't reach it from in here.
+`.devcontainer/verify-deps.sh` launches it on rebuild, so a container that came up
+green has a working browser; bumping `playwright` in `frontend/package.json` needs a
+rebuild. Drive that same one through
 `frontend/node_modules/playwright`; nothing needs installing.
 
 Two things that cost a session each:

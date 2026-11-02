@@ -2,8 +2,8 @@
 
 Boundaries and coding conventions for anyone changing this codebase. Read this
 before implementing a feature. Each feature's spec, plan and tasks live under
-`specs/<feature>/` (see `methodology.md`); build/run/test commands are in
-`services.yaml`.
+`specs/<feature>/` (see `methodology.md`); build/run/test commands are
+the root `package.json` scripts (`npm run` lists them).
 
 The [constitution](.specify/memory/constitution.md) governs principles, and the
 Spec Kit commands check every plan against it. This file, `CLAUDE.md` and
@@ -166,14 +166,14 @@ preferred.
 
 ## Definition of Done (per feature)
 
-- Tests written first and passing (`services.yaml` → `test-backend` / `test-frontend`).
+- Tests written first and passing (`npm run test:backend` / `npm run test:frontend`).
   A bug fix's test follows C3.
 - Every acceptance scenario in the feature's spec is observably satisfied on the
   running stack — observed by using the app, not inferred from a passing test.
 - Server-side authorization verified for any restricted action (not just hidden UI).
 - No new lint/secret/boundary violations.
-- Any new repeatable command is added to `services.yaml`, and CI invokes that same
-  command (C4).
+- Any new repeatable command is added as a root `package.json` script, and CI
+  invokes it with `npm run` (C4).
 - The plan's Constitution Check states how the change is reverted (C5).
 - Someone other than the implementer has confirmed it correct, as `methodology.md`
   ("No self-validation") describes.

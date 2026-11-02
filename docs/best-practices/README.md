@@ -64,4 +64,4 @@ definitions). Only the anchoring examples need maintenance.
 
 The same "fix it in the same change / code-wins" spirit applies to the
 implementation-anchored parts of the workflow docs (the checks in a feature's
-`tasks.md`, `services.yaml` commands).
+`tasks.md`, the root `package.json` scripts).

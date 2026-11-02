@@ -7,13 +7,13 @@ into a rule.
 Each fact has one owner, and this document points at the others rather than
 repeating them:
 
-| Owner                                                                | Holds                                                    |
-| -------------------------------------------------------------------- | -------------------------------------------------------- |
-| [`.specify/memory/constitution.md`](.specify/memory/constitution.md) | Principles every plan and diff is checked against, by id |
-| [`AGENTS.md`](AGENTS.md)                                             | Boundaries, coding conventions, version control          |
-| [`docs/best-practices/`](docs/best-practices/README.md)              | Rules learned in practice, one file per topic            |
-| [`services.yaml`](services.yaml)                                     | Every build, test, lint and run command                  |
-| `specs/<feature>/`                                                   | One feature's spec, plan and tasks                       |
+| Owner                                                                | Holds                                                          |
+| -------------------------------------------------------------------- | -------------------------------------------------------------- |
+| [`.specify/memory/constitution.md`](.specify/memory/constitution.md) | Principles every plan and diff is checked against, by id       |
+| [`AGENTS.md`](AGENTS.md)                                             | Boundaries, coding conventions, version control                |
+| [`docs/best-practices/`](docs/best-practices/README.md)              | Rules learned in practice, one file per topic                  |
+| [`package.json`](package.json) `scripts`                             | Every build, test, lint and run command (`npm run` lists them) |
+| `specs/<feature>/`                                                   | One feature's spec, plan and tasks                             |
 
 ## Design principles
 
@@ -32,7 +32,7 @@ implementation already in mind.
 
 **State lives in files.** No one holds the whole picture. A feature's state is its
 `specs/<feature>/` directory, the conventions are in `AGENTS.md`, the commands are
-in `services.yaml`, and the rules are in `docs/best-practices/`. A fresh session
+the root `package.json` scripts, and the rules are in `docs/best-practices/`. A fresh session
 reads only what its job needs and can pick the work up from there.
 
 **Drain, don't grow.** No file is an append-only log. A file that only grows is
@@ -117,7 +117,7 @@ expressed as a check is enforced by the build. So every rule has a ladder to cli
    imported outside `adapters/`"). Still run by a reader, but no longer a matter of
    taste.
 3. **Automated check** — a lint rule, a type constraint, a test, or a script wired
-   into `services.yaml`. Runs on every change, costs nothing to apply, cannot be
+   into the root `package.json` scripts. Runs on every change, costs nothing to apply, cannot be
    forgotten.
 
 **When a rule reaches step 3, delete it from `docs/best-practices/`** and move its

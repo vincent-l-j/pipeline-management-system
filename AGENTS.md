@@ -2,8 +2,9 @@
 
 Boundaries and coding conventions for anyone changing this codebase. Read this
 before implementing a feature. Each feature's spec, plan and tasks live under
-`specs/<feature>/` (see `methodology.md`); build/run/test commands are
-the root `package.json` scripts (`npm run` lists them).
+`specs/<feature>/` (see `methodology.md`). The command registry C4 refers to is
+the `scripts` in the root `package.json`: every build, run and test command, listed
+by `npm run`.
 
 The [constitution](.specify/memory/constitution.md) governs principles, and the
 Spec Kit commands check every plan against it. This file, `CLAUDE.md` and

@@ -80,7 +80,19 @@ restrain a sibling container that shares its bind mounts. See
 Start it with `docker compose up --build`, then apply the schema once with
 `docker compose run --rm backend alembic upgrade head` (see **Backend** above — nothing
 creates tables automatically). Frontend on `:5173`, API on `:8000/api`, Swagger on `:8000/docs`.
-Add `--profile objectstore` to that first command when you need attachments.
+Add `--profile objectstore` to that first command when you need attachments, or start just the
+object store with `docker compose --profile objectstore up -d minio minio-bucket` — both named,
+since naming a profiled service is what enables its profile and the bucket initialiser must run.
+
+| Service    | Port | Healthcheck (from the host)                                      |
+| ---------- | ---- | ---------------------------------------------------------------- |
+| `db`       | 5432 | `docker compose exec -T db pg_isready -U rozetta -d rozetta_pms` |
+| `backend`  | 8000 | `curl -sf http://localhost:8000/api/health`                      |
+| `frontend` | 5173 | `curl -sf http://localhost:5173`                                 |
+| `minio`    | 9000 | `curl -sf http://localhost:9000/minio/health/live`               |
+
+Inside the devcontainer `appnet` is internal and there is no Docker CLI: the stack is already
+running as siblings, so reach each service by name instead (`http://backend:8000/api/health`).
 
 ---
 
@@ -166,8 +178,8 @@ suite needs a Postgres, and `RUN pytest` in a build stage cannot reach one.
   files, not Node — no need to ship `node_modules` or source.
 
 CI (`.github/workflows/ci.yml`) runs `docker build --target test` and `--target build` for the
-frontend (running the jsdom suite in a build target rather than through `services.yaml`'s
-`test-frontend` is grandfathered under C4 in the
+frontend (running the jsdom suite in a build target rather than through
+`npm run test:frontend` is grandfathered under C4 in the
 [constitution](../.specify/memory/constitution.md)), and `--target dev` for the backend, on every pull request. The backend suite runs in
 a job of its own with a `postgres:16` service rather than inside a build stage — it needs a
 real database, which a build stage cannot reach — and the migration tests run in a second such

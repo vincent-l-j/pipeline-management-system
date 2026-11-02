@@ -128,9 +128,8 @@ on startup. Every environment applies migrations before release — in productio
 `PRE_DEPLOY` `migrate` job runs `alembic upgrade head`; locally:
 
 ```bash
-cd backend
-alembic revision --autogenerate -m "your message"   # after changing models
-alembic upgrade head
+npm run generate:migration -- "your message"   # after changing models
+npm run migrate
 ```
 
 See [`sop/db-change.md`](./sop/db-change.md) for the full schema-change runbook.
@@ -298,8 +297,8 @@ red check skips the deploy rather than being reported alongside it.
 
 The `db` service has to be up — `docker compose up -d db` if it isn't.
 
-The named command is `test-backend` in `services.yaml` (`cd backend && pytest`). Two ways to
-run it:
+The named command is `npm run test:backend` (`cd backend && pytest`); CI runs it split in two,
+as `test:backend:app` and `test:migrations`. Two ways to run it:
 
 ```bash
 # In a container (parity with prod — recommended):
@@ -330,13 +329,16 @@ With the stack running:
 # Health check should return {"status": "ok", "app": "Rozetta PMS"}
 curl http://localhost:8000/api/health
 
+# Readiness also checks the database
+npm run readiness
+
 # Explore and exercise endpoints interactively
 open http://localhost:8000/docs
 ```
 
 ### Running the frontend tests
 
-The named command is `test-frontend` in `services.yaml` (`cd frontend && npm test`). CI still
+The named command is `npm run test:frontend` (`cd frontend && npm test`). CI still
 runs the same suite inside a container build target instead:
 
 ```bash

@@ -16,7 +16,7 @@ How it ranks against this file and the other docs is at the top of
 
 ## Commands
 
-Canonical commands live in `services.yaml`. In short:
+Canonical commands are the root `package.json` scripts — `npm run` lists them. In short:
 
 | Task                   | Command                                                                   |
 | ---------------------- | ------------------------------------------------------------------------- |
@@ -69,7 +69,7 @@ artifacts are:
 - **`specs/<feature>/plan.md`, `tasks.md`** — the design, its Constitution Check,
   and the dependency-ordered tasks, each story with its independent test.
 - **`AGENTS.md`** — boundaries + coding conventions. Read before editing.
-- **`services.yaml`** — build/run/test commands and services.
+- **`package.json`** (root) — build/run/test commands, as `scripts`.
 - **`sop/`** — Standard Operating Procedures: runbooks for database bootstrap
   (`db-bootstrap.md`), schema changes (`db-change.md`), and tooling (`bin/db.sh`).
   See `sop/instances/rozetta-pms.md` for app-specific values.

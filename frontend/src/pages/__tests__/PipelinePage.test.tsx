@@ -9,6 +9,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import PipelinePage from "../PipelinePage";
+import { MD_MIN_WIDTH_PX } from "../../breakpoints";
 import { PIPELINE_STAGES } from "../../components/pipeline/PipelineConfig";
 import { AuthProvider } from "../../contexts/AuthContext";
 import { createApiMocks } from "../../test/mocks/api";
@@ -266,7 +267,7 @@ describe("PipelinePage loading states", () => {
 
 describe("PipelinePage's opening view", () => {
   it("opens on the list below the medium breakpoint", async () => {
-    onScreen(767);
+    onScreen(MD_MIN_WIDTH_PX - 1);
     renderPage();
 
     expect(await screen.findByRole("table")).toBeInTheDocument();
@@ -277,7 +278,7 @@ describe("PipelinePage's opening view", () => {
   });
 
   it("opens on the board at the medium breakpoint", async () => {
-    onScreen(768);
+    onScreen(MD_MIN_WIDTH_PX);
     renderPage();
 
     await screen.findByText("Recently declined");

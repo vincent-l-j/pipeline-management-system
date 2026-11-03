@@ -20,6 +20,7 @@ import {
   isLongClosed,
 } from "../components/pipeline/closedPitches";
 import { moveStage } from "../components/pipeline/moveStage";
+import { MD_MIN_WIDTH_PX } from "../breakpoints";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api";
 import { Pitch, User } from "../types";
@@ -28,11 +29,10 @@ const REQUEST_TIMEOUT_MS = 15_000;
 
 type View = "kanban" | "list";
 
-// Below `md` there is no drag and no right-click, so a phone opens on the list,
-// where a stage can be changed by tap. Only the opening view: a reader who picks
-// the board keeps it.
 function openingView(): View {
-  return window.matchMedia("(max-width: 767px)").matches ? "list" : "kanban";
+  return window.matchMedia(`(min-width: ${String(MD_MIN_WIDTH_PX)}px)`).matches
+    ? "kanban"
+    : "list";
 }
 
 export default function PipelinePage(): React.JSX.Element {

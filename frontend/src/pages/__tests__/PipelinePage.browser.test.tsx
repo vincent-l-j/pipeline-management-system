@@ -2,6 +2,7 @@ import { page, userEvent } from "vitest/browser";
 import { cleanup, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import PipelinePage from "../PipelinePage";
+import { MD_MIN_WIDTH_PX } from "../../breakpoints";
 import { AuthProvider } from "../../contexts/AuthContext";
 import { createApiMocks } from "../../test/mocks/api";
 
@@ -84,7 +85,7 @@ async function showPipeline() {
 
 describe("the pipeline on a 360px screen", () => {
   it("runs below the md breakpoint", () => {
-    expect(window.innerWidth).toBeLessThan(768);
+    expect(window.innerWidth).toBeLessThan(MD_MIN_WIDTH_PX);
   });
 
   it("opens on the list", async () => {

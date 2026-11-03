@@ -2,6 +2,7 @@ import { page } from "vitest/browser";
 import { cleanup, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import PipelinePage from "../PipelinePage";
+import { MD_MIN_WIDTH_PX } from "../../breakpoints";
 import { AuthProvider } from "../../contexts/AuthContext";
 import { createApiMocks } from "../../test/mocks/api";
 
@@ -42,7 +43,7 @@ afterEach(() => {
 
 describe("the pipeline at and above the md breakpoint", () => {
   it("runs at a width md applies at", () => {
-    expect(window.innerWidth).toBeGreaterThanOrEqual(768);
+    expect(window.innerWidth).toBeGreaterThanOrEqual(MD_MIN_WIDTH_PX);
   });
 
   it("opens on the board", async () => {

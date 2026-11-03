@@ -51,8 +51,10 @@ beforeEach(() => {
   );
 });
 
-afterEach(() => {
+afterEach(async () => {
   cleanup();
+  // Media emulation outlives the test that set it; the page is file-wide.
+  await commands.emulateMedia("screen");
   window.scrollTo(0, 0);
 });
 
@@ -69,6 +71,8 @@ async function showForm() {
   await expect.element(page.getByLabelText("Linked Pitch *")).toBeVisible();
   await apiMocks.get.mock.mock.results[0]?.value;
 }
+
+const saveButton = () => page.getByRole("button", { name: "Save Meeting" });
 
 /** Taps by accessible name: the row is found as a user finds it, then touched. */
 async function tapOption(name: string) {
@@ -114,6 +118,20 @@ describe("logging a meeting on a 360px screen", () => {
     expect(right).toBeLessThanOrEqual(window.innerWidth);
   });
 
+  it("shows the save action before the form has been scrolled at all", async () => {
+    await showForm();
+    // Without a form taller than the screen there is nothing to pin.
+    expect(document.documentElement.scrollHeight).toBeGreaterThan(
+      window.innerHeight,
+    );
+
+    const { top, bottom } = saveButton().element().getBoundingClientRect();
+
+    expect(window.scrollY).toBe(0);
+    expect(top).toBeGreaterThanOrEqual(0);
+    expect(bottom).toBeLessThanOrEqual(window.innerHeight);
+  });
+
   it("logs a meeting by touch, finding its pitch by typing", async () => {
     apiMocks.post.mockResolvedValue({ data: { id: "m1" } });
     await showForm();
@@ -132,5 +150,14 @@ describe("logging a meeting on a 360px screen", () => {
       "/meetings",
       expect.objectContaining({ title: "Discovery call", pitch_id: "p2" }),
     );
+  });
+
+  it("does not print the save bar", async () => {
+    await showForm();
+    const bar = page.getByTestId("save-bar").element();
+
+    await commands.emulateMedia("print");
+
+    expect(bar.checkVisibility()).toBe(false);
   });
 });

@@ -207,8 +207,9 @@ whoever inserts the next test.
   - It has to be the form's last child, or it floats over whatever follows.
     `AssessmentCreatePage` ends with an explanatory `<p>` after its actions,
     which has to move above them before that form can adopt it.
-  - **`PitchCreatePage` and `PitchEditPage` use it**; the assessment and meeting
-    forms still carry bare action rows and are the ones to convert next.
+  - **`PitchCreatePage`, `PitchEditPage` and `MeetingCreatePage` use it**;
+    the assessment form and the meeting detail page's edit form still carry
+    bare action rows and are the ones to convert next.
 - **A grid of form inputs stacks to one column at phone width** and takes its
   columns only from a breakpoint up. Side by side at 360px, a date input or
   select is too narrow to use. Read-only value grids and stat tiles have no
@@ -416,7 +417,6 @@ emulator when touching the component named.
 | `Combobox`        | With the soft keyboard up, open a list longer than the space above it and scroll to the last row             | Android, any phone size                            | The list is reachable and scrolls; it is not rendered behind the keyboard                                                                                                                                             |
 | `TableScroll`     | Print a list page (pitches, contacts, organisations, assessments, meetings, reports, admin, pipeline) to PDF | Desktop Chrome                                     | Every page prints exactly as it did before the table gained its scroll container                                                                                                                                      |
 | `SaveBar`         | Open a form that uses it and look at the pinned bar                                                          | iOS Simulator, or the **installed** app on Android | The buttons clear the gesture bar. An ordinary Android tab reports the inset as 0 — only the installed edge-to-edge window exposes one, so a browser tab is a false pass. Headless Chromium reports 0 at any viewport |
-| `SaveBar`         | Look at the row of buttons at the foot of a form that uses it                                                | Desktop Chrome, ≥768px                             | A plain row of buttons: no rule above it, no grey band, not pinned, and the gap above it matches the gaps between the form's fields. The desktop instance could cover this; no `*.desktop.browser.test.tsx` does yet  |
 | `PitchCreatePage` | Create a pitch against the running stack, raising the soft keyboard for every field it has                   | A real phone, or the Android emulator              | Nothing the keyboard covers is unreachable; the browser suite already drives the same flow by tap, but has no keyboard to raise                                                                                       |
 | `PitchFormFields` | Widen the window across the `sm` boundary on the new-pitch page                                              | Desktop Chrome, 600px → 700px                      | The paired fields go from one column to two _at 640px_, and the page at `md` and up looks as it did before the mobile work. Both sides of the boundary are covered by an instance; the pixel it flips on is not       |
 

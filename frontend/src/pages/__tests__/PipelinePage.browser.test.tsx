@@ -130,7 +130,6 @@ describe("the pipeline on a 360px screen", () => {
       page.getByRole("button", { name: "Clear filters" }).element(),
       page.getByRole("button", { name: "Show old pitches" }).element(),
     ];
-    // Five filter and sort selects, then the five buttons and links.
     expect(controls).toHaveLength(10);
     for (const control of controls) {
       const { left, right } = control.getBoundingClientRect();

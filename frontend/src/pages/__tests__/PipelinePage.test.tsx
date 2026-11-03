@@ -264,8 +264,6 @@ describe("PipelinePage loading states", () => {
   });
 });
 
-// A phone can neither drag a card nor right-click one, so it opens on the list,
-// where a stage can be changed by tap.
 describe("PipelinePage's opening view", () => {
   it("opens on the list below the medium breakpoint", async () => {
     onScreen(767);
@@ -303,8 +301,6 @@ describe("PipelinePage's opening view", () => {
   });
 });
 
-// The list's stage control is how a stage changes on a touchscreen, so it shares
-// the board's optimistic move: shown at once, put back if the request fails.
 describe("PipelinePage changes a stage from the list", () => {
   function stageOf(title: string): HTMLSelectElement {
     return screen.getByRole("combobox", { name: `Stage of ${title}` });

@@ -1,9 +1,4 @@
-/**
- * Table/list view of the pipeline — an alternative to the Kanban board.
- * Shows all pitches in a sortable, filterable table.
- * Given onStageChange, each row's stage is a native select: the touchscreen
- * path to a stage change, where the board's drag and right-click don't exist.
- */
+// The pipeline as a table, the alternative to the Kanban board.
 
 import {
   PIPELINE_STAGES,
@@ -107,7 +102,7 @@ export default function PipelineListView({
                           {stage.label}
                         </span>
                       )}
-                      {/* Under the badge rather than in a column of its own, which
+                      {/* Under the stage rather than in a column of its own, which
                         would be empty on every row that is not declined. */}
                       {pitch.decline_reason && (
                         <p className="text-[11px] text-red-600 mt-1">

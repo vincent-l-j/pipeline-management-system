@@ -1,9 +1,3 @@
-/**
- * The pipeline's one stage-change path, shared by the board's drag-and-drop and
- * right-click menu and the list view's stage picker: move the pitch at once,
- * persist the change, and move it back if the request fails.
- */
-
 import api from "../../services/api";
 
 export async function moveStage(

@@ -27,6 +27,15 @@ const PITCHES = [
   },
 ];
 
+/** Every field the form lays out in a grid on a wide screen. */
+const GRID_FIELDS = [
+  "Date *",
+  "Time",
+  "Platform",
+  "Follow-up Date",
+  "Recording Link",
+];
+
 // See PitchCreatePage.browser.test.tsx: the page settles outside act().
 beforeAll(() => {
   (
@@ -78,6 +87,18 @@ describe("logging a meeting on a 360px screen", () => {
     const root = document.documentElement;
     expect(root.scrollWidth).toBeLessThanOrEqual(root.clientWidth);
     expect(document.body.scrollWidth).toBeLessThanOrEqual(root.clientWidth);
+  });
+
+  // Wider than half the viewport is what a field cannot be while a second
+  // column sits beside it, which is the squeeze the collapse exists to undo.
+  it.each(GRID_FIELDS)("gives %s a column to itself", async (label) => {
+    await showForm();
+
+    const field = page.getByLabelText(label).element();
+
+    expect(field.getBoundingClientRect().width).toBeGreaterThan(
+      window.innerWidth / 2,
+    );
   });
 
   it("keeps a long pitch title inside the screen while choosing it", async () => {

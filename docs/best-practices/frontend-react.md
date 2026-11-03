@@ -210,8 +210,9 @@ whoever inserts the next test.
   - **`PitchCreatePage` and `PitchEditPage` use it**; the assessment and meeting
     forms still carry bare action rows and are the ones to convert next.
 - **A field grid needs a single-column state.** Two columns at 360px leave each
-  field about 156px, which no date input or select can use. Write
-  `grid-cols-1 sm:grid-cols-2`, not `grid-cols-2`.
+  field about 156px, which no date input or select can use, and three leave
+  about 100px. Write `grid-cols-1 sm:grid-cols-2` (or `sm:grid-cols-3`), not a
+  bare `grid-cols-2`.
 
 ## Unit tests (Vitest + React Testing Library)
 

@@ -269,13 +269,11 @@ describe("pages with a table, on a 360px screen", () => {
   );
 });
 
-// The pipeline opens on the board, so its table sits behind the list toggle.
-// Only the table is this ticket's business: the board itself, and the stage
-// control the list needs on a touchscreen, belong to the pipeline's own slice.
+// The pipeline opens on its list at this width. Only the table is this file's
+// business; the rest of the page is covered beside PipelinePage.
 describe("the pipeline list, on a 360px screen", () => {
   it("lets a reader scroll its table sideways", async () => {
     await show(<PipelinePage />, PITCH.title);
-    await userEvent.click(page.getByRole("button", { name: "List" }));
     const container = page.getByTestId("table-scroll").element();
     container.id = "pipeline-table";
 
@@ -286,8 +284,6 @@ describe("the pipeline list, on a 360px screen", () => {
 
   it("does not overflow the viewport", async () => {
     await show(<PipelinePage />, PITCH.title);
-
-    await userEvent.click(page.getByRole("button", { name: "List" }));
 
     expect(viewportOverflow()).toBeLessThanOrEqual(0);
   });

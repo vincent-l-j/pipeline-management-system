@@ -1,7 +1,8 @@
 /**
  * Pipeline page — the main view for managing pitches through stages.
  * Toggle between Kanban board and list view. Filter and sort pitches.
- * Drag cards between columns to move pitches through the pipeline.
+ * Drag cards between columns, or pick a stage in the list, to move pitches
+ * through the pipeline.
  * Pitches closed long ago are left off unless the URL asks for them.
  */
 
@@ -18,11 +19,21 @@ import {
   CLOSED_PITCH_HIDE_AFTER_DAYS,
   isLongClosed,
 } from "../components/pipeline/closedPitches";
+import { moveStage } from "../components/pipeline/moveStage";
+import { MD_MIN_WIDTH_PX } from "../breakpoints";
 import { useAuth } from "../contexts/AuthContext";
 import api from "../services/api";
 import { Pitch, User } from "../types";
 
 const REQUEST_TIMEOUT_MS = 15_000;
+
+type View = "kanban" | "list";
+
+function openingView(): View {
+  return window.matchMedia(`(min-width: ${String(MD_MIN_WIDTH_PX)}px)`).matches
+    ? "kanban"
+    : "list";
+}
 
 export default function PipelinePage(): React.JSX.Element {
   const { user } = useAuth();
@@ -33,7 +44,7 @@ export default function PipelinePage(): React.JSX.Element {
   const [failed, setFailed] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const showClosed = searchParams.get("closed") === "show";
-  const [view, setView] = useState<"kanban" | "list">("kanban");
+  const [view, setView] = useState<View>(openingView);
   const [filters, setFilters] = useState<PipelineFiltersState>({
     sort: "newest",
   });
@@ -148,17 +159,19 @@ export default function PipelinePage(): React.JSX.Element {
             {canEdit && (
               <Link
                 to="/pitches/new"
-                className="bg-navy-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-navy-800 transition-colors"
+                className="inline-flex min-h-11 md:min-h-0 items-center bg-navy-900 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-navy-800 transition-colors"
               >
                 New Pitch
               </Link>
             )}
             <div className="flex items-center bg-navy-100 rounded-lg p-0.5">
               <button
+                type="button"
+                aria-pressed={view === "kanban"}
                 onClick={() => {
                   setView("kanban");
                 }}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                className={`min-h-11 md:min-h-0 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   view === "kanban"
                     ? "bg-white text-navy-900 shadow-sm"
                     : "text-navy-500 hover:text-navy-700"
@@ -167,10 +180,12 @@ export default function PipelinePage(): React.JSX.Element {
                 Board
               </button>
               <button
+                type="button"
+                aria-pressed={view === "list"}
                 onClick={() => {
                   setView("list");
                 }}
-                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                className={`min-h-11 md:min-h-0 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   view === "list"
                     ? "bg-white text-navy-900 shadow-sm"
                     : "text-navy-500 hover:text-navy-700"
@@ -195,7 +210,7 @@ export default function PipelinePage(): React.JSX.Element {
           <button
             type="button"
             onClick={toggleClosed}
-            className="mb-5 text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 hover:border-navy-400 focus:outline-none focus:ring-2 focus:ring-navy-300"
+            className="mb-5 min-h-11 md:min-h-0 text-sm border border-navy-200 rounded-lg px-3 py-2 bg-white text-navy-700 hover:border-navy-400 focus:outline-none focus:ring-2 focus:ring-navy-300"
           >
             {showClosed ? "Hide old pitches" : "Show old pitches"}
           </button>
@@ -223,7 +238,16 @@ export default function PipelinePage(): React.JSX.Element {
           onPitchMoved={handlePitchMoved}
         />
       ) : (
-        <PipelineListView pitches={filteredPitches} />
+        <PipelineListView
+          pitches={filteredPitches}
+          onStageChange={
+            canEdit
+              ? (pitchId, fromStage, toStage) => {
+                  void moveStage(pitchId, fromStage, toStage, handlePitchMoved);
+                }
+              : undefined
+          }
+        />
       )}
     </Layout>
   );

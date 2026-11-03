@@ -7,7 +7,7 @@
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import KanbanColumn from "./KanbanColumn";
 import { PIPELINE_STAGES } from "./PipelineConfig";
-import api from "../../services/api";
+import { moveStage } from "./moveStage";
 import type { Pitch } from "../../types";
 
 interface KanbanBoardProps {
@@ -27,29 +27,6 @@ export default function KanbanBoard({
     );
   }
 
-  // Shared optimistic-move path used by both drag-and-drop and the right-click
-  // stage menu: move the card immediately, persist the change, revert on failure.
-  async function moveStage(
-    pitchId: string,
-    fromStage: string,
-    toStage: string,
-  ): Promise<void> {
-    if (fromStage === toStage) return;
-
-    onPitchMoved(pitchId, toStage);
-
-    try {
-      await api.post(`/pitches/${pitchId}/stage`, {
-        new_stage: toStage,
-        note: `Moved from ${fromStage.replace("_", " ")} to ${toStage.replace("_", " ")}`,
-      });
-    } catch (err) {
-      // If the API call fails, revert the move
-      onPitchMoved(pitchId, fromStage);
-      console.error("Failed to update stage:", err);
-    }
-  }
-
   function handleDragEnd(result: DropResult): void {
     const { draggableId, source, destination } = result;
 
@@ -61,7 +38,12 @@ export default function KanbanBoard({
     )
       return;
 
-    void moveStage(draggableId, source.droppableId, destination.droppableId);
+    void moveStage(
+      draggableId,
+      source.droppableId,
+      destination.droppableId,
+      onPitchMoved,
+    );
   }
 
   return (
@@ -76,7 +58,7 @@ export default function KanbanBoard({
             stage={stage}
             pitches={pitchesByStage[stage.key]}
             onStageSelect={(pitchId, fromStage, toStage) => {
-              void moveStage(pitchId, fromStage, toStage);
+              void moveStage(pitchId, fromStage, toStage, onPitchMoved);
             }}
           />
         ))}

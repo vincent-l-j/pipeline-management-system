@@ -1,8 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import PipelinePage from "../PipelinePage";
+import { MD_MIN_WIDTH_PX } from "../../breakpoints";
+import { PIPELINE_STAGES } from "../../components/pipeline/PipelineConfig";
 import { AuthProvider } from "../../contexts/AuthContext";
 import { createApiMocks } from "../../test/mocks/api";
 import type { Pitch } from "../../types";
@@ -70,7 +78,25 @@ function renderPage(path = "/pipeline") {
   );
 }
 
+/**
+ * jsdom has no viewport, so `matchMedia` is missing; this answers width queries
+ * as a screen of the given width would.
+ */
+function onScreen(width: number) {
+  vi.stubGlobal("matchMedia", (query: string) => {
+    const [, bound, px] = /\((min|max)-width:\s*(\d+)px\)/.exec(query) ?? [];
+    const matches = bound === "min" ? width >= Number(px) : width <= Number(px);
+    return {
+      matches,
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    };
+  });
+}
+
 beforeEach(() => {
+  onScreen(1280);
   localStorage.setItem("token", "t");
   localStorage.setItem(
     "user",
@@ -81,6 +107,7 @@ beforeEach(() => {
 
 afterEach(() => {
   localStorage.clear();
+  vi.unstubAllGlobals();
 });
 
 describe("PipelinePage hides long-closed pitches", () => {
@@ -235,5 +262,117 @@ describe("PipelinePage loading states", () => {
     expect(
       screen.queryByRole("button", { name: "Try again" }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("PipelinePage's opening view", () => {
+  it("opens on the list below the medium breakpoint", async () => {
+    onScreen(MD_MIN_WIDTH_PX - 1);
+    renderPage();
+
+    expect(await screen.findByRole("table")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "List" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("opens on the board at the medium breakpoint", async () => {
+    onScreen(MD_MIN_WIDTH_PX);
+    renderPage();
+
+    await screen.findByText("Recently declined");
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Board" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("still offers the board on a phone", async () => {
+    onScreen(390);
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByRole("table");
+
+    await user.click(screen.getByRole("button", { name: "Board" }));
+
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getByText("Recently declined")).toBeInTheDocument();
+  });
+});
+
+describe("PipelinePage changes a stage from the list", () => {
+  function stageOf(title: string): HTMLSelectElement {
+    return screen.getByRole("combobox", { name: `Stage of ${title}` });
+  }
+
+  async function showList() {
+    onScreen(390);
+    renderPage();
+    await screen.findByRole("table");
+  }
+
+  it("moves the pitch at once and saves the new stage", async () => {
+    let settle: (value: unknown) => void = () => undefined;
+    apiMocks.post.mockReturnValue(
+      new Promise((resolve) => {
+        settle = resolve;
+      }),
+    );
+    const user = userEvent.setup();
+    await showList();
+
+    await user.selectOptions(stageOf("Long parked"), "Due Diligence");
+
+    expect(stageOf("Long parked")).toHaveDisplayValue("Due Diligence");
+    expect(apiMocks.post.mock).toHaveBeenCalledWith("/pitches/4/stage", {
+      new_stage: "due_diligence",
+      note: "Moved from parked to due diligence",
+    });
+    settle({});
+    await waitFor(() => {
+      expect(stageOf("Long parked")).toHaveDisplayValue("Due Diligence");
+    });
+  });
+
+  it("puts the pitch back if the change cannot be saved", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    apiMocks.post.mockRejectedValue(new Error("Network Error"));
+    const user = userEvent.setup();
+    await showList();
+
+    await user.selectOptions(stageOf("Long parked"), "Due Diligence");
+
+    await waitFor(() => {
+      expect(stageOf("Long parked")).toHaveDisplayValue("Parked");
+    });
+  });
+
+  it("offers every stage", async () => {
+    await showList();
+
+    expect(
+      within(stageOf("Long parked"))
+        .getAllByRole("option")
+        .map((o) => o.textContent),
+    ).toEqual(PIPELINE_STAGES.map((s) => s.label));
+  });
+
+  it("shows a viewer the stage without a control to change it", async () => {
+    localStorage.setItem(
+      "user",
+      JSON.stringify({ id: "u2", role: "viewer", display_name: "Viewer" }),
+    );
+    await showList();
+
+    expect(
+      screen.queryByRole("combobox", { name: /^Stage of / }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole("row", { name: /Long parked/ })).getByText(
+        "Parked",
+      ),
+    ).toBeInTheDocument();
   });
 });

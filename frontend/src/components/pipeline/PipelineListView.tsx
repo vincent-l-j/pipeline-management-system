@@ -1,19 +1,24 @@
-/**
- * Table/list view of the pipeline — an alternative to the Kanban board.
- * Shows all pitches in a sortable, filterable table.
- */
+// The pipeline as a table, the alternative to the Kanban board.
 
-import { STAGE_MAP, SOURCE_LABELS, FUNDING_LABELS } from "./PipelineConfig";
+import {
+  PIPELINE_STAGES,
+  STAGE_MAP,
+  SOURCE_LABELS,
+  FUNDING_LABELS,
+} from "./PipelineConfig";
 import { DECLINE_REASON_LABELS } from "../assessments/AssessmentConfig";
 import type { Pitch } from "../../types";
 import TableScroll from "../ui/TableScroll";
 
 interface PipelineListViewProps {
   pitches: Pitch[];
-  onStageClick?: (pitchId: string, stage: string) => void;
+  onStageChange?: (pitchId: string, fromStage: string, toStage: string) => void;
 }
 
-export default function PipelineListView({ pitches }: PipelineListViewProps) {
+export default function PipelineListView({
+  pitches,
+  onStageChange,
+}: PipelineListViewProps) {
   return (
     <div className="bg-white rounded-xl border border-navy-100 overflow-hidden">
       <TableScroll>
@@ -71,12 +76,33 @@ export default function PipelineListView({ pitches }: PipelineListViewProps) {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`inline-block text-xs font-medium px-2 py-1 rounded-full ${stage.lightColor}`}
-                      >
-                        {stage.label}
-                      </span>
-                      {/* Under the badge rather than in a column of its own, which
+                      {onStageChange ? (
+                        <select
+                          aria-label={`Stage of ${pitch.title}`}
+                          value={pitch.current_stage}
+                          onChange={(e) => {
+                            onStageChange(
+                              pitch.id,
+                              pitch.current_stage,
+                              e.target.value,
+                            );
+                          }}
+                          className={`min-h-11 md:min-h-0 text-xs font-medium px-2 py-1 rounded-full border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-navy-300 ${stage.lightColor}`}
+                        >
+                          {PIPELINE_STAGES.map((s) => (
+                            <option key={s.key} value={s.key}>
+                              {s.label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span
+                          className={`inline-block text-xs font-medium px-2 py-1 rounded-full ${stage.lightColor}`}
+                        >
+                          {stage.label}
+                        </span>
+                      )}
+                      {/* Under the stage rather than in a column of its own, which
                         would be empty on every row that is not declined. */}
                       {pitch.decline_reason && (
                         <p className="text-[11px] text-red-600 mt-1">

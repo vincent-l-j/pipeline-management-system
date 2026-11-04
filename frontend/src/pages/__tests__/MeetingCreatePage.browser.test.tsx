@@ -15,7 +15,7 @@ vi.mock("../../contexts/AuthContext", () => ({
   useAuth: () => ({ user: mockUser, logout: vi.fn() }),
 }));
 
-/** Long the way real titles are long, so neither fits a 360px column. */
+/** Long the way real titles are long, so neither fits a phone's width. */
 const PITCHES = [
   {
     id: "p1",

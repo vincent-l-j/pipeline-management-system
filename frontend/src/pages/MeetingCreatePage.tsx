@@ -11,6 +11,7 @@ import Layout from "../components/Layout";
 import PageHeader from "../components/PageHeader";
 import api from "../services/api";
 import OptionSelect, { type SelectOption } from "../components/ui/OptionSelect";
+import Combobox from "../components/ui/Combobox";
 
 interface Pitch {
   id: string;
@@ -131,8 +132,11 @@ export default function MeetingCreatePage(): React.JSX.Element {
 
         {/* Title */}
         <div>
-          <label className={labelClass}>Meeting Title *</label>
+          <label htmlFor="meeting-title" className={labelClass}>
+            Meeting Title *
+          </label>
           <input
+            id="meeting-title"
             type="text"
             required
             value={form.title}
@@ -145,23 +149,34 @@ export default function MeetingCreatePage(): React.JSX.Element {
         </div>
 
         {/* Pitch link */}
-        <OptionSelect
-          id="meeting-pitch"
-          label="Linked Pitch *"
-          placeholder="Select a pitch..."
-          required
-          value={form.pitch_id}
-          options={pitches.map((p: Pitch) => ({ value: p.id, label: p.title }))}
-          onChange={(pitch_id) => {
-            update("pitch_id", pitch_id);
-          }}
-        />
+        <div>
+          <label htmlFor="meeting-pitch" className={labelClass}>
+            Linked Pitch *
+          </label>
+          <Combobox
+            id="meeting-pitch"
+            placeholder="Search pitches..."
+            required
+            value={form.pitch_id}
+            options={pitches.map((p: Pitch) => ({
+              value: p.id,
+              label: p.title,
+            }))}
+            onChange={(pitch_id) => {
+              update("pitch_id", pitch_id);
+            }}
+            emptyMessage="No pitches match"
+          />
+        </div>
 
         {/* Date, Time, Platform — row */}
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <label className={labelClass}>Date *</label>
+            <label htmlFor="meeting-date" className={labelClass}>
+              Date *
+            </label>
             <input
+              id="meeting-date"
               type="date"
               required
               value={form.meeting_date}
@@ -172,8 +187,11 @@ export default function MeetingCreatePage(): React.JSX.Element {
             />
           </div>
           <div>
-            <label className={labelClass}>Time</label>
+            <label htmlFor="meeting-time" className={labelClass}>
+              Time
+            </label>
             <input
+              id="meeting-time"
               type="time"
               value={form.meeting_time}
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -195,8 +213,11 @@ export default function MeetingCreatePage(): React.JSX.Element {
 
         {/* Summary */}
         <div>
-          <label className={labelClass}>Summary</label>
+          <label htmlFor="meeting-summary" className={labelClass}>
+            Summary
+          </label>
           <textarea
+            id="meeting-summary"
             rows={3}
             value={form.summary}
             onChange={(e: ChangeEvent<HTMLTextAreaElement>) => {
@@ -209,8 +230,11 @@ export default function MeetingCreatePage(): React.JSX.Element {
 
         {/* Key Points */}
         <div>
-          <label className={labelClass}>Key Points</label>
+          <label htmlFor="meeting-key-points" className={labelClass}>
+            Key Points
+          </label>
           <textarea
+            id="meeting-key-points"
             rows={3}
             value={form.key_points}
             onChange={(e: ChangeEvent<HTMLTextAreaElement>) => {
@@ -223,8 +247,11 @@ export default function MeetingCreatePage(): React.JSX.Element {
 
         {/* Action Items */}
         <div>
-          <label className={labelClass}>Action Items</label>
+          <label htmlFor="meeting-action-items" className={labelClass}>
+            Action Items
+          </label>
           <textarea
+            id="meeting-action-items"
             rows={3}
             value={form.action_items}
             onChange={(e: ChangeEvent<HTMLTextAreaElement>) => {
@@ -238,8 +265,11 @@ export default function MeetingCreatePage(): React.JSX.Element {
         {/* Follow-up Date */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className={labelClass}>Follow-up Date</label>
+            <label htmlFor="meeting-follow-up-date" className={labelClass}>
+              Follow-up Date
+            </label>
             <input
+              id="meeting-follow-up-date"
               type="date"
               value={form.follow_up_date}
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
@@ -249,8 +279,11 @@ export default function MeetingCreatePage(): React.JSX.Element {
             />
           </div>
           <div>
-            <label className={labelClass}>Recording Link</label>
+            <label htmlFor="meeting-recording-link" className={labelClass}>
+              Recording Link
+            </label>
             <input
+              id="meeting-recording-link"
               type="text"
               value={form.recording_link}
               onChange={(e: ChangeEvent<HTMLInputElement>) => {

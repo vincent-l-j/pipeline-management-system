@@ -10,8 +10,8 @@
  * they already have; there is no fetching, no debounce and no request race.
  *
  * Three behaviours exist for reasons that are easy to undo by accident:
- *   - Enter calls preventDefault before selecting. This lives inside the pitch
- *     form, and without it choosing an option submits the pitch.
+ *   - Enter calls preventDefault before selecting. Without it, choosing an
+ *     option inside a form submits the form.
  *   - Options commit on mousedown, not click. Click loses the race against the
  *     blur that closes the list, so the row is gone before the click lands.
  *   - Escape stops propagation only while the list is open, so it closes the
@@ -37,6 +37,8 @@ interface ComboboxProps {
   onChange: (value: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  /** Holds back the surrounding form while nothing is chosen. */
+  required?: boolean;
   className?: string;
   /** Supplying this adds a final row that creates a new option. */
   onCreate?: (query: string) => void;
@@ -52,6 +54,7 @@ export default function Combobox({
   onChange,
   placeholder,
   disabled = false,
+  required = false,
   className,
   onCreate,
   createLabel = (query) => (query ? `Add "${query}"` : "Add new"),
@@ -167,6 +170,7 @@ export default function Combobox({
         }
         autoComplete="off"
         disabled={disabled}
+        required={required}
         value={text}
         placeholder={placeholder}
         className={inputClass}

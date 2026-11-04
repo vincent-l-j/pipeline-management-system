@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import MeetingCreatePage from "../MeetingCreatePage";
 import { createApiMocks } from "../../test/mocks/api";
@@ -53,25 +53,80 @@ describe("MeetingCreatePage", () => {
     ).toBeInTheDocument();
   });
 
-  it("offers the fetched pitches behind a placeholder", async () => {
-    await renderPage();
-    const select = screen.getByRole("combobox", { name: "Linked Pitch *" });
-
-    await waitFor(() => {
-      expect(
-        Array.from(select.querySelectorAll("option")).map((o) => o.textContent),
-      ).toEqual(["Select a pitch...", "Solar Pitch", "Soil Sensors"]);
-    });
-  });
-
-  it("reports the chosen pitch by id", async () => {
+  it("offers every fetched pitch when the pitch field is opened", async () => {
     const user = userEvent.setup();
     await renderPage();
-    const select = screen.getByRole("combobox", { name: "Linked Pitch *" });
-    await waitFor(() => screen.getByRole("option", { name: "Soil Sensors" }));
 
-    await user.selectOptions(select, "p2");
-    expect(select).toHaveValue("p2");
+    await user.click(screen.getByRole("combobox", { name: "Linked Pitch *" }));
+
+    expect(
+      within(screen.getByRole("listbox"))
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["Solar Pitch", "Soil Sensors"]);
+  });
+
+  it("narrows the pitches to those matching the typed text", async () => {
+    const user = userEvent.setup();
+    await renderPage();
+
+    await user.type(
+      screen.getByRole("combobox", { name: "Linked Pitch *" }),
+      "sens",
+    );
+
+    expect(
+      within(screen.getByRole("listbox"))
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["Soil Sensors"]);
+  });
+
+  it("logs the meeting against the pitch chosen by typing", async () => {
+    const user = userEvent.setup();
+    apiMocks.post.mockResolvedValue({ data: { id: "m1" } });
+    await renderPage();
+    await user.type(
+      screen.getByRole("textbox", { name: "Meeting Title *" }),
+      "Discovery call",
+    );
+
+    await user.type(
+      screen.getByRole("combobox", { name: "Linked Pitch *" }),
+      "soil",
+    );
+    await user.click(screen.getByRole("option", { name: "Soil Sensors" }));
+    await user.click(screen.getByRole("button", { name: "Save Meeting" }));
+
+    expect(apiMocks.post.mock).toHaveBeenCalledWith(
+      "/meetings",
+      expect.objectContaining({ pitch_id: "p2" }),
+    );
+  });
+
+  it("does not log a meeting whose pitch was typed but never chosen", async () => {
+    const user = userEvent.setup();
+    await renderPage();
+    await user.type(
+      screen.getByRole("textbox", { name: "Meeting Title *" }),
+      "Discovery call",
+    );
+
+    await user.type(
+      screen.getByRole("combobox", { name: "Linked Pitch *" }),
+      "soil",
+    );
+    await user.click(screen.getByRole("button", { name: "Save Meeting" }));
+
+    expect(apiMocks.post.mock).not.toHaveBeenCalled();
+  });
+
+  it("keeps the platform a native select, its vocabulary being short and fixed", async () => {
+    await renderPage();
+
+    expect(screen.getByRole("combobox", { name: "Platform" }).tagName).toBe(
+      "SELECT",
+    );
   });
 
   // No blank option: the platform always holds a real value, so offering an

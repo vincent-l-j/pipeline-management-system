@@ -204,6 +204,11 @@ describe("Combobox", () => {
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 
+  it("marks the field required when asked", () => {
+    const { input } = setup({ required: true });
+    expect(input).toBeRequired();
+  });
+
   describe("inline create", () => {
     const createProps = {
       onCreate: vi.fn(),

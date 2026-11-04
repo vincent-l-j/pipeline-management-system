@@ -209,9 +209,10 @@ whoever inserts the next test.
     which has to move above them before that form can adopt it.
   - **`PitchCreatePage` and `PitchEditPage` use it**; the assessment and meeting
     forms still carry bare action rows and are the ones to convert next.
-- **A field grid needs a single-column state.** Two columns at 360px leave each
-  field about 156px, which no date input or select can use. Write
-  `grid-cols-1 sm:grid-cols-2`, not `grid-cols-2`.
+- **A grid of form inputs stacks to one column at phone width** and takes its
+  columns only from a breakpoint up. Side by side at 360px, a date input or
+  select is too narrow to use. Read-only value grids and stat tiles have no
+  inputs, so they can keep their columns.
 
 ## Unit tests (Vitest + React Testing Library)
 

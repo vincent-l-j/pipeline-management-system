@@ -12,6 +12,7 @@ import PageHeader from "../components/PageHeader";
 import api from "../services/api";
 import OptionSelect, { type SelectOption } from "../components/ui/OptionSelect";
 import Combobox from "../components/ui/Combobox";
+import SaveBar from "../components/ui/SaveBar";
 
 interface Pitch {
   id: string;
@@ -295,8 +296,7 @@ export default function MeetingCreatePage(): React.JSX.Element {
           </div>
         </div>
 
-        {/* Submit */}
-        <div className="flex gap-3 pt-2">
+        <SaveBar>
           <button
             type="submit"
             disabled={saving}
@@ -313,7 +313,7 @@ export default function MeetingCreatePage(): React.JSX.Element {
           >
             Cancel
           </button>
-        </div>
+        </SaveBar>
       </form>
     </Layout>
   );

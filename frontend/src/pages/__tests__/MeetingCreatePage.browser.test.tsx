@@ -3,6 +3,7 @@ import { cleanup, render } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import MeetingCreatePage from "../MeetingCreatePage";
 import { createApiMocks } from "../../test/mocks/api";
+import { unobscured } from "../../test/unobscured";
 
 vi.mock("../../services/api", () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
@@ -152,6 +153,30 @@ describe("logging a meeting on a 360px screen", () => {
     );
   });
 
+  // Tapped from the foot of a form several screens long, the banner above the
+  // first field is off-screen; the reason has to come to the user.
+  it("shows why a save failed without the form being scrolled back up", async () => {
+    apiMocks.post.mockRejectedValue({
+      response: { status: 500, data: { detail: "Database unavailable" } },
+    });
+    await showForm();
+    await userEvent.fill(
+      page.getByLabelText("Meeting Title *"),
+      "Discovery call",
+    );
+    await commands.tap("#meeting-pitch");
+    await tapOption(PITCHES[1].title);
+    window.scrollTo(0, document.documentElement.scrollHeight);
+
+    await commands.tap('button[type="submit"]');
+
+    const alert = page.getByRole("alert");
+    await expect.element(alert).toHaveTextContent("Database unavailable");
+    expect(unobscured(alert.element())).toEqual({
+      inViewport: true,
+      onTop: true,
+    });
+  });
   it("does not print the save bar", async () => {
     await showForm();
     const bar = page.getByTestId("save-bar").element();

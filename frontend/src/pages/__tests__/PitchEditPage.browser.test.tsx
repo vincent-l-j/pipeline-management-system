@@ -3,6 +3,7 @@ import { cleanup, render } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import PitchEditPage from "../PitchEditPage";
 import { createApiMocks } from "../../test/mocks/api";
+import { unobscured } from "../../test/unobscured";
 
 vi.mock("../../services/api", () => ({
   default: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
@@ -118,5 +119,24 @@ describe("editing a pitch on a 360px screen", () => {
     await commands.emulateMedia("print");
 
     expect(bar.checkVisibility()).toBe(false);
+  });
+
+  // Tapped from the foot of a form several screens long, the banner above the
+  // first field is off-screen; the reason has to come to the user.
+  it("shows why a save failed without the form being scrolled back up", async () => {
+    apiMocks.patch.mockRejectedValue({
+      response: { status: 500, data: { detail: "Database unavailable" } },
+    });
+    await showForm();
+    window.scrollTo(0, document.documentElement.scrollHeight);
+
+    await commands.tap('button[type="submit"]');
+
+    const alert = page.getByRole("alert");
+    await expect.element(alert).toHaveTextContent("Database unavailable");
+    expect(unobscured(alert.element())).toEqual({
+      inViewport: true,
+      onTop: true,
+    });
   });
 });

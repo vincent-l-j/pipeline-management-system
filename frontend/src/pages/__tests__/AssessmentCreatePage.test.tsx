@@ -151,6 +151,39 @@ describe("AssessmentCreatePage decline reason", () => {
     for (const button of threes) await user.click(button);
   }
 
+  it("announces an unscored submission to assistive technology", async () => {
+    const user = userEvent.setup();
+    render(<AssessmentCreatePage />);
+    await waitFor(() => screen.getByText("Recommendation *"));
+
+    await user.click(
+      screen.getByRole("button", { name: /Submit Assessment/i }),
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Please score all six criteria before submitting.",
+    );
+  });
+
+  it("announces a failed save to assistive technology", async () => {
+    const user = userEvent.setup();
+    apiMocks.post.mockRejectedValue({
+      response: { status: 500, data: { detail: "Database unavailable" } },
+    });
+    render(<AssessmentCreatePage />);
+    await waitFor(() => screen.getByText("Recommendation *"));
+    await scoreEverything(user);
+    await user.click(screen.getByRole("button", { name: "Proceed" }));
+
+    await user.click(
+      screen.getByRole("button", { name: /Submit Assessment/i }),
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Database unavailable",
+    );
+  });
+
   it("offers no reason field until Decline is chosen", async () => {
     const user = userEvent.setup();
     render(<AssessmentCreatePage />);

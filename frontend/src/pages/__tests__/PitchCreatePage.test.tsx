@@ -475,6 +475,22 @@ describe("PitchCreatePage", () => {
     });
   });
 
+  it("announces a failed save to assistive technology", async () => {
+    const user = userEvent.setup();
+    apiMocks.post.mockRejectedValue({
+      response: { status: 500, data: { detail: "Database unavailable" } },
+    });
+    render(<PitchCreatePage />);
+    await waitFor(() => screen.getByText("New Pitch"));
+
+    await user.type(screen.getByLabelText(/Title/), "Soil sensing");
+    await user.click(screen.getByRole("button", { name: /Add Pitch/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Database unavailable",
+    );
+  });
+
   it("renders a validation error's messages rather than an object", async () => {
     const user = userEvent.setup();
     apiMocks.post.mockRejectedValue({

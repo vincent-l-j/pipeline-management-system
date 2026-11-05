@@ -332,6 +332,22 @@ describe("PitchEditPage", () => {
     expect(screen.queryByTestId("contact-chip")).not.toBeInTheDocument();
   });
 
+  it("announces a failed save to assistive technology", async () => {
+    const user = userEvent.setup();
+    setupGet();
+    apiMocks.patch.mockRejectedValue({
+      response: { status: 500, data: { detail: "Database unavailable" } },
+    });
+    render(<PitchEditPage />);
+    await waitFor(() => screen.getByDisplayValue("Original Title"));
+
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Database unavailable",
+    );
+  });
+
   it("renders a validation error's messages rather than an object", async () => {
     const user = userEvent.setup();
     setupGet();

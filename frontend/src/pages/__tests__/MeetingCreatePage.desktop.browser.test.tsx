@@ -1,8 +1,9 @@
-import { page } from "vitest/browser";
+import { page, userEvent } from "vitest/browser";
 import { cleanup, render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import MeetingCreatePage from "../MeetingCreatePage";
 import { createApiMocks } from "../../test/mocks/api";
+import { unobscured } from "../../test/unobscured";
 
 vi.mock("../../services/api", () => ({
   default: { get: vi.fn(), post: vi.fn() },
@@ -15,6 +16,8 @@ vi.mock("../../contexts/AuthContext", () => ({
   useAuth: () => ({ user: mockUser, logout: vi.fn() }),
 }));
 
+const PITCH = { id: "p1", title: "Rangeland carbon sensing" };
+
 /** Grid order, so each row is the fields the layout puts side by side. */
 const ROWS: string[][] = [
   ["Date *", "Time", "Platform"],
@@ -22,7 +25,7 @@ const ROWS: string[][] = [
 ];
 
 beforeEach(() => {
-  apiMocks.get.mockResolvedValue({ data: [] });
+  apiMocks.get.mockResolvedValue({ data: [PITCH] });
 });
 
 afterEach(() => {
@@ -103,5 +106,31 @@ describe("the meeting form's actions above the md breakpoint", () => {
 
     expect(style.borderTopWidth).toBe("0px");
     expect(style.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+  });
+});
+
+describe("a failed save on a wide screen", () => {
+  // Where the banner always was, so a desk sees the same banner in the same
+  // place — now also brought into view when the save was clicked below it.
+  it("reports above the first field, in view", async () => {
+    apiMocks.post.mockRejectedValue({
+      response: { status: 500, data: { detail: "Database unavailable" } },
+    });
+    await showForm();
+    await userEvent.fill(page.getByLabelText("Meeting Title *"), "Kick-off");
+    await userEvent.click(page.getByLabelText("Linked Pitch *"));
+    await userEvent.click(page.getByRole("option", { name: PITCH.title }));
+
+    await userEvent.click(page.getByRole("button", { name: "Save Meeting" }));
+
+    const alert = page.getByRole("alert");
+    await expect.element(alert).toHaveTextContent("Database unavailable");
+    expect(alert.element().getBoundingClientRect().bottom).toBeLessThanOrEqual(
+      rect("Meeting Title *").top,
+    );
+    expect(unobscured(alert.element())).toEqual({
+      inViewport: true,
+      onTop: true,
+    });
   });
 });

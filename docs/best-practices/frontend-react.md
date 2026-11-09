@@ -211,6 +211,13 @@ whoever inserts the next test.
   must claim its own flow room inside the container — `TableScroll` knows nothing
   about its content. `Combobox` does this: it renders a spacer the height of its
   own list while that list is open.
+- **Every sideways scroller needs a print answer, not just tables.** Paper has
+  no scrollbar: whatever sits past the page edge of an `overflow-x-auto` box is
+  not shrunk or wrapped, it is dropped. Give the container
+  `print:overflow-visible`, and if its content is wider than a page even then,
+  reflow it for paper — the pipeline board wraps its stage columns with
+  `print:flex-wrap`. **Check:** each item of the scroller lies inside a 360px
+  viewport under `emulateMedia("print")`.
 - `components/ui/SaveBar` holds a form's actions and pins them to the bottom of
   the viewport below `md`, so a save is reachable from the first screen of a
   form several screens long; at `md` and up it is a plain `flex gap-3` row. It

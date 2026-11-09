@@ -48,8 +48,10 @@ export default function KanbanBoard({
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
+      {/* Paper has no scrollbar, so on paper the columns wrap onto further
+          rows instead of running off the page edge, where they are dropped. */}
       <div
-        className="flex gap-3 overflow-x-auto pb-4"
+        className="flex gap-3 overflow-x-auto pb-4 print:flex-wrap print:overflow-visible"
         style={{ minHeight: "500px" }}
       >
         {PIPELINE_STAGES.map((stage) => (

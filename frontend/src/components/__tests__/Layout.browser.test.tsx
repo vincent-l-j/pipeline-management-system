@@ -14,6 +14,7 @@ function renderLayout() {
     <MemoryRouter>
       <Layout>
         <p>Page content</p>
+        <button type="button">Page action</button>
       </Layout>
     </MemoryRouter>,
   );
@@ -92,5 +93,67 @@ describe("Layout in a browser at the 360px design floor", () => {
         .filter((item) => item.getBoundingClientRect().height < 44)
         .map((item) => item.textContent),
     ).toEqual([]);
+  });
+
+  // jsdom has no notion of inert, so only a browser can refuse the focus.
+  it("keeps the page behind the open drawer out of keyboard reach", async () => {
+    renderLayout();
+    await openDrawer();
+    const pageAction = page.getByRole("button", { name: "Page action" });
+
+    pageAction.element().focus();
+
+    expect(document.activeElement).not.toBe(pageAction.element());
+  });
+
+  it("offers the page to assistive technology while the drawer is closed", async () => {
+    renderLayout();
+
+    expect(await commands.accessibleNames()).toContain("Page action");
+  });
+
+  it("hides the page behind the open drawer from assistive technology", async () => {
+    renderLayout();
+
+    await openDrawer();
+
+    expect(await commands.accessibleNames()).not.toContain("Page action");
+  });
+
+  // A screen reader on a phone has no Escape key; these are its way out.
+  it("keeps the drawer's close controls exposed while it is open", async () => {
+    renderLayout();
+
+    await openDrawer();
+
+    expect(await commands.accessibleNames()).toEqual(
+      expect.arrayContaining(["Menu", "Close navigation"]),
+    );
+  });
+
+  it("hands the page back once the drawer closes", async () => {
+    renderLayout();
+    await openDrawer();
+    await userEvent.keyboard("{Escape}");
+    const pageAction = page.getByRole("button", { name: "Page action" });
+
+    pageAction.element().focus();
+
+    expect(document.activeElement).toBe(pageAction.element());
+  });
+
+  // The setup file zeroes transitions; the drawer's own is put back here,
+  // because a visibility transition is exactly what can refuse the focus.
+  it("moves focus into the drawer as it starts to slide in", async () => {
+    renderLayout();
+    document
+      .getElementById("app-navigation")
+      ?.style.setProperty("transition-duration", "150ms", "important");
+
+    await openDrawer();
+
+    await expect
+      .element(page.getByRole("link", { name: /Dashboard/ }))
+      .toHaveFocus();
   });
 });
